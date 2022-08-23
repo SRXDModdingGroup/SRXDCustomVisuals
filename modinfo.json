@@ -1,0 +1,20 @@
+{
+    "name": "Mod name",
+    "id": "an_id",
+    "description": "A very good description",
+    "version": "0.2.3",
+    "install": [
+        {
+            "name": "SRXD.SpinSearch.Plugin.dll",
+            "output_dir": "BepinEx/plugins"
+        },
+        {
+            "name": "SRXD.SpinSearch.Patcher.dll",
+            "output_dir": "BepinEx/patcher"
+        }
+    ],
+    "dependencies": [
+        ["other_id", "1.0.0"],
+        ["yet_another_id", "0.5.0"]
+    ]
+}
