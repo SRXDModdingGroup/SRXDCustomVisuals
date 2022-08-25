@@ -12,6 +12,7 @@
         <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
         <FileAlignment>512</FileAlignment>
         <LangVersion>10</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <PlatformTarget>AnyCPU</PlatformTarget>
@@ -32,6 +33,9 @@
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
+    <PropertyGroup>
+      <PostBuildEvent>xcopy "$(TargetDir)SRXDCustomVisuals.Core.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins" /Y</PostBuildEvent>
+    </PropertyGroup>
     <ItemGroup>
         <Reference Include="System" />
         <Reference Include="System.Core" />
@@ -40,19 +44,18 @@
         <Reference Include="UnityEngine">
           <HintPath>..\..\Libs\UnityEngine.dll</HintPath>
         </Reference>
-        <Reference Include="UnityEngine.AssetBundleModule">
-          <HintPath>..\..\Libs\UnityEngine.AssetBundleModule.dll</HintPath>
-        </Reference>
         <Reference Include="UnityEngine.CoreModule">
           <HintPath>..\..\Libs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="SpinVisualsModule.cs" />
+        <Compile Include="IVisualElement.cs" />
+        <Compile Include="VisualsEvent.cs" />
+        <Compile Include="VisualsEventBuilder.cs" />
+        <Compile Include="VisualsModule.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
-        <Compile Include="SpinVisualsScene.cs" />
-        <Compile Include="VisualElement.cs" />
-        <Compile Include="VisualElementRoot.cs" />
+        <Compile Include="VisualsScene.cs" />
+        <Compile Include="VisualElementReference.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

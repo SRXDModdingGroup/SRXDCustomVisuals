@@ -4,8 +4,8 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Core;
 
 [Serializable]
-internal struct VisualElement {
+internal struct VisualElementReference {
     public GameObject prefab;
 
-    public VisualElementRoot root;
+    public int root;
 }
