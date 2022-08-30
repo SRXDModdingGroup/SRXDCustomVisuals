@@ -23,6 +23,7 @@
         <DefineConstants>DEBUG;TRACE</DefineConstants>
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
+        <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
         <PlatformTarget>AnyCPU</PlatformTarget>
@@ -32,6 +33,7 @@
         <DefineConstants>TRACE</DefineConstants>
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
+        <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     </PropertyGroup>
     <PropertyGroup>
       <PostBuildEvent>xcopy "$(TargetDir)SRXDCustomVisuals.Core.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins" /Y</PostBuildEvent>
@@ -49,9 +51,13 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="IVisualElement.cs" />
+        <Compile Include="VisualElement.cs" />
+        <Compile Include="VisualsEventBinding.cs" />
+        <Compile Include="VisualsEventMapping.cs" />
+        <Compile Include="VisualsEventParamMapping.cs" />
+        <Compile Include="VisualsEventParams.cs" />
         <Compile Include="VisualsEvent.cs" />
-        <Compile Include="VisualsEventBuilder.cs" />
+        <Compile Include="VisualsEventParamType.cs" />
         <Compile Include="VisualsModule.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="VisualsScene.cs" />

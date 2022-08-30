@@ -13,6 +13,7 @@ public class VisualsModule : ScriptableObject, ISerializationCallbackReceiver {
     internal IReadOnlyList<VisualElementReference> Elements => elements;
     
     public void OnBeforeSerialize() {
+        elements ??= Array.Empty<VisualElementReference>();
         prefabs = new GameObject[elements.Length];
         roots = new int[elements.Length];
 

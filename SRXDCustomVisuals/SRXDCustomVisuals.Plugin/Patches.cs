@@ -25,13 +25,10 @@ public class Patches {
 
         var customVisualsInfo = CustomChartUtility.GetCustomData<CustomVisualsInfo>(info.customFile, "CustomVisualsInfo");
 
-        if (!customVisualsInfo.HasCustomVisuals)
+        if (!customVisualsInfo.HasCustomVisuals || !customVisualsInfo.DisableBaseBackground)
             return defaultBackground;
 
-        if (customVisualsInfo.DisableBaseBackground)
-            return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
-
-        return null;
+        return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
     }
     
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]

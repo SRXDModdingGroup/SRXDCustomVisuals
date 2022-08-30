@@ -20,14 +20,14 @@ public class Plugin : SpinPlugin {
 
         Logger = base.Logger;
 
-        var harmony = new Harmony("Storyboard");
+        var harmony = new Harmony("CustomVisuals");
         
         harmony.PatchAll(typeof(Patches));
         EnableCustomVisuals = AddBindableConfig("EnableCustomVisuals", true);
     }
 
     protected override void CreateMenus() {
-        var root = CreateOptionsTab("Storyboard").UIRoot;
+        var root = CreateOptionsTab("Custom Visuals").UIRoot;
 
         SpinUI.CreateToggle("Enable Custom Visuals", root).Bind(EnableCustomVisuals);
     }
