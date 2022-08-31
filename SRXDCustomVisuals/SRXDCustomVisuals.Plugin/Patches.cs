@@ -86,6 +86,7 @@ public class Patches {
         }
         
         currentScene.Load(new[] { null, mainCamera.transform });
+        currentScene.InvokeEvent("TestEvent");
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]

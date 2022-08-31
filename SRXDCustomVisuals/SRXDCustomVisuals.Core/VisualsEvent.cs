@@ -1,7 +1,10 @@
 ﻿using System;
-using UnityEngine.Events;
 
 namespace SRXDCustomVisuals.Core; 
 
 [Serializable]
-public class VisualsEvent : UnityEvent<VisualsEventParams> { }
+public class VisualsEvent {
+    public string name;
+
+    public VisualsEventMapping[] mappings;
+}

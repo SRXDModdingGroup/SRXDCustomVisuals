@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -37,50 +38,53 @@ public class VisualsScene {
         if (!loaded)
             return;
 
-        loaded = false;
         visualElements.Clear();
 
         foreach (var instance in instances)
             Object.Destroy(instance);
         
         instances.Clear();
+        loaded = false;
     }
     
     public void InvokeEvent(string key) => InvokeEvent(key, VisualsEventParams.Empty);
 
     public void InvokeEvent(string key, VisualsEventParams eventParams) {
-        var mappedEventParams = new VisualsEventParams();
+        var actionParams = new VisualsEventParams();
         
         foreach (var visualElement in visualElements) {
-            if (!visualElement.EventBindings.TryGetValue(key, out var mappings))
+            if (!visualElement.Events.TryGetValue(key, out var mappings))
                 continue;
 
             foreach (var eventMapping in mappings) {
-                mappedEventParams.Clear();
+                actionParams.Clear();
 
-                foreach (var parameterMapping in eventMapping.parameterMappings) {
+                foreach (var parameterMapping in eventMapping.parameters) {
+                    string name = parameterMapping.name;
+                    string value = parameterMapping.value;
+
                     switch (parameterMapping.type) {
                         case VisualsEventParamType.Int:
                         default:
-                            mappedEventParams.SetInt(parameterMapping.to, eventParams.GetInt(parameterMapping.from));
+                            actionParams.SetInt(name, Util.TryParseInt(value, out int intVal) ? intVal : eventParams.GetInt(value));
                             
                             break;
                         case VisualsEventParamType.Float:
-                            mappedEventParams.SetFloat(parameterMapping.to, eventParams.GetFloat(parameterMapping.from));
+                            actionParams.SetFloat(name, Util.TryParseFloat(value, out float floatVal) ? floatVal : eventParams.GetFloat(value));
                             
                             break;
                         case VisualsEventParamType.Vector:
-                            mappedEventParams.SetVector(parameterMapping.to, eventParams.GetVector(parameterMapping.from));
+                            actionParams.SetVector(name, Util.TryParseVector(value, out var vectorVal) ? vectorVal : eventParams.GetVector(value));
                             
                             break;
                         case VisualsEventParamType.Color:
-                            mappedEventParams.SetColor(parameterMapping.to, eventParams.GetColor(parameterMapping.from));
+                            actionParams.SetColor(name, Util.TryParseColor(value, out var colorVal) ? colorVal : eventParams.GetColor(value));
                             
                             break;
                     }
                 }
-                
-                eventMapping.target.Invoke(mappedEventParams);
+
+                eventMapping.target.GetAction(eventMapping.action)?.Invoke(actionParams);
             }
         }
     }

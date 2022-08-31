@@ -4,7 +4,9 @@ namespace SRXDCustomVisuals.Core;
 
 [Serializable]
 public class VisualsEventMapping {
-    public VisualsEvent target;
+    public VisualsEventTarget target;
+    
+    public string action;
 
-    public VisualsEventParamMapping[] parameterMappings;
+    public VisualsEventParamMapping[] parameters;
 }
