@@ -46,9 +46,13 @@
         <Reference Include="UnityEngine.CoreModule">
           <HintPath>..\..\Libs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.ParticleSystemModule">
+          <HintPath>..\..\Libs\UnityEngine.ParticleSystemModule.dll</HintPath>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="PulseScale.cs" />
+        <Compile Include="ParticleEffectController.cs" />
+        <Compile Include="TransformPulseController.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>
     <ItemGroup>

@@ -16,6 +16,7 @@ namespace SRXDCustomVisuals.Plugin;
 public class Patches {
     private static VisualsScene currentScene;
     private static Dictionary<string, VisualsScene> scenes = new();
+    private static NoteClearType previousClearType;
 
     private static BackgroundAssetReference OverrideBackgroundIfStoryboardHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
         var info = handle.Setup.TrackDataSegments[0].trackInfoRef;
@@ -30,7 +31,7 @@ public class Patches {
 
         return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
     }
-    
+
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
     private static void Track_Awake_Postfix(Track __instance) {
         string customAssetBundlePath = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles");
@@ -86,7 +87,6 @@ public class Patches {
         }
         
         currentScene.Load(new[] { null, mainCamera.transform });
-        currentScene.InvokeEvent("TestEvent");
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
@@ -98,6 +98,58 @@ public class Patches {
         
         currentScene.Unload();
         currentScene = null;
+    }
+
+    [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPrefix]
+    private static void TrackGameplayLogic_UpdateNoteStateInternal_Prefix(PlayState playState, int noteIndex) => previousClearType = playState.noteStates[noteIndex].clearType;
+    
+    [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPostfix]
+    private static void TrackGameplayLogic_UpdateNoteStateInternal_Postfix(PlayState playState, int noteIndex) {
+        var clearType = playState.noteStates[noteIndex].clearType;
+        
+        if (clearType == previousClearType || clearType >= NoteClearType.ClearedEarly)
+            return;
+
+        var trackData = playState.trackData;
+        var note = trackData.GetNote(noteIndex);
+
+        switch (note.NoteType) {
+            case NoteType.Match:
+                Plugin.Logger.LogMessage("Hit match");
+                
+                break;
+            case NoteType.DrumStart:
+                var drumNote = trackData.NoteData.GetDrumForNoteIndex(noteIndex);
+                
+                if (!drumNote.HasValue)
+                    break;
+                
+                if (drumNote.Value.IsHold) {
+                    if (clearType == NoteClearType.ClearedInitialHit)
+                        Plugin.Logger.LogMessage("Hit beat");
+                }
+                else if (clearType == NoteClearType.Cleared)
+                    Plugin.Logger.LogMessage("Hit beat");
+
+                break;
+            case NoteType.SpinRightStart when clearType == NoteClearType.ClearedInitialHit:
+                Plugin.Logger.LogMessage("Hit spin right");
+
+                break;
+            case NoteType.SpinLeftStart when clearType == NoteClearType.ClearedInitialHit:
+                Plugin.Logger.LogMessage("Hit spin left");
+
+                break;
+            case NoteType.Tap:
+            case NoteType.HoldStart when clearType == NoteClearType.ClearedInitialHit:
+                Plugin.Logger.LogMessage("Hit tap");
+
+                break;
+            case NoteType.ScratchStart when clearType == NoteClearType.Cleared:
+                Plugin.Logger.LogMessage("Hit scratch");
+                
+                break;
+        }
     }
 
     [HarmonyPatch(typeof(PlayableTrackDataHandle), "Loading"), HarmonyTranspiler]

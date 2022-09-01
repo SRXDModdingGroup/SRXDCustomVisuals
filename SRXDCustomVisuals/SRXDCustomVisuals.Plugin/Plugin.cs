@@ -1,4 +1,6 @@
-﻿using BepInEx;
+﻿using System.IO;
+using System.Reflection;
+using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using SMU.Utilities;
@@ -21,7 +23,9 @@ public class Plugin : SpinPlugin {
         Logger = base.Logger;
 
         var harmony = new Harmony("CustomVisuals");
-        
+
+        Assembly.LoadFrom(Path.Combine(Path.GetDirectoryName(Assembly.GetAssembly(typeof(Plugin)).Location), "SRXDCustomVisuals.Behaviors.dll"));
+
         harmony.PatchAll(typeof(Patches));
         EnableCustomVisuals = AddBindableConfig("EnableCustomVisuals", true);
     }
