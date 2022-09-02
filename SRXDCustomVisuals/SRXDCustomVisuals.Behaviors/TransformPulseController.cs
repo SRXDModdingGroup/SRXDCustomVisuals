@@ -10,10 +10,10 @@ public class TransformPulseController : VisualsEventTarget {
     [SerializeField] private Vector3 scaleVector = Vector3.one;
 
     private float currentAmount;
-    private float amount;
-    private float attack;
-    private float decay;
-    private float sustain;
+    private float amount = 1f;
+    private float attack = 0f;
+    private float decay = 1f;
+    private float sustain = 0f;
     private bool attacking;
 
     private void Update() {
@@ -25,6 +25,8 @@ public class TransformPulseController : VisualsEventTarget {
                 attacking = false;
             }
         }
+        else if (decay == 0f)
+            currentAmount = 0f;
         else
             currentAmount = Mathf.Lerp(sustain, currentAmount, Mathf.Exp(-Time.deltaTime / decay));
 

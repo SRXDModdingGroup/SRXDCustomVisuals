@@ -47,7 +47,6 @@ public class Patches {
         var mainCamera = MainCamera.Instance.GetComponent<Camera>();
         
         mainCamera.clearFlags = CameraClearFlags.Skybox;
-        mainCamera.farClipPlane = 100f;
 
         if (currentScene != null) {
             currentScene.Unload();
@@ -61,8 +60,6 @@ public class Patches {
         
         if (!customVisualsInfo.HasCustomVisuals)
             return;
-        
-        mainCamera.farClipPlane = 500f;
 
         if (customVisualsInfo.DisableBaseBackground) {
             mainCamera.clearFlags = CameraClearFlags.SolidColor;
@@ -105,6 +102,9 @@ public class Patches {
     
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPostfix]
     private static void TrackGameplayLogic_UpdateNoteStateInternal_Postfix(PlayState playState, int noteIndex) {
+        if (currentScene == null)
+            return;
+        
         var clearType = playState.noteStates[noteIndex].clearType;
         
         if (clearType == previousClearType || clearType >= NoteClearType.ClearedEarly)
@@ -114,39 +114,32 @@ public class Patches {
         var note = trackData.GetNote(noteIndex);
 
         switch (note.NoteType) {
-            case NoteType.Match:
-                Plugin.Logger.LogMessage("Hit match");
+            case NoteType.Match when clearType == NoteClearType.Cleared:
+                currentScene.InvokeEvent("HitMatch");
                 
                 break;
             case NoteType.DrumStart:
                 var drumNote = trackData.NoteData.GetDrumForNoteIndex(noteIndex);
                 
-                if (!drumNote.HasValue)
-                    break;
-                
-                if (drumNote.Value.IsHold) {
-                    if (clearType == NoteClearType.ClearedInitialHit)
-                        Plugin.Logger.LogMessage("Hit beat");
-                }
-                else if (clearType == NoteClearType.Cleared)
-                    Plugin.Logger.LogMessage("Hit beat");
+                if (drumNote.HasValue && (drumNote.Value.IsHold ? clearType == NoteClearType.ClearedInitialHit : clearType == NoteClearType.Cleared))
+                    currentScene.InvokeEvent("HitBeat");
 
                 break;
             case NoteType.SpinRightStart when clearType == NoteClearType.ClearedInitialHit:
-                Plugin.Logger.LogMessage("Hit spin right");
+                currentScene.InvokeEvent("HitSpinRight");
 
                 break;
             case NoteType.SpinLeftStart when clearType == NoteClearType.ClearedInitialHit:
-                Plugin.Logger.LogMessage("Hit spin left");
+                currentScene.InvokeEvent("HitSpinLeft");
 
                 break;
-            case NoteType.Tap:
+            case NoteType.Tap when clearType == NoteClearType.Cleared:
             case NoteType.HoldStart when clearType == NoteClearType.ClearedInitialHit:
-                Plugin.Logger.LogMessage("Hit tap");
+                currentScene.InvokeEvent("HitTap");
 
                 break;
             case NoteType.ScratchStart when clearType == NoteClearType.Cleared:
-                Plugin.Logger.LogMessage("Hit scratch");
+                currentScene.InvokeEvent("HitScratch");
                 
                 break;
         }
