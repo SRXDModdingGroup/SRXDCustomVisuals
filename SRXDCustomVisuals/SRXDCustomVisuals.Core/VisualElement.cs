@@ -8,7 +8,7 @@ namespace SRXDCustomVisuals.Core;
 public class VisualElement : MonoBehaviour, ISerializationCallbackReceiver {
     [SerializeField] private VisualsEvent[] events;
 
-    [SerializeField, HideInInspector] private List<VisualsEventTarget> targets;
+    [SerializeField, HideInInspector] private List<VisualsController> targets;
     [SerializeField, HideInInspector] private string jData;
 
     internal Dictionary<string, VisualsEventMapping[]> Events { get; private set; }
@@ -21,7 +21,7 @@ public class VisualElement : MonoBehaviour, ISerializationCallbackReceiver {
     }
 
     public void OnBeforeSerialize() {
-        targets = new List<VisualsEventTarget>();
+        targets = new List<VisualsController>();
         events ??= Array.Empty<VisualsEvent>();
 
         foreach (var visualsEvent in events) {
@@ -35,20 +35,20 @@ public class VisualElement : MonoBehaviour, ISerializationCallbackReceiver {
     }
 
     public void OnAfterDeserialize() {
-        targets ??= new List<VisualsEventTarget>();
+        targets ??= new List<VisualsController>();
         jData ??= string.Empty;
         events ??= JsonConvert.DeserializeObject<VisualsEvent[]>(jData, new VisualsEventTargetConverter(targets));
     }
 
-    private class VisualsEventTargetConverter : JsonConverter<VisualsEventTarget> {
-        private List<VisualsEventTarget> targets;
+    private class VisualsEventTargetConverter : JsonConverter<VisualsController> {
+        private List<VisualsController> targets;
         
-        public VisualsEventTargetConverter(List<VisualsEventTarget> targets) => this.targets = targets;
+        public VisualsEventTargetConverter(List<VisualsController> targets) => this.targets = targets;
 
-        public override void WriteJson(JsonWriter writer, VisualsEventTarget value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, VisualsController value, JsonSerializer serializer)
             => writer.WriteValue(targets.IndexOf(value));
 
-        public override VisualsEventTarget ReadJson(JsonReader reader, Type objectType, VisualsEventTarget existingValue, bool hasExistingValue, JsonSerializer serializer) {
+        public override VisualsController ReadJson(JsonReader reader, Type objectType, VisualsController existingValue, bool hasExistingValue, JsonSerializer serializer) {
             if (reader.Value is not long asLong)
                 return null;
             

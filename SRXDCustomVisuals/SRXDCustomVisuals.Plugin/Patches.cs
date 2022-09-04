@@ -28,6 +28,13 @@ public class Patches {
 
         if (!customVisualsInfo.HasCustomVisuals || !customVisualsInfo.DisableBaseBackground)
             return defaultBackground;
+        
+        foreach (var moduleReference in customVisualsInfo.Modules) {
+            if (AssetBundleUtility.TryGetAssetBundle(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles"), moduleReference.AssetBundleName, out _))
+                continue;
+                    
+            return defaultBackground;
+        }
 
         return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
     }
@@ -61,26 +68,32 @@ public class Patches {
         if (!customVisualsInfo.HasCustomVisuals)
             return;
 
-        if (customVisualsInfo.DisableBaseBackground) {
-            mainCamera.clearFlags = CameraClearFlags.SolidColor;
-            mainCamera.backgroundColor = Color.black;
-        }
-
         if (!scenes.TryGetValue(info.Guid, out currentScene)) {
             var modules = new List<VisualsModule>();
+            bool success = true;
 
             foreach (var moduleReference in customVisualsInfo.Modules) {
-                if (!AssetBundleUtility.TryGetAssetBundle(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles"), moduleReference.AssetBundleName, out var bundle))
-                    continue;
+                if (!AssetBundleUtility.TryGetAssetBundle(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles"), moduleReference.AssetBundleName, out var bundle)) {
+                    Plugin.Logger.LogWarning($"Failed to load asset bundle {moduleReference.AssetBundleName}");
+                    success = false;
+                }
 
                 var module = bundle.LoadAsset<VisualsModule>(moduleReference.AssetName);
                 
                 if (module != null)
                     modules.Add(module);
             }
-
+            
+            if (!success)
+                return;
+            
             currentScene = new VisualsScene(modules);
             scenes.Add(info.Guid, currentScene);
+        }
+        
+        if (customVisualsInfo.DisableBaseBackground) {
+            mainCamera.clearFlags = CameraClearFlags.SolidColor;
+            mainCamera.backgroundColor = Color.black;
         }
         
         currentScene.Load(new[] { null, mainCamera.transform });

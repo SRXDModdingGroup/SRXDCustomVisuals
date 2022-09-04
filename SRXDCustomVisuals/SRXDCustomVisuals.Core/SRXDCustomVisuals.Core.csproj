@@ -63,7 +63,7 @@
         <Compile Include="VisualsEventMapping.cs" />
         <Compile Include="VisualsEventParamMapping.cs" />
         <Compile Include="VisualsEventParams.cs" />
-        <Compile Include="VisualsEventTarget.cs" />
+        <Compile Include="VisualsController.cs" />
         <Compile Include="VisualsEventParamType.cs" />
         <Compile Include="VisualsModule.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />

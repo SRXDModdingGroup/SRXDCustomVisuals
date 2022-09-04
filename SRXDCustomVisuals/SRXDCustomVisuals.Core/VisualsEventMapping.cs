@@ -4,7 +4,7 @@ namespace SRXDCustomVisuals.Core;
 
 [Serializable]
 public class VisualsEventMapping {
-    public VisualsEventTarget target;
+    public VisualsController target;
     
     public string action;
 

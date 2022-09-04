@@ -4,17 +4,28 @@ using UnityEngine;
 
 namespace SRXDCustomVisuals.Behaviors;
 
-public class TransformPulseController : VisualsEventTarget {
+public class TransformPulseController : VisualsController {
     [SerializeField] private Transform targetTransform;
     [SerializeField] private Vector3 positionVector = Vector3.zero;
-    [SerializeField] private Vector3 scaleVector = Vector3.one;
+    [SerializeField] private Vector3 scaleVector = Vector3.zero;
+    [SerializeField] private float defaultAmount = 1f;
+    [SerializeField] private float defaultAttack = 0f;
+    [SerializeField] private float defaultDecay = 1f;
+    [SerializeField] private float defaultSustain = 0f;
 
     private float currentAmount;
-    private float amount = 1f;
-    private float attack = 0f;
-    private float decay = 1f;
-    private float sustain = 0f;
+    private float amount;
+    private float attack;
+    private float decay;
+    private float sustain;
     private bool attacking;
+
+    private void Awake() {
+        amount = defaultAmount;
+        attack = defaultAttack;
+        decay = defaultDecay;
+        sustain = defaultSustain;
+    }
 
     private void Update() {
         if (attacking) {
@@ -26,7 +37,7 @@ public class TransformPulseController : VisualsEventTarget {
             }
         }
         else if (decay == 0f)
-            currentAmount = 0f;
+            currentAmount = sustain;
         else
             currentAmount = Mathf.Lerp(sustain, currentAmount, Mathf.Exp(-Time.deltaTime / decay));
 
@@ -41,16 +52,16 @@ public class TransformPulseController : VisualsEventTarget {
     };
 
     private void Pulse(VisualsEventParams parameters) {
-        amount = parameters.GetFloat("amount", 1f);
-        attack = parameters.GetFloat("attack", 0f);
-        decay = parameters.GetFloat("decay", 1f);
-        sustain = parameters.GetFloat("sustain", 0f);
+        amount = parameters.GetFloat("amount", defaultAmount);
+        attack = parameters.GetFloat("attack", defaultAttack);
+        decay = parameters.GetFloat("decay", defaultDecay);
+        sustain = parameters.GetFloat("sustain", defaultSustain);
         attacking = attack > 0f && currentAmount < amount;
     }
 
     private void Release(VisualsEventParams parameters) {
-        decay = parameters.GetFloat("decay", 1f);
-        sustain = 0;
+        decay = parameters.GetFloat("decay", defaultDecay);
+        sustain = 0f;
         attacking = false;
     }
 }

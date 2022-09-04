@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace SRXDCustomVisuals.Behaviors; 
 
-public class ParticleEffectController : VisualsEventTarget {
+public class ParticleEffectController : VisualsController {
     [SerializeField] private ParticleSystem particleSystem;
     
     public override Action<VisualsEventParams> GetAction(string key) => key switch {
