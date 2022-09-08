@@ -17,26 +17,65 @@ public class Patches {
     private static VisualsScene currentScene;
     private static Dictionary<string, VisualsScene> scenes = new();
     private static NoteClearType previousClearType;
+    private static string assetBundlesPath = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles");
+
+    private static bool TryGetScene(string uniqueName, CustomVisualsInfo info, out VisualsScene scene) {
+        Plugin.Logger.LogMessage(uniqueName);
+        
+        if (scenes.TryGetValue(uniqueName, out scene))
+            return true;
+        
+        var modules = new List<VisualsModule>();
+        bool success = true;
+        var assetBundles = new Dictionary<string, AssetBundle>();
+
+        foreach (string bundleName in info.AssetBundles) {
+            if (AssetBundleUtility.TryGetAssetBundle(assetBundlesPath, bundleName, out var bundle))
+                assetBundles.Add(bundleName, bundle);
+            else {
+                Plugin.Logger.LogWarning($"Failed to load asset bundle {bundleName}");
+                success = false;
+            }
+        }
+            
+        if (!success)
+            return false;
+
+        foreach (var moduleReference in info.Modules) {
+            if (assetBundles.TryGetValue(moduleReference.Bundle, out var bundle)) {
+                var module = bundle.LoadAsset<VisualsModule>(moduleReference.Asset);
+
+                if (module != null)
+                    modules.Add(module);
+            }
+            else {
+                Plugin.Logger.LogWarning($"Could not find asset bundle {moduleReference.Bundle}");
+                success = false;
+            }
+        }
+            
+        if (!success)
+            return false;
+
+        scene = new VisualsScene(modules);
+        scenes.Add(uniqueName, scene);
+
+        return true;
+    }
 
     private static BackgroundAssetReference OverrideBackgroundIfStoryboardHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
-        var info = handle.Setup.TrackDataSegments[0].trackInfoRef;
+        var trackInfoRef = handle.Setup.TrackDataSegments[0].trackInfoRef;
 
-        if (!Plugin.EnableCustomVisuals.Value || !info.IsCustomFile)
+        if (!Plugin.EnableCustomVisuals.Value || !trackInfoRef.IsCustomFile)
             return defaultBackground;
 
-        var customVisualsInfo = CustomChartUtility.GetCustomData<CustomVisualsInfo>(info.customFile, "CustomVisualsInfo");
-
-        if (!customVisualsInfo.HasCustomVisuals || !customVisualsInfo.DisableBaseBackground)
-            return defaultBackground;
+        if (CustomChartUtility.TryGetCustomData<CustomVisualsInfo>(trackInfoRef.customFile, "CustomVisualsInfo", out var customVisualsInfo)
+            && customVisualsInfo.HasCustomVisuals
+            && customVisualsInfo.DisableBaseBackground
+            && TryGetScene(trackInfoRef.UniqueName, customVisualsInfo, out _))
+            return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
         
-        foreach (var moduleReference in customVisualsInfo.Modules) {
-            if (AssetBundleUtility.TryGetAssetBundle(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles"), moduleReference.AssetBundleName, out _))
-                continue;
-                    
-            return defaultBackground;
-        }
-
-        return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
+        return defaultBackground;
     }
 
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
@@ -50,7 +89,7 @@ public class Patches {
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
     private static void Track_PlayTrack_Postfix(Track __instance) {
         var data = __instance.playStateFirst.trackData;
-        var info = data.TrackInfoRef;
+        var trackInfoRef = data.TrackInfoRef;
         var mainCamera = MainCamera.Instance.GetComponent<Camera>();
         
         mainCamera.clearFlags = CameraClearFlags.Skybox;
@@ -60,37 +99,14 @@ public class Patches {
             currentScene = null;
         }
         
-        if (!Plugin.EnableCustomVisuals.Value || !info.IsCustomFile)
+        if (!Plugin.EnableCustomVisuals.Value || !trackInfoRef.IsCustomFile)
+            return;
+        
+        if (!CustomChartUtility.TryGetCustomData<CustomVisualsInfo>(trackInfoRef.customFile, "CustomVisualsInfo", out var customVisualsInfo)
+            || !customVisualsInfo.HasCustomVisuals
+            || !TryGetScene(trackInfoRef.UniqueName, customVisualsInfo, out currentScene))
             return;
 
-        var customVisualsInfo = CustomChartUtility.GetCustomData<CustomVisualsInfo>(info.customFile, "CustomVisualsInfo");
-        
-        if (!customVisualsInfo.HasCustomVisuals)
-            return;
-
-        if (!scenes.TryGetValue(info.Guid, out currentScene)) {
-            var modules = new List<VisualsModule>();
-            bool success = true;
-
-            foreach (var moduleReference in customVisualsInfo.Modules) {
-                if (!AssetBundleUtility.TryGetAssetBundle(Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles"), moduleReference.AssetBundleName, out var bundle)) {
-                    Plugin.Logger.LogWarning($"Failed to load asset bundle {moduleReference.AssetBundleName}");
-                    success = false;
-                }
-
-                var module = bundle.LoadAsset<VisualsModule>(moduleReference.AssetName);
-                
-                if (module != null)
-                    modules.Add(module);
-            }
-            
-            if (!success)
-                return;
-            
-            currentScene = new VisualsScene(modules);
-            scenes.Add(info.Guid, currentScene);
-        }
-        
         if (customVisualsInfo.DisableBaseBackground) {
             mainCamera.clearFlags = CameraClearFlags.SolidColor;
             mainCamera.backgroundColor = Color.black;

@@ -27,11 +27,11 @@ public class Plugin : SpinPlugin {
         Assembly.LoadFrom(Path.Combine(Path.GetDirectoryName(Assembly.GetAssembly(typeof(Plugin)).Location), "SRXDCustomVisuals.Behaviors.dll"));
 
         harmony.PatchAll(typeof(Patches));
-        EnableCustomVisuals = AddBindableConfig("EnableCustomVisuals", true);
+        EnableCustomVisuals = Config.CreateBindable("EnableCustomVisuals", true);
     }
 
-    protected override void CreateMenus() {
-        var root = CreateOptionsTab("Custom Visuals").UIRoot;
+    protected override void Init() {
+        var root = MenuManager.CreateOptionsTab("Custom Visuals").UIRoot;
 
         SpinUI.CreateToggle("Enable Custom Visuals", root).Bind(EnableCustomVisuals);
     }

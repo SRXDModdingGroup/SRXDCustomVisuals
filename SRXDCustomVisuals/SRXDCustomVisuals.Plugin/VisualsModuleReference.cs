@@ -3,9 +3,9 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class VisualsModuleReference {
-    [JsonProperty(propertyName: "assetBundleName")]
-    public string AssetBundleName { get; set; }
+    [JsonProperty(propertyName: "bundle")]
+    public string Bundle { get; set; } = string.Empty;
     
-    [JsonProperty(propertyName: "assetName")]
-    public string AssetName { get; set; }
+    [JsonProperty(propertyName: "asset")]
+    public string Asset { get; set; } = string.Empty;
 }

@@ -33,8 +33,7 @@
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
     <PropertyGroup>
-      <PostBuildEvent>xcopy "$(TargetDir)SRXDCustomVisuals.Plugin.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins" /Y
-xcopy "$(TargetDir)Newtonsoft.Json.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins" /Y</PostBuildEvent>
+      <PostBuildEvent>xcopy "$(TargetDir)SRXDCustomVisuals.Plugin.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins" /Y</PostBuildEvent>
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="0Harmony">
