@@ -45,13 +45,13 @@ public class TransformPulseController : VisualsController {
         targetTransform.localScale = currentAmount * scaleVector + Vector3.one;
     }
 
-    public override Action<VisualsEventParams> GetAction(string key) => key switch {
+    public override Action<IVisualsParams> GetAction(string key) => key switch {
         "Pulse" => Pulse,
         "Release" => Release,
         _ => null
     };
 
-    private void Pulse(VisualsEventParams parameters) {
+    private void Pulse(IVisualsParams parameters) {
         amount = parameters.GetFloat("amount", defaultAmount);
         attack = parameters.GetFloat("attack", defaultAttack);
         decay = parameters.GetFloat("decay", defaultDecay);
@@ -59,7 +59,7 @@ public class TransformPulseController : VisualsController {
         attacking = attack > 0f && currentAmount < amount;
     }
 
-    private void Release(VisualsEventParams parameters) {
+    private void Release(IVisualsParams parameters) {
         decay = parameters.GetFloat("decay", defaultDecay);
         sustain = 0f;
         attacking = false;

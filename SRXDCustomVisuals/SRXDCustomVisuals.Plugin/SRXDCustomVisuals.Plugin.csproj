@@ -48,6 +48,9 @@
         <Reference Include="Newtonsoft.Json">
           <HintPath>..\..\Libs\Newtonsoft.Json.dll</HintPath>
         </Reference>
+        <Reference Include="Spin.Game.TrackPlaybackSystem">
+          <HintPath>..\..\Libs\Spin.Game.TrackPlaybackSystem.dll</HintPath>
+        </Reference>
         <Reference Include="SpinCore">
           <HintPath>..\..\Libs\SpinCore.dll</HintPath>
         </Reference>
@@ -76,6 +79,9 @@
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
         <Reference Include="System.Xml" />
+        <Reference Include="Unity.Mathematics">
+          <HintPath>..\..\Libs\Unity.Mathematics.dll</HintPath>
+        </Reference>
         <Reference Include="Unity.TextMeshPro">
           <HintPath>..\..\Libs\Unity.TextMeshPro.dll</HintPath>
         </Reference>

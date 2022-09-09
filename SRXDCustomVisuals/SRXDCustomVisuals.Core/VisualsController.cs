@@ -4,5 +4,7 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Core; 
 
 public abstract class VisualsController : MonoBehaviour {
-    public abstract Action<VisualsEventParams> GetAction(string key);
+    public virtual void Init(IVisualsParams parameters, IVisualsResources resources) { }
+    
+    public virtual Action<IVisualsParams> GetAction(string key) => null;
 }

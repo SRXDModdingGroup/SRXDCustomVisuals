@@ -20,6 +20,11 @@ public class VisualElement : MonoBehaviour, ISerializationCallbackReceiver {
             Events.Add(eventBinding.name, eventBinding.mappings);
     }
 
+    public void InitControllers(IVisualsParams parameters, IVisualsResources resources) {
+        foreach (var controller in GetComponentsInChildren<VisualsController>())
+            controller.Init(parameters, resources);
+    }
+
     public void OnBeforeSerialize() {
         targets = new List<VisualsController>();
         events ??= Array.Empty<VisualsEvent>();

@@ -9,6 +9,8 @@ using SMU;
 using SMU.Utilities;
 using SpinCore.Utility;
 using SRXDCustomVisuals.Core;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
@@ -18,10 +20,11 @@ public class Patches {
     private static Dictionary<string, VisualsScene> scenes = new();
     private static NoteClearType previousClearType;
     private static string assetBundlesPath = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles");
+    private static float2[] cachedSpectrum = new float2[256];
+    private static ComputeBuffer computeBuffer;
+    private static readonly int CUSTOM_SPECTRUM_BUFFER = Shader.PropertyToID("_CustomSpectrumBuffer");
 
     private static bool TryGetScene(string uniqueName, CustomVisualsInfo info, out VisualsScene scene) {
-        Plugin.Logger.LogMessage(uniqueName);
-        
         if (scenes.TryGetValue(uniqueName, out scene))
             return true;
         
@@ -63,6 +66,8 @@ public class Patches {
         return true;
     }
 
+    private static float Boost(float x) => 1f - 1f / (100f * x + 1f);
+
     private static BackgroundAssetReference OverrideBackgroundIfStoryboardHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
         var trackInfoRef = handle.Setup.TrackDataSegments[0].trackInfoRef;
 
@@ -76,6 +81,23 @@ public class Patches {
             return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
         
         return defaultBackground;
+    }
+
+    [HarmonyPatch(typeof(Game), nameof(Game.Update)), HarmonyPostfix]
+    private static void Game_Update_Postfix() {
+        var spectrumProcessor = TrackTrackerAndUtils.Instance.SpectrumProcessor;
+        var smoothedBandsLeft = spectrumProcessor.GetSmoothedBands(AudioChannels.LeftChannel);
+        var smoothedBandsRight = spectrumProcessor.GetSmoothedBands(AudioChannels.RightChannel);
+        
+        if (!smoothedBandsLeft.IsCreated || !smoothedBandsRight.IsCreated)
+            return;
+
+        for (int i = 0; i < 256; i++)
+            cachedSpectrum[i] = new float2(Boost(smoothedBandsLeft[i]), Boost(smoothedBandsRight[i]));
+
+        computeBuffer ??= new ComputeBuffer(256, UnsafeUtility.SizeOf<float2>(), ComputeBufferType.Structured);
+        computeBuffer.SetData(cachedSpectrum);
+        Shader.SetGlobalBuffer(CUSTOM_SPECTRUM_BUFFER, computeBuffer);
     }
 
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
@@ -111,8 +133,12 @@ public class Patches {
             mainCamera.clearFlags = CameraClearFlags.SolidColor;
             mainCamera.backgroundColor = Color.black;
         }
+
+        var resources = new VisualsResources();
         
-        currentScene.Load(new[] { null, mainCamera.transform });
+        resources.AddResource("spectrumTexture", SpectrumProcessor.Instance.SpectrumTexture);
+        
+        currentScene.Load(new[] { null, mainCamera.transform }, new VisualsParams(), new VisualsResources());
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]

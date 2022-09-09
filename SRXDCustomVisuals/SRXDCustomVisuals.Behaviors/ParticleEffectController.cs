@@ -7,13 +7,13 @@ namespace SRXDCustomVisuals.Behaviors;
 public class ParticleEffectController : VisualsController {
     [SerializeField] private ParticleSystem particleSystem;
     
-    public override Action<VisualsEventParams> GetAction(string key) => key switch {
+    public override Action<IVisualsParams> GetAction(string key) => key switch {
         "Play" => Play,
         "Stop" => Stop,
         _ => null
     };
 
-    private void Play(VisualsEventParams parameters) => particleSystem.Play();
+    private void Play(IVisualsParams parameters) => particleSystem.Play();
     
-    private void Stop(VisualsEventParams parameters) => particleSystem.Stop();
+    private void Stop(IVisualsParams parameters) => particleSystem.Stop();
 }

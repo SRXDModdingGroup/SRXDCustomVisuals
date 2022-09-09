@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
 
-public class VisualsEventParams {
-    internal static VisualsEventParams Empty { get; } = new();
+public class VisualsParams : IVisualsParams {
+    internal static VisualsParams Empty { get; } = new();
     
     private Dictionary<string, int> intVals = new();
     private Dictionary<string, float> floatVals = new();

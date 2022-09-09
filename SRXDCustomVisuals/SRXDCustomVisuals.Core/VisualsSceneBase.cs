@@ -5,10 +5,10 @@ namespace SRXDCustomVisuals.Core;
 public abstract class VisualsSceneBase {
     protected abstract IEnumerable<VisualElement> VisualElements { get; }
     
-    public void InvokeEvent(string key) => InvokeEvent(key, VisualsEventParams.Empty);
+    public void InvokeEvent(string key) => InvokeEvent(key, VisualsParams.Empty);
 
-    public void InvokeEvent(string key, VisualsEventParams eventParams) {
-        var actionParams = new VisualsEventParams();
+    public void InvokeEvent(string key, IVisualsParams eventParams) {
+        var actionParams = new VisualsParams();
         
         foreach (var visualElement in VisualElements) {
             if (!visualElement.Events.TryGetValue(key, out var mappings))

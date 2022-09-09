@@ -14,7 +14,7 @@ public class VisualsScene : VisualsSceneBase {
 
     public VisualsScene(IList<VisualsModule> modules) => this.modules = modules;
 
-    public void Load(IList<Transform> roots) {
+    public void Load(IList<Transform> roots, IVisualsParams parameters, IVisualsResources resources) {
         if (loaded)
             return;
 
@@ -28,9 +28,12 @@ public class VisualsScene : VisualsSceneBase {
                 instance.transform.localRotation = Quaternion.identity;
                 instance.transform.localScale = Vector3.one;
                 instances.Add(instance);
+
+                if (!instance.TryGetComponent<VisualElement>(out var visualElement))
+                    continue;
                 
-                if (instance.TryGetComponent<VisualElement>(out var visualElement))
-                    visualElements.Add(visualElement);
+                visualElement.InitControllers(parameters, resources);
+                visualElements.Add(visualElement);
             }
         }
     }

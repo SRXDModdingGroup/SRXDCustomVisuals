@@ -31,19 +31,19 @@ public class DynamicSpinController : VisualsController {
         targetTransform.localRotation = Quaternion.AngleAxis(spin, spinAxis);
     }
 
-    public override Action<VisualsEventParams> GetAction(string key) => key switch {
+    public override Action<IVisualsParams> GetAction(string key) => key switch {
         "Spin" => Spin,
         "Release" => Release,
         _ => null
     };
 
-    private void Spin(VisualsEventParams parameters) {
+    private void Spin(IVisualsParams parameters) {
         speed = parameters.GetFloat("speed", defaultSpeed);
         decay = parameters.GetFloat("decay", defaultDecay);
         sustain = parameters.GetFloat("sustain", defaultSustain);
     }
 
-    private void Release(VisualsEventParams parameters) {
+    private void Release(IVisualsParams parameters) {
         decay = parameters.GetFloat("decay", defaultDecay);
         sustain = 0f;
     }
