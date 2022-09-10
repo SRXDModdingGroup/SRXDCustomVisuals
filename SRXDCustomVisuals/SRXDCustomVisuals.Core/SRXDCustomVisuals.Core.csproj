@@ -58,6 +58,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="IVisualsParams.cs" />
+        <Compile Include="IVisualsProperty.cs" />
         <Compile Include="IVisualsResources.cs" />
         <Compile Include="Util.cs" />
         <Compile Include="VisualElement.cs" />
@@ -69,6 +70,7 @@
         <Compile Include="VisualsEventParamType.cs" />
         <Compile Include="VisualsModule.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
+        <Compile Include="VisualsProperty.cs" />
         <Compile Include="VisualsResources.cs" />
         <Compile Include="VisualsScene.cs" />
         <Compile Include="VisualElementReference.cs" />
