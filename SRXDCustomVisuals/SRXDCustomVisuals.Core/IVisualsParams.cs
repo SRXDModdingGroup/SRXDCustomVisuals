@@ -3,6 +3,9 @@
 namespace SRXDCustomVisuals.Core; 
 
 public interface IVisualsParams {
+    bool GetBool(string key);
+    bool GetBool(string key, bool defaultValue);
+    
     int GetInt(string key);
     int GetInt(string key, int defaultValue);
     

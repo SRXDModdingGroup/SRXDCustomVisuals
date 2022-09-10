@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace SRXDCustomVisuals.Core; 
 
@@ -22,8 +23,11 @@ public abstract class VisualsSceneBase {
                     string value = parameterMapping.value;
 
                     switch (parameterMapping.type) {
+                        case VisualsEventParamType.Bool:
+                            actionParams.SetBool(name, bool.TryParse(value, out bool boolVal) ? boolVal : eventParams.GetBool(value));
+                            
+                            break;
                         case VisualsEventParamType.Int:
-                        default:
                             actionParams.SetInt(name, Util.TryParseInt(value, out int intVal) ? intVal : eventParams.GetInt(value));
                             
                             break;
@@ -39,6 +43,8 @@ public abstract class VisualsSceneBase {
                             actionParams.SetColor(name, Util.TryParseColor(value, out var colorVal) ? colorVal : eventParams.GetColor(value));
                             
                             break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
                 }
 

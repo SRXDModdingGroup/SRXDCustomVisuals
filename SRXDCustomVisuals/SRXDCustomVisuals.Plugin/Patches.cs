@@ -136,7 +136,7 @@ public class Patches {
 
         var resources = new VisualsResources();
         
-        resources.AddResource("spectrumTexture", SpectrumProcessor.Instance.SpectrumTexture);
+        resources.SetResource("spectrumTexture", SpectrumProcessor.Instance.SpectrumTexture);
         
         currentScene.Load(new[] { null, mainCamera.transform }, new VisualsParams(), new VisualsResources());
     }
