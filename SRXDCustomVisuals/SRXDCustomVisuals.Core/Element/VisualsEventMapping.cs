@@ -8,5 +8,5 @@ public class VisualsEventMapping {
     
     public string action;
 
-    public VisualsEventParamMapping[] parameters;
+    public VisualsParamMapping[] parameters;
 }

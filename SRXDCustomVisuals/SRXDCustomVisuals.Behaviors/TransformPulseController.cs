@@ -1,5 +1,4 @@
-﻿using System;
-using SRXDCustomVisuals.Core;
+﻿using SRXDCustomVisuals.Core;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Behaviors;
@@ -45,9 +44,9 @@ public class TransformPulseController : VisualsController {
         targetTransform.localScale = currentAmount * scaleVector + Vector3.one;
     }
 
-    public override Action<IVisualsParams> GetAction(string key) => key switch {
-        "Pulse" => Pulse,
-        "Release" => Release,
+    public override IVisualsEvent GetEvent(string key) => key switch {
+        "Pulse" => new VisualsEvent(Pulse),
+        "Release" => new VisualsEvent(Release),
         _ => null
     };
 

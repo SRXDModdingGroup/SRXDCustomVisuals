@@ -57,24 +57,31 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="IVisualsParams.cs" />
-        <Compile Include="IVisualsProperty.cs" />
-        <Compile Include="IVisualsResources.cs" />
-        <Compile Include="Util.cs" />
-        <Compile Include="VisualElement.cs" />
-        <Compile Include="VisualsEvent.cs" />
-        <Compile Include="VisualsEventMapping.cs" />
-        <Compile Include="VisualsEventParamMapping.cs" />
-        <Compile Include="VisualsParams.cs" />
-        <Compile Include="VisualsController.cs" />
-        <Compile Include="VisualsEventParamType.cs" />
-        <Compile Include="VisualsModule.cs" />
+        <Compile Include="Controller\VisualsController.cs" />
+        <Compile Include="Element\VisualElement.cs" />
+        <Compile Include="Element\VisualElementEvent.cs" />
+        <Compile Include="Element\VisualElementProperty.cs" />
+        <Compile Include="Element\VisualsEventMapping.cs" />
+        <Compile Include="Element\VisualsParamMapping.cs" />
+        <Compile Include="Element\VisualsParamType.cs" />
+        <Compile Include="Element\VisualsPropertyMapping.cs" />
+        <Compile Include="Event\IVisualsEvent.cs" />
+        <Compile Include="Event\VisualsEvent.cs" />
+        <Compile Include="Module\VisualElementReference.cs" />
+        <Compile Include="Module\VisualsModule.cs" />
+        <Compile Include="Params\IVisualsParams.cs" />
+        <Compile Include="Params\VisualsParams.cs" />
+        <Compile Include="Property\IVisualsProperty.cs" />
+        <Compile Include="Property\VisualsProperty.cs" />
+        <Compile Include="Resources\IVisualsResources.cs" />
+        <Compile Include="Resources\VisualsResources.cs" />
+        <Compile Include="Scene\CompositeVisualsEvent.cs" />
+        <Compile Include="Scene\VisualsScene.cs" />
+        <Compile Include="Scene\VisualsSceneLoader.cs" />
+        <Compile Include="Scene\VisualsSceneManager.cs" />
+        <Compile Include="Util\UnityObjectConverter.cs" />
+        <Compile Include="Util\Util.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
-        <Compile Include="VisualsProperty.cs" />
-        <Compile Include="VisualsResources.cs" />
-        <Compile Include="VisualsScene.cs" />
-        <Compile Include="VisualElementReference.cs" />
-        <Compile Include="VisualsSceneBase.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

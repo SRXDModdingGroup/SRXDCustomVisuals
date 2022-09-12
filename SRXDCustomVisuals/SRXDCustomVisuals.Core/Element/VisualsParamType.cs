@@ -1,6 +1,6 @@
 ﻿namespace SRXDCustomVisuals.Core; 
 
-public enum VisualsEventParamType {
+public enum VisualsParamType {
     Bool,
     Int,
     Float,

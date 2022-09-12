@@ -16,16 +16,24 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class Patches {
-    private static VisualsScene currentScene;
-    private static Dictionary<string, VisualsScene> scenes = new();
+    private static readonly int CUSTOM_SPECTRUM_BUFFER = Shader.PropertyToID("_CustomSpectrumBuffer");
+    
+    private static VisualsSceneLoader currentSceneLoader;
+    private static VisualsSceneManager sceneManager = new();
+    private static Dictionary<string, VisualsSceneLoader> scenes = new();
     private static NoteClearType previousClearType;
     private static string assetBundlesPath = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles");
     private static float2[] cachedSpectrum = new float2[256];
     private static ComputeBuffer computeBuffer;
-    private static readonly int CUSTOM_SPECTRUM_BUFFER = Shader.PropertyToID("_CustomSpectrumBuffer");
+    private static IVisualsEvent hitMatchEvent;
+    private static IVisualsEvent hitBeatEvent;
+    private static IVisualsEvent hitSpinRightEvent;
+    private static IVisualsEvent hitSpinLeftEvent;
+    private static IVisualsEvent hitTapEvent;
+    private static IVisualsEvent hitScratchEvent;
 
-    private static bool TryGetScene(string uniqueName, CustomVisualsInfo info, out VisualsScene scene) {
-        if (scenes.TryGetValue(uniqueName, out scene))
+    private static bool TryGetScene(string uniqueName, CustomVisualsInfo info, out VisualsSceneLoader sceneLoader) {
+        if (scenes.TryGetValue(uniqueName, out sceneLoader))
             return true;
         
         var modules = new List<VisualsModule>();
@@ -60,8 +68,8 @@ public class Patches {
         if (!success)
             return false;
 
-        scene = new VisualsScene(modules);
-        scenes.Add(uniqueName, scene);
+        sceneLoader = new VisualsSceneLoader(modules);
+        scenes.Add(uniqueName, sceneLoader);
 
         return true;
     }
@@ -116,9 +124,10 @@ public class Patches {
         
         mainCamera.clearFlags = CameraClearFlags.Skybox;
 
-        if (currentScene != null) {
-            currentScene.Unload();
-            currentScene = null;
+        if (currentSceneLoader != null) {
+            currentSceneLoader.Unload();
+            currentSceneLoader = null;
+            sceneManager.Clear();
         }
         
         if (!Plugin.EnableCustomVisuals.Value || !trackInfoRef.IsCustomFile)
@@ -126,7 +135,7 @@ public class Patches {
         
         if (!CustomChartUtility.TryGetCustomData<CustomVisualsInfo>(trackInfoRef.customFile, "CustomVisualsInfo", out var customVisualsInfo)
             || !customVisualsInfo.HasCustomVisuals
-            || !TryGetScene(trackInfoRef.UniqueName, customVisualsInfo, out currentScene))
+            || !TryGetScene(trackInfoRef.UniqueName, customVisualsInfo, out currentSceneLoader))
             return;
 
         if (customVisualsInfo.DisableBaseBackground) {
@@ -134,22 +143,25 @@ public class Patches {
             mainCamera.backgroundColor = Color.black;
         }
 
-        var resources = new VisualsResources();
-        
-        resources.SetResource("spectrumTexture", SpectrumProcessor.Instance.SpectrumTexture);
-        
-        currentScene.Load(new[] { null, mainCamera.transform }, new VisualsParams(), new VisualsResources());
+        sceneManager.SetScene(currentSceneLoader.Load(new[] { null, mainCamera.transform }));
+        hitMatchEvent = sceneManager.GetEvent("HitMatch");
+        hitBeatEvent = sceneManager.GetEvent("HitBeat");
+        hitSpinRightEvent = sceneManager.GetEvent("HitSpinRight");
+        hitSpinLeftEvent = sceneManager.GetEvent("HitSpinLeft");
+        hitTapEvent = sceneManager.GetEvent("HitTap");
+        hitScratchEvent = sceneManager.GetEvent("HitScratch");
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
     private static void Track_ReturnToPickTrack_Postfix() {
         MainCamera.Instance.GetComponent<Camera>().clearFlags = CameraClearFlags.Skybox;
         
-        if (currentScene == null)
+        if (currentSceneLoader == null)
             return;
         
-        currentScene.Unload();
-        currentScene = null;
+        currentSceneLoader.Unload();
+        currentSceneLoader = null;
+        sceneManager.Clear();
     }
 
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPrefix]
@@ -157,7 +169,7 @@ public class Patches {
     
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPostfix]
     private static void TrackGameplayLogic_UpdateNoteStateInternal_Postfix(PlayState playState, int noteIndex) {
-        if (currentScene == null)
+        if (!sceneManager.HasScene)
             return;
         
         var clearType = playState.noteStates[noteIndex].clearType;
@@ -170,31 +182,31 @@ public class Patches {
 
         switch (note.NoteType) {
             case NoteType.Match when clearType == NoteClearType.Cleared:
-                currentScene.InvokeEvent("HitMatch");
+                hitMatchEvent.Invoke();
                 
                 break;
             case NoteType.DrumStart:
                 var drumNote = trackData.NoteData.GetDrumForNoteIndex(noteIndex);
                 
                 if (drumNote.HasValue && (drumNote.Value.IsHold ? clearType == NoteClearType.ClearedInitialHit : clearType == NoteClearType.Cleared))
-                    currentScene.InvokeEvent("HitBeat");
+                    hitBeatEvent.Invoke();
 
                 break;
             case NoteType.SpinRightStart when clearType == NoteClearType.ClearedInitialHit:
-                currentScene.InvokeEvent("HitSpinRight");
+                hitSpinRightEvent.Invoke();
 
                 break;
             case NoteType.SpinLeftStart when clearType == NoteClearType.ClearedInitialHit:
-                currentScene.InvokeEvent("HitSpinLeft");
+                hitSpinLeftEvent.Invoke();
 
                 break;
             case NoteType.Tap when clearType == NoteClearType.Cleared:
             case NoteType.HoldStart when clearType == NoteClearType.ClearedInitialHit:
-                currentScene.InvokeEvent("HitTap");
+                hitTapEvent.Invoke();
 
                 break;
             case NoteType.ScratchStart when clearType == NoteClearType.Cleared:
-                currentScene.InvokeEvent("HitScratch");
+                hitScratchEvent.Invoke();
                 
                 break;
         }

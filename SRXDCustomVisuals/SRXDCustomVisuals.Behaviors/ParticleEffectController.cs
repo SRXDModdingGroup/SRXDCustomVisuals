@@ -1,5 +1,4 @@
-﻿using System;
-using SRXDCustomVisuals.Core;
+﻿using SRXDCustomVisuals.Core;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Behaviors; 
@@ -7,9 +6,9 @@ namespace SRXDCustomVisuals.Behaviors;
 public class ParticleEffectController : VisualsController {
     [SerializeField] private ParticleSystem particleSystem;
     
-    public override Action<IVisualsParams> GetAction(string key) => key switch {
-        "Play" => Play,
-        "Stop" => Stop,
+    public override IVisualsEvent GetEvent(string key) => key switch {
+        "Play" => new VisualsEvent(Play),
+        "Stop" => new VisualsEvent(Stop),
         _ => null
     };
 

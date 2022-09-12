@@ -4,22 +4,20 @@ using Object = UnityEngine.Object;
 
 namespace SRXDCustomVisuals.Core; 
 
-public class VisualsScene : VisualsSceneBase {
+public class VisualsSceneLoader {
     private IList<VisualsModule> modules;
+    private VisualsScene scene;
     private List<GameObject> instances = new();
-    private List<VisualElement> visualElements = new();
     private bool loaded;
 
-    protected override IEnumerable<VisualElement> VisualElements => visualElements;
+    public VisualsSceneLoader(IList<VisualsModule> modules) => this.modules = modules;
 
-    public VisualsScene(IList<VisualsModule> modules) => this.modules = modules;
-
-    public void Load(IList<Transform> roots, IVisualsParams parameters, IVisualsResources resources) {
+    public VisualsScene Load(IList<Transform> roots) {
         if (loaded)
-            return;
+            return scene;
 
-        loaded = true;
-
+        var visualElements = new List<VisualElement>();
+        
         foreach (var module in modules) {
             foreach (var element in module.Elements) {
                 var instance = Object.Instantiate(element.prefab, roots[element.root]);
@@ -29,24 +27,25 @@ public class VisualsScene : VisualsSceneBase {
                 instance.transform.localScale = Vector3.one;
                 instances.Add(instance);
 
-                if (!instance.TryGetComponent<VisualElement>(out var visualElement))
-                    continue;
-                
-                visualElement.InitControllers(parameters, resources);
-                visualElements.Add(visualElement);
+                if (instance.TryGetComponent<VisualElement>(out var visualElement))
+                    visualElements.Add(visualElement);
             }
         }
+
+        scene = new VisualsScene(visualElements);
+        loaded = true;
+
+        return scene;
     }
 
     public void Unload() {
         if (!loaded)
             return;
-
-        visualElements.Clear();
-
+        
         foreach (var instance in instances)
             Object.Destroy(instance);
-        
+
+        scene = null;
         instances.Clear();
         loaded = false;
     }

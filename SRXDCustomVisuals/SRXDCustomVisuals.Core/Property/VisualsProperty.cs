@@ -8,13 +8,13 @@ public class VisualsProperty : IVisualsProperty {
 
     public event Action Changed;
     
-    public void SetBool(bool value) => SetValue(new Vector4(value ? 1f : 0f, 0f, 0f, 0f));
+    public void SetBool(bool value) => SetFloat(value ? 1f : 0f);
 
-    public void SetInt(int value) => SetValue(new Vector4(value, 0f, 0f, 0f));
+    public void SetInt(int value) => SetFloat(value);
 
-    public void SetFloat(float value) => SetValue(new Vector4(value, 0f, 0f, 0f));
+    public void SetFloat(float value) => SetValue(new Vector4(value, value, value, 1f));
 
-    public void SetVector(Vector3 value) => SetValue(value);
+    public void SetVector(Vector3 value) => SetValue(new Vector4(value.x, value.y, value.z, 1f));
 
     public void SetColor(Color value) => SetValue(value);
 

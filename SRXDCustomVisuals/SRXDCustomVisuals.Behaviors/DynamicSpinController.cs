@@ -1,5 +1,4 @@
-﻿using System;
-using SRXDCustomVisuals.Core;
+﻿using SRXDCustomVisuals.Core;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Behaviors; 
@@ -31,9 +30,9 @@ public class DynamicSpinController : VisualsController {
         targetTransform.localRotation = Quaternion.AngleAxis(spin, spinAxis);
     }
 
-    public override Action<IVisualsParams> GetAction(string key) => key switch {
-        "Spin" => Spin,
-        "Release" => Release,
+    public override IVisualsEvent GetEvent(string key) => key switch {
+        "Spin" => new VisualsEvent(Spin),
+        "Release" => new VisualsEvent(Release),
         _ => null
     };
 

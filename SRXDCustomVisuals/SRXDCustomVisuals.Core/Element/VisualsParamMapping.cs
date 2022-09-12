@@ -3,10 +3,10 @@
 namespace SRXDCustomVisuals.Core; 
 
 [Serializable]
-public class VisualsEventParamMapping {
+public class VisualsParamMapping {
     public string name;
     
-    public VisualsEventParamType type;
+    public VisualsParamType type;
     
     public string value;
 }
