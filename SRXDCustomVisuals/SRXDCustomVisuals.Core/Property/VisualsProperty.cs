@@ -4,6 +4,8 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Core; 
 
 public class VisualsProperty : IVisualsProperty {
+    public static VisualsProperty Empty = new();
+    
     private Vector4 currentValue;
 
     public event Action Changed;

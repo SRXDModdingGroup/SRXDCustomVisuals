@@ -28,7 +28,7 @@ internal class CompositeVisualsEvent : IVisualsEvent {
         private List<VisualsParamMapping> dynamicParamMappings;
 
         public MappingInvoker(VisualsEventMapping mapping) {
-            visualsEvent = mapping.target.GetEvent(mapping.action);
+            visualsEvent = mapping.target.GetEvent(mapping.name);
 
             if (visualsEvent == null) {
                 Empty = true;

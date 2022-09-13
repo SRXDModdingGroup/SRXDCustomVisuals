@@ -5,5 +5,5 @@ public interface IVisualsEvent {
 }
 
 public static class VisualsEventExtensions {
-    public static void Invoke(this IVisualsEvent visualsEvent) => visualsEvent.Invoke(VisualsParams.Empty);
+    public static void Invoke(this IVisualsEvent visualsEvent) => visualsEvent.Invoke(EmptyVisualsParams.Instance);
 }

@@ -4,8 +4,6 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Core; 
 
 public class VisualsParams : IVisualsParams {
-    internal static VisualsParams Empty { get; } = new();
-    
     private Dictionary<string, Vector4> values = new();
 
     public void SetBool(string key, bool value) => SetFloat(key, value ? 1f : 0f);

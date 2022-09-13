@@ -6,7 +6,7 @@ namespace SRXDCustomVisuals.Core;
 public class VisualsEventMapping {
     public VisualsController target;
     
-    public string action;
+    public string name;
 
     public VisualsParamMapping[] parameters;
 }
