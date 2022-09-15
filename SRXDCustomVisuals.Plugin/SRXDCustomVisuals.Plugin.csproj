@@ -37,62 +37,62 @@
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="0Harmony">
-          <HintPath>..\..\Libs\0Harmony.dll</HintPath>
+          <HintPath>..\Libs\0Harmony.dll</HintPath>
         </Reference>
         <Reference Include="Assembly-CSharp">
-          <HintPath>..\..\Libs\Assembly-CSharp.dll</HintPath>
+          <HintPath>..\Libs\Assembly-CSharp.dll</HintPath>
         </Reference>
         <Reference Include="BepInEx">
-          <HintPath>..\..\Libs\BepInEx.dll</HintPath>
+          <HintPath>..\Libs\BepInEx.dll</HintPath>
         </Reference>
         <Reference Include="Newtonsoft.Json">
-          <HintPath>..\..\Libs\Newtonsoft.Json.dll</HintPath>
+          <HintPath>..\Libs\Newtonsoft.Json.dll</HintPath>
         </Reference>
         <Reference Include="Spin.Game.TrackPlaybackSystem">
-          <HintPath>..\..\Libs\Spin.Game.TrackPlaybackSystem.dll</HintPath>
+          <HintPath>..\Libs\Spin.Game.TrackPlaybackSystem.dll</HintPath>
         </Reference>
         <Reference Include="SpinModdingUtilities">
-          <HintPath>..\..\Libs\SpinModdingUtilities.dll</HintPath>
+          <HintPath>..\Libs\SpinModdingUtilities.dll</HintPath>
         </Reference>
         <Reference Include="SSD.Build">
-          <HintPath>..\..\Libs\SSD.Build.dll</HintPath>
+          <HintPath>..\Libs\SSD.Build.dll</HintPath>
         </Reference>
         <Reference Include="SSD.Game">
-          <HintPath>..\..\Libs\SSD.Game.dll</HintPath>
+          <HintPath>..\Libs\SSD.Game.dll</HintPath>
         </Reference>
         <Reference Include="SSD.Native">
-          <HintPath>..\..\Libs\SSD.Native.dll</HintPath>
+          <HintPath>..\Libs\SSD.Native.dll</HintPath>
         </Reference>
         <Reference Include="SSD.PlayerServiceManager">
-          <HintPath>..\..\Libs\SSD.PlayerServiceManager.dll</HintPath>
+          <HintPath>..\Libs\SSD.PlayerServiceManager.dll</HintPath>
         </Reference>
         <Reference Include="SSD.Types">
-          <HintPath>..\..\Libs\SSD.Types.dll</HintPath>
+          <HintPath>..\Libs\SSD.Types.dll</HintPath>
         </Reference>
         <Reference Include="SSD.Utility">
-          <HintPath>..\..\Libs\SSD.Utility.dll</HintPath>
+          <HintPath>..\Libs\SSD.Utility.dll</HintPath>
         </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
         <Reference Include="System.Xml" />
         <Reference Include="Unity.Mathematics">
-          <HintPath>..\..\Libs\Unity.Mathematics.dll</HintPath>
+          <HintPath>..\Libs\Unity.Mathematics.dll</HintPath>
         </Reference>
         <Reference Include="Unity.TextMeshPro">
-          <HintPath>..\..\Libs\Unity.TextMeshPro.dll</HintPath>
+          <HintPath>..\Libs\Unity.TextMeshPro.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine">
-          <HintPath>..\..\Libs\UnityEngine.dll</HintPath>
+          <HintPath>..\Libs\UnityEngine.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.AssetBundleModule">
-          <HintPath>..\..\Libs\UnityEngine.AssetBundleModule.dll</HintPath>
+          <HintPath>..\Libs\UnityEngine.AssetBundleModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
-          <HintPath>..\..\Libs\UnityEngine.CoreModule.dll</HintPath>
+          <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.UI">
-          <HintPath>..\..\Libs\UnityEngine.UI.dll</HintPath>
+          <HintPath>..\Libs\UnityEngine.UI.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>

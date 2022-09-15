@@ -40,20 +40,20 @@
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Newtonsoft.Json">
-          <HintPath>..\..\Libs\Newtonsoft.Json.dll</HintPath>
+          <HintPath>..\Libs\Newtonsoft.Json.dll</HintPath>
         </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
         <Reference Include="System.Xml" />
         <Reference Include="UnityEngine">
-          <HintPath>..\..\Libs\UnityEngine.dll</HintPath>
+          <HintPath>..\Libs\UnityEngine.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
-          <HintPath>..\..\Libs\UnityEngine.CoreModule.dll</HintPath>
+          <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.JSONSerializeModule">
-          <HintPath>..\..\Libs\UnityEngine.JSONSerializeModule.dll</HintPath>
+          <HintPath>..\Libs\UnityEngine.JSONSerializeModule.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
