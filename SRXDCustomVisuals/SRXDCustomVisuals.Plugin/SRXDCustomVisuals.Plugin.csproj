@@ -51,9 +51,6 @@
         <Reference Include="Spin.Game.TrackPlaybackSystem">
           <HintPath>..\..\Libs\Spin.Game.TrackPlaybackSystem.dll</HintPath>
         </Reference>
-        <Reference Include="SpinCore">
-          <HintPath>..\..\Libs\SpinCore.dll</HintPath>
-        </Reference>
         <Reference Include="SpinModdingUtilities">
           <HintPath>..\..\Libs\SpinModdingUtilities.dll</HintPath>
         </Reference>
@@ -99,6 +96,7 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="CustomChartUtility.cs" />
         <Compile Include="CustomVisualsInfo.cs" />
         <Compile Include="Patches.cs" />
         <Compile Include="Plugin.cs" />

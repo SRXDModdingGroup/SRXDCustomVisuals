@@ -6,7 +6,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using SMU.Utilities;
-using SpinCore.Utility;
 using SRXDCustomVisuals.Core;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
