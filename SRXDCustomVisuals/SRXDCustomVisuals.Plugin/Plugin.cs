@@ -7,8 +7,7 @@ using SMU.Utilities;
 
 namespace SRXDCustomVisuals.Plugin;
 
-[BepInDependency("com.pink.spinrhythm.moddingutils", "1.0.6")]
-[BepInDependency("com.pink.spinrhythm.spincore")]
+[BepInDependency("com.pink.spinrhythm.moddingutils", "1.0.7")]
 [BepInPlugin("SRXD.CustomVisuals", "CustomVisuals", "1.0.0.0")]
 public class Plugin : BaseUnityPlugin {
     public static Bindable<bool> EnableCustomVisuals { get; private set; }
