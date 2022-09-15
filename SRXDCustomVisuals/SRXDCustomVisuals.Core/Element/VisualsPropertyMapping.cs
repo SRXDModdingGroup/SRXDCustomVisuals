@@ -4,9 +4,9 @@ namespace SRXDCustomVisuals.Core;
 
 [Serializable]
 public class VisualsPropertyMapping {
-    public VisualsController target;
-    
     public string name;
+    
+    public VisualsController target;
     
     public VisualsParamType type;
 }

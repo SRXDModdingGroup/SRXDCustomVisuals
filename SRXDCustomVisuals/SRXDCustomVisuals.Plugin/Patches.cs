@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
-using SMU;
 using SMU.Utilities;
 using SpinCore.Utility;
 using SRXDCustomVisuals.Core;
@@ -27,6 +26,9 @@ public class Patches {
     private static NoteClearType previousClearType;
     private static bool holding;
     private static bool beatHolding;
+    private static bool spinningRight;
+    private static bool spinningLeft;
+    private static bool scratching;
     private static bool invokeHitMatch;
     private static bool invokeHitBeat;
     private static bool invokeHitSpinRight;
@@ -41,6 +43,9 @@ public class Patches {
     private static IVisualsEvent hitScratchEvent;
     private static IVisualsProperty holdingProperty;
     private static IVisualsProperty beatHoldingProperty;
+    private static IVisualsProperty spinningRightProperty;
+    private static IVisualsProperty spinningLeftProperty;
+    private static IVisualsProperty scratchingProperty;
 
     private static bool TryGetScene(string uniqueName, CustomVisualsInfo info, out VisualsSceneLoader sceneLoader) {
         if (scenes.TryGetValue(uniqueName, out sceneLoader))
@@ -153,16 +158,23 @@ public class Patches {
             mainCamera.backgroundColor = Color.black;
         }
 
-        sceneManager.SetScene(currentSceneLoader.Load(new[] { null, mainCamera.transform }));
-        sceneManager.InitControllers(new VisualsParams(), new VisualsResources());
-        hitMatchEvent = sceneManager.GetEvent("HitMatch");
-        hitBeatEvent = sceneManager.GetEvent("HitBeat");
-        hitSpinRightEvent = sceneManager.GetEvent("HitSpinRight");
-        hitSpinLeftEvent = sceneManager.GetEvent("HitSpinLeft");
-        hitTapEvent = sceneManager.GetEvent("HitTap");
-        hitScratchEvent = sceneManager.GetEvent("HitScratch");
-        holdingProperty = sceneManager.GetProperty("Holding");
-        beatHoldingProperty = sceneManager.GetProperty("BeatHolding");
+        var scene = currentSceneLoader.Load(new[] { null, mainCamera.transform });
+        
+        Dispatcher.QueueForNextFrame(() => {
+            sceneManager.SetScene(scene);
+            sceneManager.InitControllers(new VisualsParams(), new VisualsResources());
+            hitMatchEvent = sceneManager.GetEvent("HitMatch");
+            hitBeatEvent = sceneManager.GetEvent("HitBeat");
+            hitSpinRightEvent = sceneManager.GetEvent("HitSpinRight");
+            hitSpinLeftEvent = sceneManager.GetEvent("HitSpinLeft");
+            hitTapEvent = sceneManager.GetEvent("HitTap");
+            hitScratchEvent = sceneManager.GetEvent("HitScratch");
+            holdingProperty = sceneManager.GetProperty("Holding");
+            beatHoldingProperty = sceneManager.GetProperty("BeatHolding");
+            spinningRightProperty = sceneManager.GetProperty("SpinningRight");
+            spinningLeftProperty = sceneManager.GetProperty("SpinningLeft");
+            scratchingProperty = sceneManager.GetProperty("Scratching");
+        });
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
@@ -187,6 +199,9 @@ public class Patches {
         invokeHitScratch = false;
         holding = false;
         beatHolding = false;
+        spinningRight = false;
+        spinningLeft = false;
+        scratching = false;
     }
     
     [HarmonyPatch(typeof(PlayState.ScoreState), nameof(PlayState.ScoreState.UpdateNoteStates)), HarmonyPostfix]
@@ -214,6 +229,9 @@ public class Patches {
         
         holdingProperty.SetBool(holding);
         beatHoldingProperty.SetBool(beatHolding);
+        spinningRightProperty.SetBool(spinningRight);
+        spinningLeftProperty.SetBool(spinningLeft);
+        scratchingProperty.SetBool(scratching);
     }
 
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPrefix]
@@ -233,7 +251,7 @@ public class Patches {
             var drumNote = trackData.NoteData.GetDrumForNoteIndex(noteIndex).GetValueOrDefault();
             ref var sustainNoteState = ref playState.scoreState.GetSustainState(drumNote.FirstNoteIndex);
 
-            if (!sustainNoteState.IsDoneWith && sustainNoteState.isSustained)
+            if (sustainNoteState.isSustained && playState.currentTrackTick < trackData.GetNote(drumNote.LastNoteIndex).tick)
                 beatHolding = true;
         }
 
@@ -274,10 +292,46 @@ public class Patches {
 
     [HarmonyPatch(typeof(FreestyleSectionLogic), nameof(FreestyleSectionLogic.UpdateFreestyleSectionState)), HarmonyPostfix]
     private static void FreestyleSectionLogic_UpdateFreestyleSectionState_Postfix(PlayState playState, int noteIndex) {
+        var sustainSection = playState.trackData.NoteData.FreestyleSections.GetSectionForNote(noteIndex);
+        
+        if (!sustainSection.HasValue)
+            return;
+        
         ref var sustainNoteState = ref playState.scoreState.GetSustainState(noteIndex);
 
-        if (!sustainNoteState.IsDoneWith && sustainNoteState.isSustained)
+        if (sustainNoteState.isSustained && playState.currentTrackTick < sustainSection.Value.EndTick)
             holding = true;
+    }
+    
+    [HarmonyPatch(typeof(SpinSectionLogic), nameof(SpinSectionLogic.UpdateSpinSectionState)), HarmonyPostfix]
+    private static void SpinSectionLogic_UpdateSpinSectionState_Postfix(PlayState playState, int noteIndex) {
+        var spinSection = playState.trackData.NoteData.SpinnerSections.GetSectionForNote(noteIndex);
+        
+        if (!spinSection.HasValue)
+            return;
+        
+        ref var sustainNoteState = ref playState.scoreState.GetSustainState(noteIndex);
+
+        if (!sustainNoteState.isSustained || playState.currentTrackTick >= playState.trackData.GetNote(spinSection.Value.LastNoteIndex).tick)
+            return;
+        
+        if (spinSection.Value.direction == 1)
+            spinningRight = true;
+        else
+            spinningLeft = true;
+    }
+    
+    [HarmonyPatch(typeof(ScratchSectionLogic), nameof(ScratchSectionLogic.UpdateScratchSectionState)), HarmonyPostfix]
+    private static void ScratchSectionLogic_UpdateScratchSectionState_Postfix(PlayState playState, int noteIndex) {
+        var scratchSection = playState.trackData.NoteData.ScratchSections.GetSectionForNote(noteIndex);
+        
+        if (!scratchSection.HasValue)
+            return;
+        
+        ref var sustainNoteState = ref playState.scoreState.GetSustainState(noteIndex);
+
+        if (sustainNoteState.isSustained && playState.currentTrackTick < playState.trackData.GetNote(scratchSection.Value.LastNoteIndex).tick)
+            scratching = true;
     }
 
     [HarmonyPatch(typeof(PlayableTrackDataHandle), "Loading"), HarmonyTranspiler]

@@ -4,12 +4,11 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Core; 
 
 public class VisualsProperty : IVisualsProperty {
-    public static VisualsProperty Empty = new();
-    
-    private Vector4 currentValue;
+    private Vector4 value = Vector4.positiveInfinity;
+    private Action<VisualsProperty> changed;
 
-    public event Action Changed;
-    
+    public VisualsProperty(Action<VisualsProperty> changed = null) => this.changed = changed;
+
     public void SetBool(bool value) => SetFloat(value ? 1f : 0f);
 
     public void SetInt(int value) => SetFloat(value);
@@ -20,21 +19,21 @@ public class VisualsProperty : IVisualsProperty {
 
     public void SetColor(Color value) => SetValue(value);
 
-    public bool GetBool() => currentValue.x > 0f;
+    public bool GetBool() => value.x > 0f;
 
-    public int GetInt() => Mathf.RoundToInt(currentValue.x);
+    public int GetInt() => Mathf.RoundToInt(value.x);
 
-    public float GetFloat() => currentValue.x;
+    public float GetFloat() => value.x;
 
-    public Vector3 GetVector() => currentValue;
+    public Vector3 GetVector() => value;
 
-    public Color GetColor() => currentValue;
+    public Color GetColor() => value;
 
     private void SetValue(Vector4 value) {
-        if (value == currentValue)
+        if (value == this.value)
             return;
 
-        currentValue = value;
-        Changed?.Invoke();
+        this.value = value;
+        changed?.Invoke(this);
     }
 }
