@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
+using Newtonsoft.Json;
 using SMU.Utilities;
 using SRXDCustomVisuals.Core;
 using Unity.Collections.LowLevel.Unsafe;
@@ -16,10 +17,13 @@ namespace SRXDCustomVisuals.Plugin;
 public class Patches {
     private static readonly int CUSTOM_SPECTRUM_BUFFER = Shader.PropertyToID("_CustomSpectrumBuffer");
     private static readonly string ASSET_BUNDLES_PATH = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles");
+    private static readonly string BACKGROUNDS_PATH = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Backgrounds");
     
     private static VisualsSceneLoader currentSceneLoader;
     private static VisualsSceneManager sceneManager = new();
-    private static Dictionary<string, VisualsSceneLoader> scenes = new();
+    private static Dictionary<string, CustomVisualsInfo> cachedVisualsInfo = new();
+    private static Dictionary<string, BackgroundDefinition> cachedBackgroundDefinitions = new();
+    private static Dictionary<string, VisualsSceneLoader> sceneLoaders = new();
     private static float2[] cachedSpectrum = new float2[256];
     private static ComputeBuffer computeBuffer;
     private static NoteClearType previousClearType;
@@ -46,27 +50,79 @@ public class Patches {
     private static IVisualsProperty spinningLeftProperty;
     private static IVisualsProperty scratchingProperty;
 
-    private static bool TryGetScene(string uniqueName, CustomVisualsInfo info, out VisualsSceneLoader sceneLoader) {
-        if (scenes.TryGetValue(uniqueName, out sceneLoader))
+    private static bool TryGetCustomVisualsInfo(TrackInfoAssetReference trackInfoRef, out CustomVisualsInfo customVisualsInfo) {
+        if (!trackInfoRef.IsCustomFile) {
+            customVisualsInfo = null;
+
+            return false;
+        }
+        
+        string uniqueName = trackInfoRef.UniqueName;
+
+        if (cachedVisualsInfo.TryGetValue(uniqueName, out customVisualsInfo))
             return true;
+
+        if (!CustomChartUtility.TryGetCustomData(trackInfoRef.customFile, "CustomVisualsInfo", out customVisualsInfo))
+            return false;
+
+        cachedVisualsInfo.Add(uniqueName, customVisualsInfo);
+
+        return true;
+    }
+
+    private static bool TryGetBackgroundDefinition(string name, out BackgroundDefinition backgroundDefinition) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            backgroundDefinition = null;
+            
+            return false;
+        }
+        
+        if (cachedBackgroundDefinitions.TryGetValue(name, out backgroundDefinition))
+            return true;
+        
+        string backgroundPath = Path.ChangeExtension(Path.Combine(BACKGROUNDS_PATH, name), ".json");
+
+        if (!File.Exists(backgroundPath))
+            return false;
+
+        backgroundDefinition = JsonConvert.DeserializeObject<BackgroundDefinition>(File.ReadAllText(backgroundPath));
+
+        if (backgroundDefinition == null)
+            return false;
+
+        cachedBackgroundDefinitions.Add(name, backgroundDefinition);
+
+        return true;
+    }
+
+    private static bool TryGetSceneLoader(string name, out VisualsSceneLoader sceneLoader) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            sceneLoader = null;
+
+            return false;
+        }
+        
+        if (sceneLoaders.TryGetValue(name, out sceneLoader))
+            return true;
+
+        if (!TryGetBackgroundDefinition(name, out var backgroundDefinition))
+            return false;
         
         var modules = new List<VisualsModule>();
         bool success = true;
         var assetBundles = new Dictionary<string, AssetBundle>();
 
-        foreach (string bundleName in info.AssetBundles) {
+        foreach (string bundleName in backgroundDefinition.AssetBundles) {
             if (AssetBundleUtility.TryGetAssetBundle(ASSET_BUNDLES_PATH, bundleName, out var bundle))
                 assetBundles.Add(bundleName, bundle);
-            else {
-                Plugin.Logger.LogWarning($"Failed to load asset bundle {bundleName}");
+            else
                 success = false;
-            }
         }
             
         if (!success)
             return false;
 
-        foreach (var moduleReference in info.Modules) {
+        foreach (var moduleReference in backgroundDefinition.Modules) {
             if (assetBundles.TryGetValue(moduleReference.Bundle, out var bundle)) {
                 var module = bundle.LoadAsset<VisualsModule>(moduleReference.Asset);
 
@@ -83,7 +139,7 @@ public class Patches {
             return false;
 
         sceneLoader = new VisualsSceneLoader(modules);
-        scenes.Add(uniqueName, sceneLoader);
+        sceneLoaders.Add(name, sceneLoader);
 
         return true;
     }
@@ -93,13 +149,10 @@ public class Patches {
     private static BackgroundAssetReference OverrideBackgroundIfVisualsInfoHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
         var trackInfoRef = handle.Setup.TrackDataSegments[0].trackInfoRef;
 
-        if (!Plugin.EnableCustomVisuals.Value || !trackInfoRef.IsCustomFile)
-            return defaultBackground;
-
-        if (CustomChartUtility.TryGetCustomData<CustomVisualsInfo>(trackInfoRef.customFile, "CustomVisualsInfo", out var customVisualsInfo)
-            && customVisualsInfo.HasCustomVisuals
-            && customVisualsInfo.DisableBaseBackground
-            && TryGetScene(trackInfoRef.UniqueName, customVisualsInfo, out _))
+        if (Plugin.EnableCustomVisuals.Value
+            && TryGetCustomVisualsInfo(trackInfoRef, out var customVisualsInfo)
+            && TryGetBackgroundDefinition(customVisualsInfo.Background, out var background)
+            && background.DisableBaseBackground)
             return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
         
         return defaultBackground;
@@ -124,10 +177,11 @@ public class Patches {
 
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
     private static void Track_Awake_Postfix(Track __instance) {
-        string customAssetBundlePath = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles");
-
-        if (!Directory.Exists(customAssetBundlePath))
-            Directory.CreateDirectory(customAssetBundlePath);
+        if (!Directory.Exists(ASSET_BUNDLES_PATH))
+            Directory.CreateDirectory(ASSET_BUNDLES_PATH);
+        
+        if (!Directory.Exists(BACKGROUNDS_PATH))
+            Directory.CreateDirectory(BACKGROUNDS_PATH);
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
@@ -144,15 +198,13 @@ public class Patches {
             sceneManager.Clear();
         }
         
-        if (!Plugin.EnableCustomVisuals.Value || !trackInfoRef.IsCustomFile)
-            return;
-        
-        if (!CustomChartUtility.TryGetCustomData<CustomVisualsInfo>(trackInfoRef.customFile, "CustomVisualsInfo", out var customVisualsInfo)
-            || !customVisualsInfo.HasCustomVisuals
-            || !TryGetScene(trackInfoRef.UniqueName, customVisualsInfo, out currentSceneLoader))
+        if (!Plugin.EnableCustomVisuals.Value
+            || !TryGetCustomVisualsInfo(trackInfoRef, out var customVisualsInfo)
+            || !TryGetBackgroundDefinition(customVisualsInfo.Background, out var backgroundDefinition)
+            || !TryGetSceneLoader(customVisualsInfo.Background, out currentSceneLoader))
             return;
 
-        if (customVisualsInfo.DisableBaseBackground) {
+        if (backgroundDefinition.DisableBaseBackground) {
             mainCamera.clearFlags = CameraClearFlags.SolidColor;
             mainCamera.backgroundColor = Color.black;
         }
