@@ -7,6 +7,7 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using Newtonsoft.Json;
 using SMU.Utilities;
+using SpinCore.Utility;
 using SRXDCustomVisuals.Core;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
