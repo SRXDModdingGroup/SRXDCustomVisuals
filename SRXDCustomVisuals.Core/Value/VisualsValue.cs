@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace SRXDCustomVisuals.Core.Value; 
+namespace SRXDCustomVisuals.Core; 
 
 public readonly struct VisualsValue {
     private readonly Vector4 value;

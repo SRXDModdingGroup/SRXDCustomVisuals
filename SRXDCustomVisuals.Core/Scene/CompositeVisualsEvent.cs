@@ -22,7 +22,7 @@ internal class CompositeVisualsEvent : IVisualsEvent {
     public void Clear() => invokers.Clear();
 
     private class MappingInvoker {
-        public bool Empty { get; }
+        public bool Empty => visualsEvent == null;
         
         private IVisualsEvent visualsEvent;
         private VisualsParams cachedParameters;
@@ -31,12 +31,9 @@ internal class CompositeVisualsEvent : IVisualsEvent {
         public MappingInvoker(VisualsEventMapping mapping) {
             visualsEvent = mapping.target.GetEvent(mapping.name);
 
-            if (visualsEvent == null) {
-                Empty = true;
-                
+            if (visualsEvent == null)
                 return;
-            }
-            
+
             cachedParameters = new VisualsParams();
             dynamicParamMappings = new List<VisualsParamMapping>();
 

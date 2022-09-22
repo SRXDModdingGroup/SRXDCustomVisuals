@@ -1,6 +1,4 @@
-﻿using System.IO;
-using System.Reflection;
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using SMU.Utilities;

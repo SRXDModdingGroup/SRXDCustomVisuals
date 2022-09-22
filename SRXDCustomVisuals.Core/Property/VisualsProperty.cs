@@ -1,6 +1,4 @@
 ﻿using System;
-using SRXDCustomVisuals.Core.Value;
-using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
 

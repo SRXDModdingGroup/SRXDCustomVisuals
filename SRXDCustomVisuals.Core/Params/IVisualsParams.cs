@@ -1,5 +1,4 @@
-﻿using SRXDCustomVisuals.Core.Value;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
 

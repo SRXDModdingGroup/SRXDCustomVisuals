@@ -1,6 +1,4 @@
-﻿using System;
-using SRXDCustomVisuals.Core;
-using SRXDCustomVisuals.Core.Value;
+﻿using SRXDCustomVisuals.Core;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Behaviors; 

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using SRXDCustomVisuals.Core.Value;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
@@ -29,7 +28,7 @@ internal class CompositeVisualsProperty : IVisualsProperty {
     public void Clear() => invokers.Clear();
 
     private class MappingInvoker {
-        public bool Empty { get; }
+        public bool Empty => visualsProperty == null;
 
         private IVisualsProperty visualsProperty;
         private VisualsPropertyMapping mapping;
@@ -37,12 +36,9 @@ internal class CompositeVisualsProperty : IVisualsProperty {
         public MappingInvoker(VisualsPropertyMapping mapping) {
             visualsProperty = mapping.target.GetProperty(mapping.name);
 
-            if (visualsProperty == null) {
-                Empty = true;
-                
+            if (visualsProperty == null)
                 return;
-            }
-            
+
             this.mapping = mapping;
         }
 
