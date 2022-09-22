@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
 
@@ -41,33 +42,39 @@ internal class CompositeVisualsEvent : IVisualsEvent {
 
             foreach (var parameterMapping in mapping.parameters) {
                 string name = parameterMapping.name;
-                string value = parameterMapping.value;
+                string parameter = parameterMapping.parameter;
+
+                if (!string.IsNullOrWhiteSpace(parameter)) {
+                    dynamicParamMappings.Add(parameterMapping);
+                    
+                    continue;
+                }
+                
+                var bias = parameterMapping.bias;
 
                 switch (parameterMapping.type) {
-                    case VisualsParamType.Bool when bool.TryParse(value, out bool boolVal):
-                        cachedParameters.SetBool(name, boolVal);
-                            
-                        break;
-                    case VisualsParamType.Int when Util.TryParseInt(value, out int intVal):
-                        cachedParameters.SetInt(name, intVal);
-                            
-                        break;
-                    case VisualsParamType.Float when Util.TryParseFloat(value, out float floatVal):
-                        cachedParameters.SetFloat(name, floatVal);
-                            
-                        break;
-                    case VisualsParamType.Vector when Util.TryParseVector(value, out var vectorVal):
-                        cachedParameters.SetVector(name, vectorVal);
-                            
-                        break;
-                    case VisualsParamType.Color when Util.TryParseColor(value, out var colorVal):
-                        cachedParameters.SetColor(name, colorVal);
-                            
-                        break;
+                    case VisualsParamType.Bool:
+                        cachedParameters.SetBool(name, parameterMapping.scale.x > 0f);
+
+                        continue;
+                    case VisualsParamType.Int:
+                        cachedParameters.SetInt(name, Mathf.RoundToInt(bias.x));
+
+                        continue;
+                    case VisualsParamType.Float:
+                        cachedParameters.SetFloat(name, bias.x);
+
+                        continue;
+                    case VisualsParamType.Vector:
+                        cachedParameters.SetVector(name, bias);
+
+                        continue;
+                    case VisualsParamType.Color:
+                        cachedParameters.SetColor(name, bias);
+
+                        continue;
                     default:
-                        dynamicParamMappings.Add(parameterMapping);
-                        
-                        break;
+                        throw new ArgumentOutOfRangeException();
                 }
             }
         }
@@ -75,29 +82,31 @@ internal class CompositeVisualsEvent : IVisualsEvent {
         public void Invoke(IVisualsParams parameters) {
             foreach (var parameterMapping in dynamicParamMappings) {
                 string name = parameterMapping.name;
-                string value = parameterMapping.value;
+                string parameter = parameterMapping.parameter;
+                var scale = parameterMapping.scale;
+                var bias = parameterMapping.bias;
 
                 switch (parameterMapping.type) {
                     case VisualsParamType.Bool:
-                        cachedParameters.SetBool(name, parameters.GetBool(value));
+                        cachedParameters.SetBool(name, parameters.GetBool(parameter) == scale.x > 0f);
                             
-                        break;
+                        continue;
                     case VisualsParamType.Int:
-                        cachedParameters.SetInt(name, parameters.GetInt(value));
+                        cachedParameters.SetInt(name, parameters.GetInt(parameter) * Mathf.RoundToInt(scale.x) + Mathf.RoundToInt(bias.x));
                             
-                        break;
+                        continue;
                     case VisualsParamType.Float:
-                        cachedParameters.SetFloat(name, parameters.GetFloat(value));
+                        cachedParameters.SetFloat(name, parameters.GetFloat(parameter) * scale.x + bias.x);
                             
-                        break;
+                        continue;
                     case VisualsParamType.Vector:
-                        cachedParameters.SetVector(name, parameters.GetVector(value));
+                        cachedParameters.SetVector(name, Vector3.Scale(parameters.GetVector(parameter), scale) + (Vector3) bias);
                             
-                        break;
+                        continue;
                     case VisualsParamType.Color:
-                        cachedParameters.SetColor(name, parameters.GetColor(value));
+                        cachedParameters.SetColor(name, parameters.GetColor(parameter) * scale + (Color) bias);
                             
-                        break;
+                        continue;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }

@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using SRXDCustomVisuals.Core.Value;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
 
 internal class CompositeVisualsProperty : IVisualsProperty {
     private List<MappingInvoker> invokers = new();
-    private Vector4 currentValue;
+    private VisualsValue currentValue;
 
     public void AddMapping(VisualsPropertyMapping mapping) {
         var invoker = new MappingInvoker(mapping);
@@ -14,20 +15,8 @@ internal class CompositeVisualsProperty : IVisualsProperty {
         if (!invoker.Empty)
             invokers.Add(invoker);
     }
-    
-    public void SetBool(bool value) => SetFloat(value ? 1f : 0f);
 
-    public void SetInt(int value) => SetFloat(value);
-
-    public void SetFloat(float value) => SetValue(new Vector4(value, value, value, 1f));
-
-    public void SetVector(Vector3 value) => SetValue(new Vector4(value.x, value.y, value.z, 1f));
-
-    public void SetColor(Color value) => SetValue(value);
-
-    public void Clear() => invokers.Clear();
-
-    private void SetValue(Vector4 value) {
+    public void SetValue(VisualsValue value) {
         if (value == currentValue)
             return;
 
@@ -37,11 +26,13 @@ internal class CompositeVisualsProperty : IVisualsProperty {
             invoker.Invoke(value);
     }
 
+    public void Clear() => invokers.Clear();
+
     private class MappingInvoker {
         public bool Empty { get; }
 
         private IVisualsProperty visualsProperty;
-        private VisualsParamType paramType;
+        private VisualsPropertyMapping mapping;
 
         public MappingInvoker(VisualsPropertyMapping mapping) {
             visualsProperty = mapping.target.GetProperty(mapping.name);
@@ -52,29 +43,32 @@ internal class CompositeVisualsProperty : IVisualsProperty {
                 return;
             }
             
-            paramType = mapping.type;
+            this.mapping = mapping;
         }
 
-        public void Invoke(Vector4 value) {
-            switch (paramType) {
+        public void Invoke(VisualsValue value) {
+            var scale = mapping.scale;
+            var bias = mapping.bias;
+            
+            switch (mapping.type) {
                 case VisualsParamType.Bool:
-                    visualsProperty.SetBool(value.x > 0f);
+                    visualsProperty.SetBool(value.Bool == scale.x > 0f || bias.x > 0f);
                     
                     break;
                 case VisualsParamType.Int:
-                    visualsProperty.SetInt(Mathf.RoundToInt(value.x));
+                    visualsProperty.SetInt(value.Int * Mathf.RoundToInt(scale.x) + Mathf.RoundToInt(bias.x));
                     
                     break;
                 case VisualsParamType.Float:
-                    visualsProperty.SetFloat(value.x);
+                    visualsProperty.SetFloat(value.Float * scale.x + bias.x);
                     
                     break;
                 case VisualsParamType.Vector:
-                    visualsProperty.SetVector(value);
+                    visualsProperty.SetVector(Vector3.Scale(value.Vector, scale) + (Vector3) bias);
                     
                     break;
                 case VisualsParamType.Color:
-                    visualsProperty.SetColor(value);
+                    visualsProperty.SetColor(value.Color * scale + (Color) bias);
                     
                     break;
                 default:

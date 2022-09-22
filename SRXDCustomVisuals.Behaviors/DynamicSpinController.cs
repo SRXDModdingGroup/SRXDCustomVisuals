@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Behaviors; 
 
 public class DynamicSpinController : VisualsController {
-    [SerializeField] private Transform targetTransform;
+    [SerializeField] private Transform[] targetTransforms;
     [SerializeField] private Vector3 spinAxis;
     [SerializeField] private float defaultSpeed = 1f;
     [SerializeField] private float defaultDecay = 1f;
@@ -27,7 +27,9 @@ public class DynamicSpinController : VisualsController {
             speed = Mathf.Lerp(sustain, speed, Mathf.Exp(-Time.deltaTime / decay));
         
         spin = Mathf.Repeat(spin + Time.deltaTime * speed, 360f);
-        targetTransform.localRotation = Quaternion.AngleAxis(spin, spinAxis);
+        
+        foreach (var targetTransform in targetTransforms)
+            targetTransform.localRotation = Quaternion.AngleAxis(spin, spinAxis);
     }
 
     public override IVisualsEvent GetEvent(string key) => key switch {

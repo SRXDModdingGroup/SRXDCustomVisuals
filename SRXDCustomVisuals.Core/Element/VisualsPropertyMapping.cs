@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
 
@@ -9,4 +10,8 @@ public class VisualsPropertyMapping {
     public VisualsController target;
     
     public VisualsParamType type;
+
+    public Vector4 scale = Vector4.one;
+
+    public Vector4 bias;
 }

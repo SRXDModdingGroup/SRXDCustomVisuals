@@ -119,7 +119,12 @@ public class Patches {
             else
                 success = false;
         }
-            
+
+        foreach (string assembly in backgroundDefinition.Assemblies) {
+            if (!Util.TryLoadAssembly(assembly))
+                success = false;
+        }
+
         if (!success)
             return false;
 

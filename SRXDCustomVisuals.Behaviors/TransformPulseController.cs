@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Behaviors;
 
 public class TransformPulseController : VisualsController {
-    [SerializeField] private Transform targetTransform;
+    [SerializeField] private Transform[] targetTransforms;
     [SerializeField] private Vector3 positionVector = Vector3.zero;
     [SerializeField] private Vector3 scaleVector = Vector3.zero;
     [SerializeField] private float defaultAmount = 1f;
@@ -40,8 +40,10 @@ public class TransformPulseController : VisualsController {
         else
             currentAmount = Mathf.Lerp(sustain, currentAmount, Mathf.Exp(-Time.deltaTime / decay));
 
-        targetTransform.localPosition = currentAmount * positionVector;
-        targetTransform.localScale = currentAmount * scaleVector + Vector3.one;
+        foreach (var targetTransform in targetTransforms) {
+            targetTransform.localPosition = currentAmount * positionVector;
+            targetTransform.localScale = currentAmount * scaleVector + Vector3.one;
+        }
     }
 
     public override IVisualsEvent GetEvent(string key) => key switch {

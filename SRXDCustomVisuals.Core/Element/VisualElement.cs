@@ -22,11 +22,17 @@ public class VisualElement : MonoBehaviour, ISerializationCallbackReceiver {
     public void OnBeforeSerialize() {
         events ??= Array.Empty<VisualElementEvent>();
         events_visualsControllers = new List<VisualsController>();
-        events_jData = JsonConvert.SerializeObject(events, new UnityObjectConverter<VisualsController>(events_visualsControllers));
+        events_jData = JsonConvert.SerializeObject(events, new JsonSerializerSettings {
+            Converters = { new UnityObjectConverter<VisualsController>(events_visualsControllers) },
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
 
         properties ??= Array.Empty<VisualElementProperty>();
         properties_visualsControllers = new List<VisualsController>();
-        properties_jData = JsonConvert.SerializeObject(properties, new UnityObjectConverter<VisualsController>(properties_visualsControllers));
+        properties_jData = JsonConvert.SerializeObject(properties, new JsonSerializerSettings {
+            Converters = { new UnityObjectConverter<VisualsController>(properties_visualsControllers) },
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
     }
 
     public void OnAfterDeserialize() {

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
 
-public static class Util {
+internal static class Util {
     public static bool TryParseInt(string value, out int intVal) => int.TryParse(value, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out intVal);
     
     public static bool TryParseFloat(string value, out float floatVal) => float.TryParse(value, NumberStyles.Float, NumberFormatInfo.InvariantInfo, out floatVal);

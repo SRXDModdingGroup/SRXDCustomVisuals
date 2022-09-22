@@ -1,15 +1,20 @@
-﻿using UnityEngine;
+﻿using SRXDCustomVisuals.Core.Value;
+using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
 
 public interface IVisualsProperty {
-    void SetBool(bool value);
+    void SetValue(VisualsValue value);
+}
 
-    void SetInt(int value);
-
-    void SetFloat(float value);
-
-    void SetVector(Vector3 value);
-
-    void SetColor(Color value);
+public static class VisualsPropertyExtensions {
+    public static void SetBool(this IVisualsProperty property, bool value) => property.SetValue(new VisualsValue(value));
+    
+    public static void SetInt(this IVisualsProperty property, int value) => property.SetValue(new VisualsValue(value));
+    
+    public static void SetFloat(this IVisualsProperty property, float value) => property.SetValue(new VisualsValue(value));
+    
+    public static void SetVector(this IVisualsProperty property, Vector3 value) => property.SetValue(new VisualsValue(value));
+    
+    public static void SetColor(this IVisualsProperty property, Color value) => property.SetValue(new VisualsValue(value));
 }

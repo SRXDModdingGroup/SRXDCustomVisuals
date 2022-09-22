@@ -11,12 +11,12 @@ namespace SRXDCustomVisuals.Plugin;
 
 [BepInDependency("com.pink.spinrhythm.moddingutils", "1.0.7")]
 [BepInDependency("com.pink.spinrhythm.spincore", "1.0.0")]
-[BepInPlugin("SRXD.CustomVisuals", "CustomVisuals", "1.0.0.2")]
+[BepInPlugin(PluginInfo.Guid, PluginInfo.Name, PluginInfo.Version)]
 public class Plugin : SpinPlugin {
     public static Bindable<bool> EnableCustomVisuals { get; private set; }
 
     public new static ManualLogSource Logger { get; private set; }
-    
+
     protected override void Awake() {
         base.Awake();
 
@@ -24,8 +24,7 @@ public class Plugin : SpinPlugin {
 
         var harmony = new Harmony("CustomVisuals");
 
-        Assembly.LoadFrom(Path.Combine(Path.GetDirectoryName(Assembly.GetAssembly(typeof(Plugin)).Location), "SRXDCustomVisuals.Behaviors.dll"));
-
+        Util.TryLoadAssembly("SRXDCustomVisuals.Behaviors.dll");
         harmony.PatchAll(typeof(Patches));
         EnableCustomVisuals = Config.CreateBindable("EnableCustomVisuals", true);
     }

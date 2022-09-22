@@ -1,11 +1,12 @@
 ﻿using System;
 using SRXDCustomVisuals.Core;
+using SRXDCustomVisuals.Core.Value;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Behaviors; 
 
 public class ParticleEffectController : VisualsController {
-    [SerializeField] private ParticleSystem particleSystem;
+    [SerializeField] private ParticleSystem[] particleSystems;
 
     public override IVisualsEvent GetEvent(string key) => key switch {
         "Play" => new VisualsEvent(Play),
@@ -18,13 +19,23 @@ public class ParticleEffectController : VisualsController {
         _ => null
     };
 
-    private void Play(IVisualsParams parameters) => particleSystem.Play();
-    
-    private void Stop(IVisualsParams parameters) => particleSystem.Stop();
+    private void Play(IVisualsParams parameters) {
+        foreach (var particleSystem in particleSystems)
+            particleSystem.Play();
+    }
 
-    private void EnableEmissionChanged(VisualsProperty property) {
-        var emission = particleSystem.emission;
+    private void Stop(IVisualsParams parameters) {
+        foreach (var particleSystem in particleSystems)
+            particleSystem.Stop();
+    }
 
-        emission.enabled = property.GetBool();
+    private void EnableEmissionChanged(VisualsValue value) {
+        bool enable = value.Bool;
+        
+        foreach (var particleSystem in particleSystems) {
+            var emission = particleSystem.emission;
+
+            emission.enabled = enable;
+        }
     }
 }
