@@ -116,29 +116,48 @@ public class Patches {
         foreach (string bundleName in backgroundDefinition.AssetBundles) {
             if (AssetBundleUtility.TryGetAssetBundle(ASSET_BUNDLES_PATH, bundleName, out var bundle))
                 assetBundles.Add(bundleName, bundle);
-            else
+            else {
+                Plugin.Logger.LogWarning($"Could not load asset bundle {bundleName}");
                 success = false;
+            }
         }
 
         foreach (string assembly in backgroundDefinition.Assemblies) {
-            if (!Util.TryLoadAssembly(assembly))
-                success = false;
+            if (Util.TryLoadAssembly(assembly))
+                continue;
+            
+            Plugin.Logger.LogWarning($"Could not load assembly {assembly}");
+            success = false;
         }
 
         if (!success)
             return false;
 
         foreach (var moduleReference in backgroundDefinition.Modules) {
-            if (assetBundles.TryGetValue(moduleReference.Bundle, out var bundle)) {
-                var module = bundle.LoadAsset<VisualsModule>(moduleReference.Asset);
-
-                if (module != null)
-                    modules.Add(module);
-            }
-            else {
+            if (!assetBundles.TryGetValue(moduleReference.Bundle, out var bundle)) {
                 Plugin.Logger.LogWarning($"Could not find asset bundle {moduleReference.Bundle}");
                 success = false;
+                
+                continue;
             }
+
+            if (!bundle.Contains(moduleReference.Asset)) {
+                Plugin.Logger.LogWarning($"Could not find module {moduleReference.Asset} in bundle {moduleReference.Bundle}");
+                success = false;
+
+                continue;
+            }
+
+            var module = bundle.LoadAsset<VisualsModule>(moduleReference.Asset);
+
+            if (module == null) {
+                Plugin.Logger.LogWarning($"Asset {moduleReference.Asset} in bundle {moduleReference.Bundle} is not a module");
+                success = false;
+                
+                continue;
+            }
+            
+            modules.Add(module);
         }
             
         if (!success)

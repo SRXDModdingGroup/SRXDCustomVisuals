@@ -51,7 +51,7 @@ internal class CompositeVisualsEvent : IVisualsEvent {
 
                 switch (parameterMapping.type) {
                     case VisualsParamType.Bool:
-                        cachedParameters.SetBool(name, parameterMapping.scale.x > 0f);
+                        cachedParameters.SetBool(name, parameterMapping.scale.x >= 0f);
 
                         continue;
                     case VisualsParamType.Int:
@@ -85,7 +85,7 @@ internal class CompositeVisualsEvent : IVisualsEvent {
 
                 switch (parameterMapping.type) {
                     case VisualsParamType.Bool:
-                        cachedParameters.SetBool(name, parameters.GetBool(parameter) == scale.x > 0f);
+                        cachedParameters.SetBool(name, parameters.GetBool(parameter) == scale.x >= 0f);
                             
                         continue;
                     case VisualsParamType.Int:

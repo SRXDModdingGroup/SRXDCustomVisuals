@@ -48,7 +48,7 @@ internal class CompositeVisualsProperty : IVisualsProperty {
             
             switch (mapping.type) {
                 case VisualsParamType.Bool:
-                    visualsProperty.SetBool(value.Bool == scale.x > 0f || bias.x > 0f);
+                    visualsProperty.SetBool(value.Bool == scale.x >= 0f);
                     
                     break;
                 case VisualsParamType.Int:
