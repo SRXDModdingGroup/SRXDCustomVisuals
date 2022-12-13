@@ -17,8 +17,8 @@ namespace SRXDCustomVisuals.Plugin;
 
 public class Patches {
     private static readonly int CUSTOM_SPECTRUM_BUFFER = Shader.PropertyToID("_CustomSpectrumBuffer");
-    private static readonly string ASSET_BUNDLES_PATH = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "AssetBundles");
-    private static readonly string BACKGROUNDS_PATH = Path.Combine(AssetBundleSystem.CUSTOM_DATA_PATH, "Backgrounds");
+    private static readonly string ASSET_BUNDLES_PATH = Path.Combine(Util.AssemblyPath, "AssetBundles");
+    private static readonly string BACKGROUNDS_PATH = Path.Combine(Util.AssemblyPath, "Backgrounds");
     
     private static VisualsSceneLoader currentSceneLoader;
     private static VisualsSceneManager sceneManager = new();
