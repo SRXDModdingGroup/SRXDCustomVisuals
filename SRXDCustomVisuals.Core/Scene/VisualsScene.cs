@@ -3,7 +3,7 @@
 namespace SRXDCustomVisuals.Core; 
 
 public class VisualsScene {
-    internal List<VisualElement> Elements { get; }
+    internal List<VisualsElement> Elements { get; }
     
-    public VisualsScene(IEnumerable<VisualElement> elements) => Elements = new List<VisualElement>(elements);
+    public VisualsScene(IEnumerable<VisualsElement> elements) => Elements = new List<VisualsElement>(elements);
 }

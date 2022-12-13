@@ -58,9 +58,10 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Controller\VisualsController.cs" />
-        <Compile Include="Element\VisualElement.cs" />
-        <Compile Include="Element\VisualElementEvent.cs" />
-        <Compile Include="Element\VisualElementProperty.cs" />
+        <Compile Include="Element\VisualsElement.cs" />
+        <Compile Include="Element\VisualsElementEvent.cs" />
+        <Compile Include="Element\VisualsElementProperty.cs" />
+        <Compile Include="Element\VisualsElementReference.cs" />
         <Compile Include="Element\VisualsEventMapping.cs" />
         <Compile Include="Element\VisualsParamMapping.cs" />
         <Compile Include="Element\VisualsParamType.cs" />
@@ -68,8 +69,6 @@
         <Compile Include="Event\EmptyVisualsEvent.cs" />
         <Compile Include="Event\IVisualsEvent.cs" />
         <Compile Include="Event\VisualsEvent.cs" />
-        <Compile Include="Module\VisualElementReference.cs" />
-        <Compile Include="Module\VisualsModule.cs" />
         <Compile Include="Params\EmptyVisualsParams.cs" />
         <Compile Include="Params\IVisualsParams.cs" />
         <Compile Include="Params\VisualsParams.cs" />

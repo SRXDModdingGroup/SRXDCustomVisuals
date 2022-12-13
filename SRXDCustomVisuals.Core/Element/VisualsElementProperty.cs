@@ -3,8 +3,8 @@
 namespace SRXDCustomVisuals.Core; 
 
 [Serializable]
-public class VisualElementEvent {
+public class VisualsElementProperty {
     public string name;
 
-    public VisualsEventMapping[] mappings;
+    public VisualsPropertyMapping[] mappings;
 }

@@ -109,7 +109,6 @@ public class Patches {
         if (!TryGetBackgroundDefinition(name, out var backgroundDefinition))
             return false;
         
-        var modules = new List<VisualsModule>();
         bool success = true;
         var assetBundles = new Dictionary<string, AssetBundle>();
 
@@ -132,38 +131,40 @@ public class Patches {
 
         if (!success)
             return false;
+        
+        var elements = new List<VisualsElementReference>();
 
-        foreach (var moduleReference in backgroundDefinition.Modules) {
-            if (!assetBundles.TryGetValue(moduleReference.Bundle, out var bundle)) {
-                Plugin.Logger.LogWarning($"Could not find asset bundle {moduleReference.Bundle}");
+        foreach (var elementReference in backgroundDefinition.Elements) {
+            if (!assetBundles.TryGetValue(elementReference.Bundle, out var bundle)) {
+                Plugin.Logger.LogWarning($"Could not find asset bundle {elementReference.Bundle}");
                 success = false;
                 
                 continue;
             }
 
-            if (!bundle.Contains(moduleReference.Asset)) {
-                Plugin.Logger.LogWarning($"Could not find module {moduleReference.Asset} in bundle {moduleReference.Bundle}");
+            if (!bundle.Contains(elementReference.Asset)) {
+                Plugin.Logger.LogWarning($"Could not find asset {elementReference.Asset} in bundle {elementReference.Bundle}");
                 success = false;
 
                 continue;
             }
 
-            var module = bundle.LoadAsset<VisualsModule>(moduleReference.Asset);
+            var element = bundle.LoadAsset<GameObject>(elementReference.Asset);
 
-            if (module == null) {
-                Plugin.Logger.LogWarning($"Asset {moduleReference.Asset} in bundle {moduleReference.Bundle} is not a module");
+            if (element == null) {
+                Plugin.Logger.LogWarning($"Asset {elementReference.Asset} in bundle {elementReference.Bundle} is not a GameObject");
                 success = false;
                 
                 continue;
             }
             
-            modules.Add(module);
+            elements.Add(new VisualsElementReference(element, elementReference.Root));
         }
             
         if (!success)
             return false;
 
-        sceneLoader = new VisualsSceneLoader(modules);
+        sceneLoader = new VisualsSceneLoader(elements);
         sceneLoaders.Add(name, sceneLoader);
 
         return true;

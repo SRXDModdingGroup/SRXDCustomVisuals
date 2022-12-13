@@ -5,31 +5,32 @@ using Object = UnityEngine.Object;
 namespace SRXDCustomVisuals.Core; 
 
 public class VisualsSceneLoader {
-    private IList<VisualsModule> modules;
+    private IList<VisualsElementReference> elements;
     private VisualsScene scene;
     private List<GameObject> instances = new();
     private bool loaded;
 
-    public VisualsSceneLoader(IList<VisualsModule> modules) => this.modules = modules;
+    public VisualsSceneLoader(IList<VisualsElementReference> elements) => this.elements = elements;
 
     public VisualsScene Load(IList<Transform> roots) {
         if (loaded)
             return scene;
 
-        var visualElements = new List<VisualElement>();
+        var visualElements = new List<VisualsElement>();
         
-        foreach (var module in modules) {
-            foreach (var element in module.Elements) {
-                var instance = Object.Instantiate(element.prefab, roots[element.root]);
+        foreach (var element in elements) {
+            if (element.Root < 0 || element.Root >= roots.Count)
+                continue;
+            
+            var instance = Object.Instantiate(element.Prefab, roots[element.Root]);
 
-                instance.transform.localPosition = Vector3.zero;
-                instance.transform.localRotation = Quaternion.identity;
-                instance.transform.localScale = Vector3.one;
-                instances.Add(instance);
+            instance.transform.localPosition = Vector3.zero;
+            instance.transform.localRotation = Quaternion.identity;
+            instance.transform.localScale = Vector3.one;
+            instances.Add(instance);
 
-                if (instance.TryGetComponent<VisualElement>(out var visualElement))
-                    visualElements.Add(visualElement);
-            }
+            if (instance.TryGetComponent<VisualsElement>(out var visualElement))
+                visualElements.Add(visualElement);
         }
 
         scene = new VisualsScene(visualElements);
