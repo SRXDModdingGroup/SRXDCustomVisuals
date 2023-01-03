@@ -20,36 +20,44 @@ public class Patches {
     private static readonly string ASSET_BUNDLES_PATH = Path.Combine(Util.AssemblyPath, "AssetBundles");
     private static readonly string BACKGROUNDS_PATH = Path.Combine(Util.AssemblyPath, "Backgrounds");
     
-    private static VisualsSceneLoader currentSceneLoader;
-    private static VisualsSceneManager sceneManager = new();
+    private static VisualsScene currentScene;
     private static Dictionary<string, CustomVisualsInfo> cachedVisualsInfo = new();
     private static Dictionary<string, BackgroundDefinition> cachedBackgroundDefinitions = new();
-    private static Dictionary<string, VisualsSceneLoader> sceneLoaders = new();
+    private static Dictionary<string, VisualsScene> scenes = new();
     private static float2[] cachedSpectrum = new float2[256];
     private static ComputeBuffer computeBuffer;
     private static NoteClearType previousClearType;
+    private static bool hitMatch;
+    private static bool hitTap;
+    private static bool hitBeat;
+    private static bool hitSpinRight;
+    private static bool hitSpinLeft;
+    private static bool hitScratch;
     private static bool holding;
     private static bool beatHolding;
     private static bool spinningRight;
     private static bool spinningLeft;
     private static bool scratching;
-    private static bool invokeHitMatch;
-    private static bool invokeHitBeat;
-    private static bool invokeHitSpinRight;
-    private static bool invokeHitSpinLeft;
-    private static bool invokeHitTap;
-    private static bool invokeHitScratch;
-    private static IVisualsEvent hitMatchEvent;
-    private static IVisualsEvent hitBeatEvent;
-    private static IVisualsEvent hitSpinRightEvent;
-    private static IVisualsEvent hitSpinLeftEvent;
-    private static IVisualsEvent hitTapEvent;
-    private static IVisualsEvent hitScratchEvent;
-    private static IVisualsProperty holdingProperty;
-    private static IVisualsProperty beatHoldingProperty;
-    private static IVisualsProperty spinningRightProperty;
-    private static IVisualsProperty spinningLeftProperty;
-    private static IVisualsProperty scratchingProperty;
+    private static bool wasHitMatch;
+    private static bool wasHitTap;
+    private static bool wasHitBeat;
+    private static bool wasHitSpinRight;
+    private static bool wasHitSpinLeft;
+    private static bool wasHitScratch;
+    private static bool wasHolding;
+    private static bool wasBeatHolding;
+    private static bool wasSpinningRight;
+    private static bool wasSpinningLeft;
+    private static bool wasScratching;
+
+    private static void SendIfChanged(bool from, bool to, byte index) {
+        var visualsEventManager = VisualsEventManager.Instance;
+        
+        if (!from && to)
+            visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.NoteOn, 255, index));
+        else if (from && !to)
+            visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.NoteOff, 255, index));
+    }
 
     private static bool TryGetCustomVisualsInfo(TrackInfoAssetReference trackInfoRef, out CustomVisualsInfo customVisualsInfo) {
         if (!trackInfoRef.IsCustomFile) {
@@ -96,14 +104,14 @@ public class Patches {
         return true;
     }
 
-    private static bool TryGetSceneLoader(string name, out VisualsSceneLoader sceneLoader) {
+    private static bool TryGetSceneLoader(string name, out VisualsScene scene) {
         if (string.IsNullOrWhiteSpace(name)) {
-            sceneLoader = null;
+            scene = null;
 
             return false;
         }
         
-        if (sceneLoaders.TryGetValue(name, out sceneLoader))
+        if (scenes.TryGetValue(name, out scene))
             return true;
 
         if (!TryGetBackgroundDefinition(name, out var backgroundDefinition))
@@ -164,8 +172,8 @@ public class Patches {
         if (!success)
             return false;
 
-        sceneLoader = new VisualsSceneLoader(elements);
-        sceneLoaders.Add(name, sceneLoader);
+        scene = new VisualsScene(elements);
+        scenes.Add(name, scene);
 
         return true;
     }
@@ -218,16 +226,15 @@ public class Patches {
         
         mainCamera.clearFlags = CameraClearFlags.Skybox;
 
-        if (currentSceneLoader != null) {
-            currentSceneLoader.Unload();
-            currentSceneLoader = null;
-            sceneManager.Clear();
+        if (currentScene != null) {
+            currentScene.Unload();
+            currentScene = null;
         }
         
         if (!Plugin.EnableCustomVisuals.Value
             || !TryGetCustomVisualsInfo(trackInfoRef, out var customVisualsInfo)
             || !TryGetBackgroundDefinition(customVisualsInfo.Background, out var backgroundDefinition)
-            || !TryGetSceneLoader(customVisualsInfo.Background, out currentSceneLoader))
+            || !TryGetSceneLoader(customVisualsInfo.Background, out currentScene))
             return;
 
         if (backgroundDefinition.DisableBaseBackground) {
@@ -235,45 +242,39 @@ public class Patches {
             mainCamera.backgroundColor = Color.black;
         }
 
-        var scene = currentSceneLoader.Load(new[] { null, mainCamera.transform });
-        
-        Dispatcher.QueueForNextFrame(() => {
-            sceneManager.SetScene(scene);
-            sceneManager.InitControllers(new VisualsParams(), new VisualsResources());
-            hitMatchEvent = sceneManager.GetEvent("HitMatch");
-            hitBeatEvent = sceneManager.GetEvent("HitBeat");
-            hitSpinRightEvent = sceneManager.GetEvent("HitSpinRight");
-            hitSpinLeftEvent = sceneManager.GetEvent("HitSpinLeft");
-            hitTapEvent = sceneManager.GetEvent("HitTap");
-            hitScratchEvent = sceneManager.GetEvent("HitScratch");
-            holdingProperty = sceneManager.GetProperty("Holding");
-            beatHoldingProperty = sceneManager.GetProperty("BeatHolding");
-            spinningRightProperty = sceneManager.GetProperty("SpinningRight");
-            spinningLeftProperty = sceneManager.GetProperty("SpinningLeft");
-            scratchingProperty = sceneManager.GetProperty("Scratching");
-        });
+        currentScene.Load(new[] { null, mainCamera.transform });
+        wasHitMatch = false;
+        wasHitTap = false;
+        wasHitBeat = false;
+        wasHitSpinRight = false;
+        wasHitSpinLeft = false;
+        wasHitScratch = false;
+        wasHolding = false;
+        wasBeatHolding = false;
+        wasSpinningRight = false;
+        wasSpinningLeft = false;
+        wasScratching = false;
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
     private static void Track_ReturnToPickTrack_Postfix() {
         MainCamera.Instance.GetComponent<Camera>().clearFlags = CameraClearFlags.Skybox;
         
-        if (currentSceneLoader == null)
+        if (currentScene == null)
             return;
         
-        currentSceneLoader.Unload();
-        currentSceneLoader = null;
-        sceneManager.Clear();
+        currentScene.Unload();
+        currentScene = null;
     }
     
     [HarmonyPatch(typeof(PlayState.ScoreState), nameof(PlayState.ScoreState.UpdateNoteStates)), HarmonyPrefix]
     private static void ScoreState_UpdateNoteStates_Prefix() {
-        invokeHitMatch = false;
-        invokeHitBeat = false;
-        invokeHitSpinRight = false;
-        invokeHitSpinLeft = false;
-        invokeHitTap = false;
-        invokeHitScratch = false;
+        hitMatch = false;
+        hitBeat = false;
+        hitSpinRight = false;
+        hitSpinLeft = false;
+        hitTap = false;
+        hitScratch = false;
         holding = false;
         beatHolding = false;
         spinningRight = false;
@@ -283,32 +284,29 @@ public class Patches {
     
     [HarmonyPatch(typeof(PlayState.ScoreState), nameof(PlayState.ScoreState.UpdateNoteStates)), HarmonyPostfix]
     private static void ScoreState_UpdateNoteStates_Postfix() {
-        if (!sceneManager.HasScene)
-            return;
+        SendIfChanged(wasHitMatch, hitMatch, 0);
+        SendIfChanged(wasHitTap, hitTap, 1);
+        SendIfChanged(wasHitBeat, hitBeat, 2);
+        SendIfChanged(wasHitSpinRight, hitSpinRight, 3);
+        SendIfChanged(wasHitSpinLeft, hitSpinLeft, 4);
+        SendIfChanged(wasHitScratch, hitScratch, 5);
+        SendIfChanged(wasHolding, holding, 6);
+        SendIfChanged(wasBeatHolding, beatHolding, 7);
+        SendIfChanged(wasSpinningRight, spinningRight, 8);
+        SendIfChanged(wasSpinningLeft, spinningLeft, 9);
+        SendIfChanged(wasScratching, scratching, 10);
         
-        if (invokeHitMatch)
-            hitMatchEvent.Invoke();
-        
-        if (invokeHitBeat)
-            hitBeatEvent.Invoke();
-        
-        if (invokeHitSpinRight)
-            hitSpinRightEvent.Invoke();
-        
-        if (invokeHitSpinLeft)
-            hitSpinLeftEvent.Invoke();
-        
-        if (invokeHitTap)
-            hitTapEvent.Invoke();
-        
-        if (invokeHitScratch)
-            hitScratchEvent.Invoke();
-        
-        holdingProperty.SetBool(holding);
-        beatHoldingProperty.SetBool(beatHolding);
-        spinningRightProperty.SetBool(spinningRight);
-        spinningLeftProperty.SetBool(spinningLeft);
-        scratchingProperty.SetBool(scratching);
+        wasHitMatch = hitMatch;
+        wasHitTap = hitTap;
+        wasHitBeat = hitBeat;
+        wasHitSpinRight = hitSpinRight;
+        wasHitSpinLeft = hitSpinLeft;
+        wasHitScratch = hitScratch;
+        wasHolding = holding;
+        wasBeatHolding = beatHolding;
+        wasSpinningRight = spinningRight;
+        wasSpinningLeft = spinningLeft;
+        wasScratching = scratching;
     }
 
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPrefix]
@@ -316,9 +314,6 @@ public class Patches {
     
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPostfix]
     private static void TrackGameplayLogic_UpdateNoteStateInternal_Postfix(PlayState playState, int noteIndex) {
-        if (!sceneManager.HasScene)
-            return;
-        
         var trackData = playState.trackData;
         var clearType = playState.noteStates[noteIndex].clearType;
         var note = trackData.GetNote(noteIndex);
@@ -337,31 +332,31 @@ public class Patches {
         
         switch (noteType) {
             case NoteType.Match when clearType == NoteClearType.Cleared:
-                invokeHitMatch = true;
+                hitMatch = true;
 
                 break;
             case NoteType.DrumStart:
                 var drumNote = trackData.NoteData.GetDrumForNoteIndex(noteIndex).GetValueOrDefault();
 
                 if (drumNote.IsHold ? clearType == NoteClearType.ClearedInitialHit : clearType == NoteClearType.Cleared)
-                    invokeHitBeat = true;
+                    hitBeat = true;
 
                 break;
             case NoteType.SpinRightStart when clearType == NoteClearType.ClearedInitialHit:
-                invokeHitSpinRight = true;
+                hitSpinRight = true;
 
                 break;
             case NoteType.SpinLeftStart when clearType == NoteClearType.ClearedInitialHit:
-                invokeHitSpinLeft = true;
+                hitSpinLeft = true;
 
                 break;
             case NoteType.Tap when clearType == NoteClearType.Cleared:
             case NoteType.HoldStart when clearType == NoteClearType.ClearedInitialHit:
-                invokeHitTap = true;
+                hitTap = true;
 
                 break;
             case NoteType.ScratchStart when clearType == NoteClearType.Cleared:
-                invokeHitScratch = true;
+                hitScratch = true;
 
                 break;
         }

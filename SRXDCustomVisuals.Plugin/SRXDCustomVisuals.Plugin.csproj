@@ -48,37 +48,17 @@
         <Reference Include="Newtonsoft.Json">
           <HintPath>..\Libs\Newtonsoft.Json.dll</HintPath>
         </Reference>
-        <Reference Include="Spin.Game.TrackPlaybackSystem">
-          <HintPath>..\Libs\Spin.Game.TrackPlaybackSystem.dll</HintPath>
-        </Reference>
         <Reference Include="SpinCore">
           <HintPath>..\Libs\SpinCore.dll</HintPath>
         </Reference>
         <Reference Include="SpinModdingUtilities">
           <HintPath>..\Libs\SpinModdingUtilities.dll</HintPath>
         </Reference>
-        <Reference Include="SSD.Build">
-          <HintPath>..\Libs\SSD.Build.dll</HintPath>
-        </Reference>
         <Reference Include="SSD.Game">
           <HintPath>..\Libs\SSD.Game.dll</HintPath>
         </Reference>
-        <Reference Include="SSD.Native">
-          <HintPath>..\Libs\SSD.Native.dll</HintPath>
-        </Reference>
-        <Reference Include="SSD.PlayerServiceManager">
-          <HintPath>..\Libs\SSD.PlayerServiceManager.dll</HintPath>
-        </Reference>
-        <Reference Include="SSD.Types">
-          <HintPath>..\Libs\SSD.Types.dll</HintPath>
-        </Reference>
-        <Reference Include="SSD.Utility">
-          <HintPath>..\Libs\SSD.Utility.dll</HintPath>
-        </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
-        <Reference Include="System.Data" />
-        <Reference Include="System.Xml" />
         <Reference Include="Unity.Mathematics">
           <HintPath>..\Libs\Unity.Mathematics.dll</HintPath>
         </Reference>
@@ -107,6 +87,8 @@
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="Util.cs" />
         <Compile Include="VisualsElementAssetReference.cs" />
+        <Compile Include="VisualsElementReference.cs" />
+        <Compile Include="VisualsScene.cs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\SRXDCustomVisuals.Core\SRXDCustomVisuals.Core.csproj">

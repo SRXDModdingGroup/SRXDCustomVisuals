@@ -2,10 +2,19 @@
 
 namespace SRXDCustomVisuals.Core; 
 
-public class VisualsEvent : IVisualsEvent {
-    private Action<IVisualsParams> action;
+public class VisualsEvent {
+    public VisualsEventType Type { get; }
     
-    public VisualsEvent(Action<IVisualsParams> action) => this.action = action;
+    public byte Channel { get; }
+    
+    public byte Index { get; }
+    
+    public byte Value { get; }
 
-    public void Invoke(IVisualsParams parameters) => action.Invoke(parameters);
+    public VisualsEvent(VisualsEventType type, byte channel, byte index = 0, byte value = 255) {
+        Type = type;
+        Channel = channel;
+        Index = index;
+        Value = value;
+    }
 }

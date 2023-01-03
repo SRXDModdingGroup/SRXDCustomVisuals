@@ -4,6 +4,8 @@ using HarmonyLib;
 using SMU.Utilities;
 using SpinCore;
 using SpinCore.UI;
+using SRXDCustomVisuals.Core;
+using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin;
 
@@ -25,6 +27,7 @@ public class Plugin : SpinPlugin {
         Util.TryLoadAssembly("SRXDCustomVisuals.Behaviors.dll");
         harmony.PatchAll(typeof(Patches));
         EnableCustomVisuals = Config.CreateBindable("EnableCustomVisuals", true);
+        new GameObject("Visuals Event Manager", typeof(VisualsEventManager));
     }
 
     protected override void Init() {

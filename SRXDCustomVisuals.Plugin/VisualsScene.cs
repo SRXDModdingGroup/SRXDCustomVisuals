@@ -4,19 +4,16 @@ using Object = UnityEngine.Object;
 
 namespace SRXDCustomVisuals.Core; 
 
-public class VisualsSceneLoader {
+public class VisualsScene {
     private IList<VisualsElementReference> elements;
-    private VisualsScene scene;
     private List<GameObject> instances = new();
     private bool loaded;
 
-    public VisualsSceneLoader(IList<VisualsElementReference> elements) => this.elements = elements;
+    public VisualsScene(IList<VisualsElementReference> elements) => this.elements = elements;
 
-    public VisualsScene Load(IList<Transform> roots) {
+    public void Load(IList<Transform> roots) {
         if (loaded)
-            return scene;
-
-        var visualElements = new List<VisualsElement>();
+            return;
         
         foreach (var element in elements) {
             if (element.Root < 0 || element.Root >= roots.Count)
@@ -28,15 +25,9 @@ public class VisualsSceneLoader {
             instance.transform.localRotation = Quaternion.identity;
             instance.transform.localScale = Vector3.one;
             instances.Add(instance);
-
-            if (instance.TryGetComponent<VisualsElement>(out var visualElement))
-                visualElements.Add(visualElement);
         }
 
-        scene = new VisualsScene(visualElements);
         loaded = true;
-
-        return scene;
     }
 
     public void Unload() {
@@ -46,7 +37,6 @@ public class VisualsSceneLoader {
         foreach (var instance in instances)
             Object.Destroy(instance);
 
-        scene = null;
         instances.Clear();
         loaded = false;
     }

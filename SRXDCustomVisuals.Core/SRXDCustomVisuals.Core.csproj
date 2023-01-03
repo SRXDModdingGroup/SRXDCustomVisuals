@@ -44,48 +44,21 @@
         </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
-        <Reference Include="System.Data" />
-        <Reference Include="System.Xml" />
         <Reference Include="UnityEngine">
           <HintPath>..\Libs\UnityEngine.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
           <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
-        <Reference Include="UnityEngine.JSONSerializeModule">
-          <HintPath>..\Libs\UnityEngine.JSONSerializeModule.dll</HintPath>
-        </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="Controller\VisualsController.cs" />
-        <Compile Include="Element\VisualsElement.cs" />
-        <Compile Include="Element\VisualsElementEvent.cs" />
-        <Compile Include="Element\VisualsElementProperty.cs" />
-        <Compile Include="Element\VisualsElementReference.cs" />
-        <Compile Include="Element\VisualsEventMapping.cs" />
-        <Compile Include="Element\VisualsParamMapping.cs" />
-        <Compile Include="Element\VisualsParamType.cs" />
-        <Compile Include="Element\VisualsPropertyMapping.cs" />
-        <Compile Include="Event\EmptyVisualsEvent.cs" />
-        <Compile Include="Event\IVisualsEvent.cs" />
         <Compile Include="Event\VisualsEvent.cs" />
-        <Compile Include="Params\EmptyVisualsParams.cs" />
-        <Compile Include="Params\IVisualsParams.cs" />
-        <Compile Include="Params\VisualsParams.cs" />
-        <Compile Include="Property\EmptyVisualsProperty.cs" />
-        <Compile Include="Property\IVisualsProperty.cs" />
-        <Compile Include="Property\VisualsProperty.cs" />
-        <Compile Include="Resources\IVisualsResources.cs" />
-        <Compile Include="Resources\VisualsResources.cs" />
-        <Compile Include="Scene\CompositeVisualsEvent.cs" />
-        <Compile Include="Scene\CompositeVisualsProperty.cs" />
-        <Compile Include="Scene\VisualsScene.cs" />
-        <Compile Include="Scene\VisualsSceneLoader.cs" />
-        <Compile Include="Scene\VisualsSceneManager.cs" />
+        <Compile Include="Event\VisualsEventManager.cs" />
+        <Compile Include="Event\VisualsEventReceiver.cs" />
+        <Compile Include="Event\VisualsEventType.cs" />
         <Compile Include="Util\SafeSerialize.cs" />
         <Compile Include="Util\UnityObjectConverter.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
-        <Compile Include="Value\VisualsValue.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
