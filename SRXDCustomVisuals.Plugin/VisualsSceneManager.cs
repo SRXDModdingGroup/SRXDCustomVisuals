@@ -35,8 +35,7 @@ public class VisualsSceneManager {
             currentScene = null;
         }
         
-        if (!Plugin.EnableCustomVisuals.Value
-            || !TryGetCustomVisualsInfo(trackInfoRef, out var customVisualsInfo)
+        if (!TryGetCustomVisualsInfo(trackInfoRef, out var customVisualsInfo)
             || !TryGetBackgroundDefinition(customVisualsInfo.Background, out var backgroundDefinition)
             || !TryGetSceneLoader(customVisualsInfo.Background, out currentScene))
             return;

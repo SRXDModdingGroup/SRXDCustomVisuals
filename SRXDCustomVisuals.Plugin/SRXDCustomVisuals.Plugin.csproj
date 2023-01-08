@@ -80,13 +80,20 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="BackgroundDefinition.cs" />
+        <Compile Include="ControlKeyframe.cs" />
         <Compile Include="CustomVisualsInfo.cs" />
         <Compile Include="NoteEventController.cs" />
+        <Compile Include="NoteIndex.cs" />
+        <Compile Include="NoteOnOffEvent.cs" />
         <Compile Include="Patches.cs" />
+        <Compile Include="TrackVisualsEventChannel.cs" />
+        <Compile Include="TrackVisualsEventData.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="PluginInfo.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="SpectrumBufferController.cs" />
+        <Compile Include="TrackVisualsEvent.cs" />
+        <Compile Include="TrackVisualsEventPlayback.cs" />
         <Compile Include="Util.cs" />
         <Compile Include="VisualsElementAssetReference.cs" />
         <Compile Include="VisualsElementReference.cs" />

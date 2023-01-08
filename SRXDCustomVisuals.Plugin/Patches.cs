@@ -11,7 +11,7 @@ namespace SRXDCustomVisuals.Plugin;
 public class Patches {
     private static NoteClearType previousClearType;
     private static VisualsSceneManager visualsSceneManager = new();
-    private static NoteEventController noteEventController = new(6, 5);
+    private static NoteEventController noteEventController = new(255, 11);
     private static SpectrumBufferController spectrumBufferController = new();
 
     private static BackgroundAssetReference OverrideBackgroundIfVisualsInfoHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
@@ -29,6 +29,9 @@ public class Patches {
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
     private static void Track_PlayTrack_Postfix(Track __instance) {
+        if (!Plugin.EnableCustomVisuals.Value)
+            return;
+        
         visualsSceneManager.LoadScene(__instance.playStateFirst.trackData.TrackInfoRef);
         noteEventController.Reset();
     }
@@ -57,7 +60,7 @@ public class Patches {
             ref var sustainNoteState = ref playState.scoreState.GetSustainState(drumNote.FirstNoteIndex);
 
             if (sustainNoteState.isSustained && playState.currentTrackTick < trackData.GetNote(drumNote.LastNoteIndex).tick)
-                noteEventController.Hold(1);
+                noteEventController.Hold((byte) NoteIndex.HoldBeat);
         }
 
         if (clearType == previousClearType || clearType >= NoteClearType.ClearedEarly)
@@ -65,31 +68,31 @@ public class Patches {
         
         switch (noteType) {
             case NoteType.Match when clearType == NoteClearType.Cleared:
-                noteEventController.Hit(0);
+                noteEventController.Hit((byte) NoteIndex.HitMatch);
 
                 break;
             case NoteType.DrumStart:
                 var drumNote = trackData.NoteData.GetDrumForNoteIndex(noteIndex).GetValueOrDefault();
 
                 if (drumNote.IsHold ? clearType == NoteClearType.ClearedInitialHit : clearType == NoteClearType.Cleared)
-                    noteEventController.Hit(2);
+                    noteEventController.Hit((byte) NoteIndex.HitBeat);
 
                 break;
             case NoteType.SpinRightStart when clearType == NoteClearType.ClearedInitialHit:
-                noteEventController.Hit(3);
+                noteEventController.Hit((byte) NoteIndex.HitSpinRight);
 
                 break;
             case NoteType.SpinLeftStart when clearType == NoteClearType.ClearedInitialHit:
-                noteEventController.Hit(4);
+                noteEventController.Hit((byte) NoteIndex.HitSpinLeft);
 
                 break;
             case NoteType.Tap when clearType == NoteClearType.Cleared:
             case NoteType.HoldStart when clearType == NoteClearType.ClearedInitialHit:
-                noteEventController.Hit(1);
+                noteEventController.Hit((byte) NoteIndex.HitTap);
 
                 break;
             case NoteType.ScratchStart when clearType == NoteClearType.Cleared:
-                noteEventController.Hit(5);
+                noteEventController.Hit((byte) NoteIndex.HitScratch);
 
                 break;
         }
@@ -105,7 +108,7 @@ public class Patches {
         ref var sustainNoteState = ref playState.scoreState.GetSustainState(noteIndex);
 
         if (sustainNoteState.isSustained && playState.currentTrackTick < sustainSection.Value.EndTick)
-            noteEventController.Hold(0);
+            noteEventController.Hold((byte) NoteIndex.Hold);
     }
     
     [HarmonyPatch(typeof(SpinSectionLogic), nameof(SpinSectionLogic.UpdateSpinSectionState)), HarmonyPostfix]
@@ -121,9 +124,9 @@ public class Patches {
             return;
         
         if (spinSection.Value.direction == 1)
-            noteEventController.Hold(2);
+            noteEventController.Hold((byte) NoteIndex.HoldSpinRight);
         else
-            noteEventController.Hold(3);
+            noteEventController.Hold((byte) NoteIndex.HoldSpinLeft);
     }
     
     [HarmonyPatch(typeof(ScratchSectionLogic), nameof(ScratchSectionLogic.UpdateScratchSectionState)), HarmonyPostfix]
@@ -136,7 +139,7 @@ public class Patches {
         ref var sustainNoteState = ref playState.scoreState.GetSustainState(noteIndex);
 
         if (sustainNoteState.isSustained && playState.currentTrackTick < playState.trackData.GetNote(scratchSection.Value.LastNoteIndex).tick)
-            noteEventController.Hold(4);
+            noteEventController.Hold((byte) NoteIndex.HoldScratch);
     }
 
     [HarmonyPatch(typeof(PlayableTrackDataHandle), "Loading"), HarmonyTranspiler]
