@@ -81,14 +81,17 @@
     <ItemGroup>
         <Compile Include="BackgroundDefinition.cs" />
         <Compile Include="CustomVisualsInfo.cs" />
+        <Compile Include="NoteEventController.cs" />
         <Compile Include="Patches.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="PluginInfo.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
+        <Compile Include="SpectrumBufferController.cs" />
         <Compile Include="Util.cs" />
         <Compile Include="VisualsElementAssetReference.cs" />
         <Compile Include="VisualsElementReference.cs" />
         <Compile Include="VisualsScene.cs" />
+        <Compile Include="VisualsSceneManager.cs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\SRXDCustomVisuals.Core\SRXDCustomVisuals.Core.csproj">

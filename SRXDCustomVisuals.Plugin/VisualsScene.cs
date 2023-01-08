@@ -1,15 +1,16 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace SRXDCustomVisuals.Core; 
 
 public class VisualsScene {
-    private IList<VisualsElementReference> elements;
+    private List<VisualsElementReference> elements;
     private List<GameObject> instances = new();
     private bool loaded;
 
-    public VisualsScene(IList<VisualsElementReference> elements) => this.elements = elements;
+    public VisualsScene(IEnumerable<VisualsElementReference> elements) => this.elements = elements.ToList();
 
     public void Load(IList<Transform> roots) {
         if (loaded)

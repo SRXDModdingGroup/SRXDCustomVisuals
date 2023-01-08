@@ -1,313 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
-using Newtonsoft.Json;
 using SMU.Utilities;
-using SpinCore.Utility;
-using SRXDCustomVisuals.Core;
-using Unity.Collections.LowLevel.Unsafe;
-using Unity.Mathematics;
-using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
 
 public class Patches {
-    private static readonly int CUSTOM_SPECTRUM_BUFFER = Shader.PropertyToID("_CustomSpectrumBuffer");
-    private static readonly string ASSET_BUNDLES_PATH = Path.Combine(Util.AssemblyPath, "AssetBundles");
-    private static readonly string BACKGROUNDS_PATH = Path.Combine(Util.AssemblyPath, "Backgrounds");
-    
-    private static VisualsScene currentScene;
-    private static Dictionary<string, CustomVisualsInfo> cachedVisualsInfo = new();
-    private static Dictionary<string, BackgroundDefinition> cachedBackgroundDefinitions = new();
-    private static Dictionary<string, VisualsScene> scenes = new();
-    private static float2[] cachedSpectrum = new float2[256];
-    private static ComputeBuffer computeBuffer;
     private static NoteClearType previousClearType;
-    private static bool hitMatch;
-    private static bool hitTap;
-    private static bool hitBeat;
-    private static bool hitSpinRight;
-    private static bool hitSpinLeft;
-    private static bool hitScratch;
-    private static bool holding;
-    private static bool beatHolding;
-    private static bool spinningRight;
-    private static bool spinningLeft;
-    private static bool scratching;
-    private static bool wasHitMatch;
-    private static bool wasHitTap;
-    private static bool wasHitBeat;
-    private static bool wasHitSpinRight;
-    private static bool wasHitSpinLeft;
-    private static bool wasHitScratch;
-    private static bool wasHolding;
-    private static bool wasBeatHolding;
-    private static bool wasSpinningRight;
-    private static bool wasSpinningLeft;
-    private static bool wasScratching;
-
-    private static void SendIfChanged(bool from, bool to, byte index) {
-        var visualsEventManager = VisualsEventManager.Instance;
-        
-        if (!from && to)
-            visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.NoteOn, 255, index));
-        else if (from && !to)
-            visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.NoteOff, 255, index));
-    }
-
-    private static bool TryGetCustomVisualsInfo(TrackInfoAssetReference trackInfoRef, out CustomVisualsInfo customVisualsInfo) {
-        if (!trackInfoRef.IsCustomFile) {
-            customVisualsInfo = null;
-
-            return false;
-        }
-        
-        string uniqueName = trackInfoRef.UniqueName;
-
-        if (cachedVisualsInfo.TryGetValue(uniqueName, out customVisualsInfo))
-            return true;
-
-        if (!CustomChartUtility.TryGetCustomData(trackInfoRef.customFile, "CustomVisualsInfo", out customVisualsInfo))
-            return false;
-
-        cachedVisualsInfo.Add(uniqueName, customVisualsInfo);
-
-        return true;
-    }
-
-    private static bool TryGetBackgroundDefinition(string name, out BackgroundDefinition backgroundDefinition) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            backgroundDefinition = null;
-            
-            return false;
-        }
-        
-        if (cachedBackgroundDefinitions.TryGetValue(name, out backgroundDefinition))
-            return true;
-        
-        string backgroundPath = Path.ChangeExtension(Path.Combine(BACKGROUNDS_PATH, name), ".json");
-
-        if (!File.Exists(backgroundPath))
-            return false;
-
-        backgroundDefinition = JsonConvert.DeserializeObject<BackgroundDefinition>(File.ReadAllText(backgroundPath));
-
-        if (backgroundDefinition == null)
-            return false;
-
-        cachedBackgroundDefinitions.Add(name, backgroundDefinition);
-
-        return true;
-    }
-
-    private static bool TryGetSceneLoader(string name, out VisualsScene scene) {
-        if (string.IsNullOrWhiteSpace(name)) {
-            scene = null;
-
-            return false;
-        }
-        
-        if (scenes.TryGetValue(name, out scene))
-            return true;
-
-        if (!TryGetBackgroundDefinition(name, out var backgroundDefinition))
-            return false;
-        
-        bool success = true;
-        var assetBundles = new Dictionary<string, AssetBundle>();
-
-        foreach (string bundleName in backgroundDefinition.AssetBundles) {
-            if (AssetBundleUtility.TryGetAssetBundle(ASSET_BUNDLES_PATH, bundleName, out var bundle))
-                assetBundles.Add(bundleName, bundle);
-            else {
-                Plugin.Logger.LogWarning($"Could not load asset bundle {bundleName}");
-                success = false;
-            }
-        }
-
-        foreach (string assembly in backgroundDefinition.Assemblies) {
-            if (Util.TryLoadAssembly(assembly))
-                continue;
-            
-            Plugin.Logger.LogWarning($"Could not load assembly {assembly}");
-            success = false;
-        }
-
-        if (!success)
-            return false;
-        
-        var elements = new List<VisualsElementReference>();
-
-        foreach (var elementReference in backgroundDefinition.Elements) {
-            if (!assetBundles.TryGetValue(elementReference.Bundle, out var bundle)) {
-                Plugin.Logger.LogWarning($"Could not find asset bundle {elementReference.Bundle}");
-                success = false;
-                
-                continue;
-            }
-
-            if (!bundle.Contains(elementReference.Asset)) {
-                Plugin.Logger.LogWarning($"Could not find asset {elementReference.Asset} in bundle {elementReference.Bundle}");
-                success = false;
-
-                continue;
-            }
-
-            var element = bundle.LoadAsset<GameObject>(elementReference.Asset);
-
-            if (element == null) {
-                Plugin.Logger.LogWarning($"Asset {elementReference.Asset} in bundle {elementReference.Bundle} is not a GameObject");
-                success = false;
-                
-                continue;
-            }
-            
-            elements.Add(new VisualsElementReference(element, elementReference.Root));
-        }
-            
-        if (!success)
-            return false;
-
-        scene = new VisualsScene(elements);
-        scenes.Add(name, scene);
-
-        return true;
-    }
-
-    private static float Boost(float x) => 1f - 1f / (100f * x + 1f);
+    private static VisualsSceneManager visualsSceneManager = new();
+    private static NoteEventController noteEventController = new(6, 5);
+    private static SpectrumBufferController spectrumBufferController = new();
 
     private static BackgroundAssetReference OverrideBackgroundIfVisualsInfoHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
-        var trackInfoRef = handle.Setup.TrackDataSegments[0].trackInfoRef;
-
-        if (Plugin.EnableCustomVisuals.Value
-            && TryGetCustomVisualsInfo(trackInfoRef, out var customVisualsInfo)
-            && TryGetBackgroundDefinition(customVisualsInfo.Background, out var background)
-            && background.DisableBaseBackground)
-            return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
+        if (Plugin.EnableCustomVisuals.Value)
+            return visualsSceneManager.GetBackgroundForScene(defaultBackground, handle.Setup.TrackDataSegments[0].trackInfoRef);
         
         return defaultBackground;
     }
 
     [HarmonyPatch(typeof(Game), nameof(Game.Update)), HarmonyPostfix]
-    private static void Game_Update_Postfix() {
-        var spectrumProcessor = TrackTrackerAndUtils.Instance.SpectrumProcessor;
-        var smoothedBandsLeft = spectrumProcessor.GetSmoothedBands(AudioChannels.LeftChannel);
-        var smoothedBandsRight = spectrumProcessor.GetSmoothedBands(AudioChannels.RightChannel);
-        
-        if (!smoothedBandsLeft.IsCreated || !smoothedBandsRight.IsCreated)
-            return;
-
-        for (int i = 0; i < 256; i++)
-            cachedSpectrum[i] = new float2(Boost(smoothedBandsLeft[i]), Boost(smoothedBandsRight[i]));
-
-        computeBuffer ??= new ComputeBuffer(256, UnsafeUtility.SizeOf<float2>(), ComputeBufferType.Structured);
-        computeBuffer.SetData(cachedSpectrum);
-        Shader.SetGlobalBuffer(CUSTOM_SPECTRUM_BUFFER, computeBuffer);
-    }
+    private static void Game_Update_Postfix() => spectrumBufferController.Update();
 
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
-    private static void Track_Awake_Postfix(Track __instance) {
-        if (!Directory.Exists(ASSET_BUNDLES_PATH))
-            Directory.CreateDirectory(ASSET_BUNDLES_PATH);
-        
-        if (!Directory.Exists(BACKGROUNDS_PATH))
-            Directory.CreateDirectory(BACKGROUNDS_PATH);
-    }
+    private static void Track_Awake_Postfix(Track __instance) => VisualsSceneManager.CreateDirectories();
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
     private static void Track_PlayTrack_Postfix(Track __instance) {
-        var data = __instance.playStateFirst.trackData;
-        var trackInfoRef = data.TrackInfoRef;
-        var mainCamera = MainCamera.Instance.GetComponent<Camera>();
-        
-        mainCamera.clearFlags = CameraClearFlags.Skybox;
-
-        if (currentScene != null) {
-            currentScene.Unload();
-            currentScene = null;
-        }
-        
-        if (!Plugin.EnableCustomVisuals.Value
-            || !TryGetCustomVisualsInfo(trackInfoRef, out var customVisualsInfo)
-            || !TryGetBackgroundDefinition(customVisualsInfo.Background, out var backgroundDefinition)
-            || !TryGetSceneLoader(customVisualsInfo.Background, out currentScene))
-            return;
-
-        if (backgroundDefinition.DisableBaseBackground) {
-            mainCamera.clearFlags = CameraClearFlags.SolidColor;
-            mainCamera.backgroundColor = Color.black;
-        }
-
-        currentScene.Load(new[] { null, mainCamera.transform });
-        wasHitMatch = false;
-        wasHitTap = false;
-        wasHitBeat = false;
-        wasHitSpinRight = false;
-        wasHitSpinLeft = false;
-        wasHitScratch = false;
-        wasHolding = false;
-        wasBeatHolding = false;
-        wasSpinningRight = false;
-        wasSpinningLeft = false;
-        wasScratching = false;
+        visualsSceneManager.LoadScene(__instance.playStateFirst.trackData.TrackInfoRef);
+        noteEventController.Reset();
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
-    private static void Track_ReturnToPickTrack_Postfix() {
-        MainCamera.Instance.GetComponent<Camera>().clearFlags = CameraClearFlags.Skybox;
-        
-        if (currentScene == null)
-            return;
-        
-        currentScene.Unload();
-        currentScene = null;
-    }
-    
+    private static void Track_ReturnToPickTrack_Postfix() => visualsSceneManager.UnloadScene();
+
     [HarmonyPatch(typeof(PlayState.ScoreState), nameof(PlayState.ScoreState.UpdateNoteStates)), HarmonyPrefix]
-    private static void ScoreState_UpdateNoteStates_Prefix() {
-        hitMatch = false;
-        hitBeat = false;
-        hitSpinRight = false;
-        hitSpinLeft = false;
-        hitTap = false;
-        hitScratch = false;
-        holding = false;
-        beatHolding = false;
-        spinningRight = false;
-        spinningLeft = false;
-        scratching = false;
-    }
-    
+    private static void ScoreState_UpdateNoteStates_Prefix() => noteEventController.Listen();
+
     [HarmonyPatch(typeof(PlayState.ScoreState), nameof(PlayState.ScoreState.UpdateNoteStates)), HarmonyPostfix]
-    private static void ScoreState_UpdateNoteStates_Postfix() {
-        SendIfChanged(wasHitMatch, hitMatch, 0);
-        SendIfChanged(wasHitTap, hitTap, 1);
-        SendIfChanged(wasHitBeat, hitBeat, 2);
-        SendIfChanged(wasHitSpinRight, hitSpinRight, 3);
-        SendIfChanged(wasHitSpinLeft, hitSpinLeft, 4);
-        SendIfChanged(wasHitScratch, hitScratch, 5);
-        SendIfChanged(wasHolding, holding, 6);
-        SendIfChanged(wasBeatHolding, beatHolding, 7);
-        SendIfChanged(wasSpinningRight, spinningRight, 8);
-        SendIfChanged(wasSpinningLeft, spinningLeft, 9);
-        SendIfChanged(wasScratching, scratching, 10);
-        
-        wasHitMatch = hitMatch;
-        wasHitTap = hitTap;
-        wasHitBeat = hitBeat;
-        wasHitSpinRight = hitSpinRight;
-        wasHitSpinLeft = hitSpinLeft;
-        wasHitScratch = hitScratch;
-        wasHolding = holding;
-        wasBeatHolding = beatHolding;
-        wasSpinningRight = spinningRight;
-        wasSpinningLeft = spinningLeft;
-        wasScratching = scratching;
-    }
+    private static void ScoreState_UpdateNoteStates_Postfix() => noteEventController.Send();
 
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPrefix]
     private static void TrackGameplayLogic_UpdateNoteStateInternal_Prefix(PlayState playState, int noteIndex) => previousClearType = playState.noteStates[noteIndex].clearType;
@@ -324,7 +57,7 @@ public class Patches {
             ref var sustainNoteState = ref playState.scoreState.GetSustainState(drumNote.FirstNoteIndex);
 
             if (sustainNoteState.isSustained && playState.currentTrackTick < trackData.GetNote(drumNote.LastNoteIndex).tick)
-                beatHolding = true;
+                noteEventController.Hold(1);
         }
 
         if (clearType == previousClearType || clearType >= NoteClearType.ClearedEarly)
@@ -332,31 +65,31 @@ public class Patches {
         
         switch (noteType) {
             case NoteType.Match when clearType == NoteClearType.Cleared:
-                hitMatch = true;
+                noteEventController.Hit(0);
 
                 break;
             case NoteType.DrumStart:
                 var drumNote = trackData.NoteData.GetDrumForNoteIndex(noteIndex).GetValueOrDefault();
 
                 if (drumNote.IsHold ? clearType == NoteClearType.ClearedInitialHit : clearType == NoteClearType.Cleared)
-                    hitBeat = true;
+                    noteEventController.Hit(2);
 
                 break;
             case NoteType.SpinRightStart when clearType == NoteClearType.ClearedInitialHit:
-                hitSpinRight = true;
+                noteEventController.Hit(3);
 
                 break;
             case NoteType.SpinLeftStart when clearType == NoteClearType.ClearedInitialHit:
-                hitSpinLeft = true;
+                noteEventController.Hit(4);
 
                 break;
             case NoteType.Tap when clearType == NoteClearType.Cleared:
             case NoteType.HoldStart when clearType == NoteClearType.ClearedInitialHit:
-                hitTap = true;
+                noteEventController.Hit(1);
 
                 break;
             case NoteType.ScratchStart when clearType == NoteClearType.Cleared:
-                hitScratch = true;
+                noteEventController.Hit(5);
 
                 break;
         }
@@ -372,7 +105,7 @@ public class Patches {
         ref var sustainNoteState = ref playState.scoreState.GetSustainState(noteIndex);
 
         if (sustainNoteState.isSustained && playState.currentTrackTick < sustainSection.Value.EndTick)
-            holding = true;
+            noteEventController.Hold(0);
     }
     
     [HarmonyPatch(typeof(SpinSectionLogic), nameof(SpinSectionLogic.UpdateSpinSectionState)), HarmonyPostfix]
@@ -388,9 +121,9 @@ public class Patches {
             return;
         
         if (spinSection.Value.direction == 1)
-            spinningRight = true;
+            noteEventController.Hold(2);
         else
-            spinningLeft = true;
+            noteEventController.Hold(3);
     }
     
     [HarmonyPatch(typeof(ScratchSectionLogic), nameof(ScratchSectionLogic.UpdateScratchSectionState)), HarmonyPostfix]
@@ -403,7 +136,7 @@ public class Patches {
         ref var sustainNoteState = ref playState.scoreState.GetSustainState(noteIndex);
 
         if (sustainNoteState.isSustained && playState.currentTrackTick < playState.trackData.GetNote(scratchSection.Value.LastNoteIndex).tick)
-            scratching = true;
+            noteEventController.Hold(4);
     }
 
     [HarmonyPatch(typeof(PlayableTrackDataHandle), "Loading"), HarmonyTranspiler]

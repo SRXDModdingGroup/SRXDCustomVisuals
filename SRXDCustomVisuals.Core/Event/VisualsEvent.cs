@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SRXDCustomVisuals.Core; 
+﻿namespace SRXDCustomVisuals.Core; 
 
 public class VisualsEvent {
     public VisualsEventType Type { get; }
