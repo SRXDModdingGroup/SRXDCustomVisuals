@@ -30,10 +30,10 @@ public class VisualsEventReceiver : MonoBehaviour {
 
     internal void ReceiveEvent(VisualsEvent visualsEvent) {
         switch (visualsEvent.Type) {
-            case VisualsEventType.NoteOn:
+            case VisualsEventType.On:
                 OnNoteOn?.Invoke(visualsEvent);
                 break;
-            case VisualsEventType.NoteOff:
+            case VisualsEventType.Off:
                 OnNoteOff?.Invoke(visualsEvent);
                 break;
             case VisualsEventType.ControlChange:

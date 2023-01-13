@@ -80,25 +80,28 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="BackgroundDefinition.cs" />
-        <Compile Include="ControlKeyframe.cs" />
         <Compile Include="CustomVisualsInfo.cs" />
+        <Compile Include="EventData\ControlCurve.cs" />
+        <Compile Include="EventData\ControlKeyframe.cs" />
+        <Compile Include="EventData\ControlKeyframeType.cs" />
+        <Compile Include="EventData\OnOffEvent.cs" />
+        <Compile Include="EventData\TrackVisualsEvent.cs" />
+        <Compile Include="EventData\TrackVisualsEventChannel.cs" />
+        <Compile Include="EventData\TrackVisualsEventSequence.cs" />
+        <Compile Include="EventData\TrackVisualsEventPlayback.cs" />
+        <Compile Include="EventData\TrackVisualsEventType.cs" />
         <Compile Include="NoteEventController.cs" />
         <Compile Include="NoteIndex.cs" />
-        <Compile Include="NoteOnOffEvent.cs" />
         <Compile Include="Patches.cs" />
-        <Compile Include="TrackVisualsEventChannel.cs" />
-        <Compile Include="TrackVisualsEventData.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="PluginInfo.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="SpectrumBufferController.cs" />
-        <Compile Include="TrackVisualsEvent.cs" />
-        <Compile Include="TrackVisualsEventPlayback.cs" />
         <Compile Include="Util.cs" />
-        <Compile Include="VisualsElementAssetReference.cs" />
-        <Compile Include="VisualsElementReference.cs" />
-        <Compile Include="VisualsScene.cs" />
-        <Compile Include="VisualsSceneManager.cs" />
+        <Compile Include="Visuals\VisualsElementAssetReference.cs" />
+        <Compile Include="Visuals\VisualsElementReference.cs" />
+        <Compile Include="Visuals\VisualsScene.cs" />
+        <Compile Include="Visuals\VisualsSceneManager.cs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\SRXDCustomVisuals.Core\SRXDCustomVisuals.Core.csproj">

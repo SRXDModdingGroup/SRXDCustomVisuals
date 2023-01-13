@@ -7,9 +7,9 @@ public class VisualsEvent {
     
     public byte Index { get; }
     
-    public byte Value { get; }
+    public uint Value { get; }
 
-    public VisualsEvent(VisualsEventType type, byte channel, byte index = 0, byte value = 255) {
+    public VisualsEvent(VisualsEventType type, byte channel, byte index, uint value) {
         Type = type;
         Channel = channel;
         Index = index;
