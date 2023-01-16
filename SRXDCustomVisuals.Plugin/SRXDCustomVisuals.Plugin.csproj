@@ -57,6 +57,9 @@
         <Reference Include="SSD.Game">
           <HintPath>..\Libs\SSD.Game.dll</HintPath>
         </Reference>
+        <Reference Include="SSD.PlayerServiceManager">
+          <HintPath>..\Libs\SSD.PlayerServiceManager.dll</HintPath>
+        </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="Unity.Mathematics">
@@ -74,25 +77,28 @@
         <Reference Include="UnityEngine.CoreModule">
           <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.InputLegacyModule">
+          <HintPath>..\Libs\UnityEngine.InputLegacyModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.UI">
           <HintPath>..\Libs\UnityEngine.UI.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="BackgroundDefinition.cs" />
-        <Compile Include="CustomVisualsInfo.cs" />
         <Compile Include="EventData\ControlCurve.cs" />
         <Compile Include="EventData\ControlKeyframe.cs" />
         <Compile Include="EventData\ControlKeyframeType.cs" />
         <Compile Include="EventData\OnOffEvent.cs" />
         <Compile Include="EventData\OnOffEventType.cs" />
-        <Compile Include="EventData\TrackVisualsEvent.cs" />
         <Compile Include="EventData\TrackVisualsEventChannel.cs" />
         <Compile Include="EventData\TrackVisualsEventSequence.cs" />
         <Compile Include="EventData\TrackVisualsEventPlayback.cs" />
         <Compile Include="EventData\TrackVisualsEventType.cs" />
-        <Compile Include="NoteEventController.cs" />
-        <Compile Include="NoteIndex.cs" />
+        <Compile Include="JSON\BackgroundDefinition.cs" />
+        <Compile Include="JSON\CustomVisualsInfo.cs" />
+        <Compile Include="JSON\TrackVisualsEvent.cs" />
+        <Compile Include="NoteEvents\NoteEventController.cs" />
+        <Compile Include="NoteEvents\NoteIndex.cs" />
         <Compile Include="Patches.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="PluginInfo.cs" />

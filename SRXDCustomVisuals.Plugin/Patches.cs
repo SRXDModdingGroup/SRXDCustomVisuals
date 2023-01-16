@@ -5,11 +5,13 @@ using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using SMU.Utilities;
+using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
 
 public class Patches {
     private static NoteClearType previousClearType;
+    private static bool sequenceEditMode;
     private static VisualsSceneManager visualsSceneManager = new();
     private static NoteEventController noteEventController = new(255, 11);
     private static SpectrumBufferController spectrumBufferController = new();
@@ -140,6 +142,50 @@ public class Patches {
 
         if (sustainNoteState.isSustained && playState.currentTrackTick < playState.trackData.GetNote(scratchSection.Value.LastNoteIndex).tick)
             noteEventController.Hold((byte) NoteIndex.HoldScratch);
+    }
+
+    [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.UpdateEditor)), HarmonyPrefix]
+    private static void TrackEditorGUI_UpdateEditor_Prefix(TrackEditorGUI __instance) {
+        if (!Input.GetKeyDown(KeyCode.F1))
+            return;
+        
+        sequenceEditMode = !sequenceEditMode;
+        Plugin.Logger.LogMessage($"Sequence edit mode: {sequenceEditMode}");
+
+        if (!sequenceEditMode)
+            return;
+        
+        __instance.UpdateFrameInfo();
+        __instance.frameInfo.trackData.ClearNoteSelection();
+    }
+    
+    [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.SetCurrentTrackTime)), HarmonyPrefix]
+    private static void TrackEditorGUI_SetCurrentTrackTime_Prefix(ref bool canChangeSelection) {
+        if (sequenceEditMode)
+            canChangeSelection = false;
+    }
+
+    [HarmonyPatch(typeof(TrackEditorGUI), "HandleNoteEditorInput"), HarmonyPrefix]
+    private static bool TrackEditorGUI_HandleNoteEditorInput_Prefix() => !sequenceEditMode;
+    
+    [HarmonyPatch(typeof(TrackEditorGUI), "HandleMoveCursorInput"), HarmonyPrefix]
+    private static bool TrackEditorGUI_HandleMoveCursorInput_Prefix() => !sequenceEditMode;
+    
+    [HarmonyPatch(typeof(TrackEditorGUI), "SetIsNoteSelected"), HarmonyPrefix]
+    private static bool TrackEditorGUI_SetIsNoteSelected_Prefix() => !sequenceEditMode;
+
+    [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.CheckCommand)), HarmonyPrefix]
+    private static bool TrackEditorGUI_CheckCommand_Prefix(InputMapping.SpinCommands command, ref bool __result) {
+        if (!sequenceEditMode || command is not (
+                InputMapping.SpinCommands.EditorRedo or
+                InputMapping.SpinCommands.EditorUndo or
+                InputMapping.SpinCommands.AddCuePoint or 
+                InputMapping.SpinCommands.RemoveCuePoint))
+            return true;
+        
+        __result = false;
+
+        return false;
     }
 
     [HarmonyPatch(typeof(PlayableTrackDataHandle), "Loading"), HarmonyTranspiler]

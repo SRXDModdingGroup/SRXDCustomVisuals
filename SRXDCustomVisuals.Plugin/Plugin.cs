@@ -24,7 +24,6 @@ public class Plugin : SpinPlugin {
 
         var harmony = new Harmony("CustomVisuals");
 
-        Util.TryLoadAssembly("SRXDCustomVisuals.Behaviors.dll");
         harmony.PatchAll(typeof(Patches));
         EnableCustomVisuals = Config.CreateBindable("EnableCustomVisuals", true);
         new GameObject("Visuals Event Manager", typeof(VisualsEventManager));
