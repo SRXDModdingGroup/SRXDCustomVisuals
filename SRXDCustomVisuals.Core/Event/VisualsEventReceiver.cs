@@ -14,6 +14,8 @@ public class VisualsEventReceiver : MonoBehaviour {
     
     public event Action<VisualsEvent> OnControlChange;
 
+    public event Action OnReset;
+
     private void Awake() {
         if (channel is < 0 or >= 256 )
             return;
@@ -43,4 +45,6 @@ public class VisualsEventReceiver : MonoBehaviour {
                 throw new ArgumentOutOfRangeException();
         }
     }
+
+    internal void Reset() => OnReset?.Invoke();
 }

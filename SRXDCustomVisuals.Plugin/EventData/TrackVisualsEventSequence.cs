@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 
 namespace SRXDCustomVisuals.Plugin; 
 
@@ -24,32 +23,26 @@ public class TrackVisualsEventSequence {
                 Channels.Add(channel);
             }
 
-            switch (visualsEvent.Type) {
-                case TrackVisualsEventType.On:
-                    channel.OnOffEvents.Add(new OnOffEvent(visualsEvent.Time, true, (byte) visualsEvent.Index, (byte) visualsEvent.Value));
-                    break;
-                case TrackVisualsEventType.Off:
-                    channel.OnOffEvents.Add(new OnOffEvent(visualsEvent.Time, false, (byte) visualsEvent.Index, (byte) visualsEvent.Value));
-                    break;
-                case TrackVisualsEventType.ControlKeyframe:
-                    var controlCurves = channel.ControlCurves;
-                    
-                    if (!controlCurvesByIndexByChannel.TryGetValue(visualsEvent.Channel, out var controlCurvesByIndex)) {
-                        controlCurvesByIndex = new Dictionary<int, ControlCurve>();
-                        controlCurvesByIndexByChannel.Add(visualsEvent.Channel, controlCurvesByIndex);
-                    }
-
-                    if (!controlCurvesByIndex.TryGetValue(visualsEvent.Index, out var controlCurve)) {
-                        controlCurve = new ControlCurve(visualsEvent.Index);
-                        controlCurvesByIndex.Add(visualsEvent.Index, controlCurve);
-                        controlCurves.Add(controlCurve);
-                    }
-                    
-                    controlCurve.Keyframes.Add(new ControlKeyframe(visualsEvent.Time, visualsEvent.KeyframeType, (byte) visualsEvent.Value));
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+            if (visualsEvent.Type != TrackVisualsEventType.ControlKeyframe) {
+                channel.OnOffEvents.Add(new OnOffEvent(visualsEvent.Time, ToOnOffEventType(visualsEvent.Type), (byte) visualsEvent.Index, (byte) visualsEvent.Value));
+                
+                continue;
             }
+            
+            var controlCurves = channel.ControlCurves;
+            
+            if (!controlCurvesByIndexByChannel.TryGetValue(visualsEvent.Channel, out var controlCurvesByIndex)) {
+                controlCurvesByIndex = new Dictionary<int, ControlCurve>();
+                controlCurvesByIndexByChannel.Add(visualsEvent.Channel, controlCurvesByIndex);
+            }
+
+            if (!controlCurvesByIndex.TryGetValue(visualsEvent.Index, out var controlCurve)) {
+                controlCurve = new ControlCurve(visualsEvent.Index);
+                controlCurvesByIndex.Add(visualsEvent.Index, controlCurve);
+                controlCurves.Add(controlCurve);
+            }
+            
+            controlCurve.Keyframes.Add(new ControlKeyframe(visualsEvent.Time, visualsEvent.KeyframeType, (byte) visualsEvent.Value));
         }
     }
 
@@ -60,7 +53,7 @@ public class TrackVisualsEventSequence {
             foreach (var onOffEvent in channel.OnOffEvents) {
                 InsertEvent(new TrackVisualsEvent(
                     onOffEvent.Time,
-                    onOffEvent.On ? TrackVisualsEventType.On : TrackVisualsEventType.Off,
+                    ToTrackVisualsEventType(onOffEvent.Type),
                     ControlKeyframeType.Constant,
                     channel.Index,
                     onOffEvent.Index,
@@ -94,4 +87,18 @@ public class TrackVisualsEventSequence {
             visualsEvents.Insert(index, visualsEvent);
         }
     }
+
+    private static OnOffEventType ToOnOffEventType(TrackVisualsEventType type) => type switch {
+        TrackVisualsEventType.On => OnOffEventType.On,
+        TrackVisualsEventType.Off => OnOffEventType.Off,
+        TrackVisualsEventType.OnOff => OnOffEventType.Off,
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+    };
+
+    private static TrackVisualsEventType ToTrackVisualsEventType(OnOffEventType type) => type switch {
+        OnOffEventType.On => TrackVisualsEventType.On,
+        OnOffEventType.Off => TrackVisualsEventType.Off,
+        OnOffEventType.OnOff => TrackVisualsEventType.OnOff,
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+    };
 }

@@ -85,6 +85,7 @@
         <Compile Include="EventData\ControlKeyframe.cs" />
         <Compile Include="EventData\ControlKeyframeType.cs" />
         <Compile Include="EventData\OnOffEvent.cs" />
+        <Compile Include="EventData\OnOffEventType.cs" />
         <Compile Include="EventData\TrackVisualsEvent.cs" />
         <Compile Include="EventData\TrackVisualsEventChannel.cs" />
         <Compile Include="EventData\TrackVisualsEventSequence.cs" />

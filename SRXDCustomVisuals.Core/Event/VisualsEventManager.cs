@@ -21,6 +21,13 @@ public class VisualsEventManager : MonoBehaviour {
             receiver.ReceiveEvent(visualsEvent);
     }
 
+    public void ResetAll() {
+        foreach (var receiverList in receivers) {
+            foreach (var receiver in receiverList)
+                receiver.Reset();
+        }
+    }
+
     internal void AddReceiver(VisualsEventReceiver receiver) => receivers[receiver.Channel].Add(receiver);
 
     internal void RemoveReceiver(VisualsEventReceiver receiver) => receivers[receiver.Channel].Remove(receiver);
