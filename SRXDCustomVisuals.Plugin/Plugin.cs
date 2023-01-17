@@ -26,7 +26,6 @@ public class Plugin : SpinPlugin {
 
         harmony.PatchAll(typeof(Patches));
         EnableCustomVisuals = Config.CreateBindable("EnableCustomVisuals", true);
-        new GameObject("Visuals Event Manager", typeof(VisualsEventManager));
     }
 
     protected override void Init() {

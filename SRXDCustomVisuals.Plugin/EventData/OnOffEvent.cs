@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-namespace SRXDCustomVisuals.Plugin; 
+﻿namespace SRXDCustomVisuals.Plugin; 
 
 public class OnOffEvent {
     public long Time { get; set; }

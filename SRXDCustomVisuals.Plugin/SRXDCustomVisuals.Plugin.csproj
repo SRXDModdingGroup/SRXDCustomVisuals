@@ -77,6 +77,9 @@
         <Reference Include="UnityEngine.CoreModule">
           <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.IMGUIModule">
+          <HintPath>..\Libs\UnityEngine.IMGUIModule.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine.InputLegacyModule">
           <HintPath>..\Libs\UnityEngine.InputLegacyModule.dll</HintPath>
         </Reference>
@@ -85,6 +88,10 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="Editor\SequenceEditorState.cs" />
+        <Compile Include="Editor\RenderInfo.cs" />
+        <Compile Include="Editor\SequenceEditor.cs" />
+        <Compile Include="Editor\SequenceRenderer.cs" />
         <Compile Include="EventData\ControlCurve.cs" />
         <Compile Include="EventData\ControlKeyframe.cs" />
         <Compile Include="EventData\ControlKeyframeType.cs" />
@@ -107,6 +114,7 @@
         <Compile Include="Util.cs" />
         <Compile Include="Visuals\VisualsElementAssetReference.cs" />
         <Compile Include="Visuals\VisualsElementReference.cs" />
+        <Compile Include="Visuals\VisualsInfoLoader.cs" />
         <Compile Include="Visuals\VisualsScene.cs" />
         <Compile Include="Visuals\VisualsSceneManager.cs" />
     </ItemGroup>

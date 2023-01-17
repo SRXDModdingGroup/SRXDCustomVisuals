@@ -1,18 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
 using SRXDCustomVisuals.Core;
 
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEventPlayback {
-    private TrackVisualsEventSequence eventSequence;
+    private TrackVisualsEventSequence eventSequence = new();
     private int[] lastOnOffEventIndex = new int[256];
     private OnOffEvent[] onOffEventsToSend = new OnOffEvent[256];
-    
-    public TrackVisualsEventPlayback(TrackVisualsEventSequence eventSequence) {
-        this.eventSequence = eventSequence;
-    }
 
+    public void SetSequence(TrackVisualsEventSequence eventSequence) {
+        VisualsEventManager.Instance.ResetAll();
+        this.eventSequence = eventSequence;
+
+        for (int i = 0; i < 256; i++) {
+            lastOnOffEventIndex[i] = -1;
+            onOffEventsToSend[i] = null;
+        }
+    }
+    
     public void Advance(long time) {
         foreach (var channel in eventSequence.Channels)
             AdvanceChannel(channel, time);

@@ -2,7 +2,6 @@
 using System.IO;
 using Newtonsoft.Json;
 using SMU.Utilities;
-using SpinCore.Utility;
 using SRXDCustomVisuals.Core;
 using UnityEngine;
 
@@ -21,11 +20,10 @@ public class VisualsSceneManager {
     }
     
     private VisualsScene currentScene;
-    private Dictionary<string, CustomVisualsInfo> cachedVisualsInfo = new();
     private Dictionary<string, BackgroundDefinition> cachedBackgroundDefinitions = new();
     private Dictionary<string, VisualsScene> scenes = new();
 
-    public void LoadScene(TrackInfoAssetReference trackInfoRef) {
+    public void LoadScene(string backgroundName) {
         var mainCamera = MainCamera.Instance.GetComponent<Camera>();
         
         mainCamera.clearFlags = CameraClearFlags.Skybox;
@@ -35,9 +33,8 @@ public class VisualsSceneManager {
             currentScene = null;
         }
         
-        if (!TryGetCustomVisualsInfo(trackInfoRef, out var customVisualsInfo)
-            || !TryGetBackgroundDefinition(customVisualsInfo.Background, out var backgroundDefinition)
-            || !TryGetSceneLoader(customVisualsInfo.Background, out currentScene))
+        if (!TryGetBackgroundDefinition(backgroundName, out var backgroundDefinition)
+            || !TryGetSceneLoader(backgroundName, out currentScene))
             return;
 
         if (backgroundDefinition.DisableBaseBackground) {
@@ -58,33 +55,12 @@ public class VisualsSceneManager {
         currentScene = null;
     }
 
-    public BackgroundAssetReference GetBackgroundForScene(BackgroundAssetReference defaultBackground, TrackInfoAssetReference trackInfoRef) {
-        if (TryGetCustomVisualsInfo(trackInfoRef, out var customVisualsInfo)
-            && TryGetBackgroundDefinition(customVisualsInfo.Background, out var background)
-            && background.DisableBaseBackground)
+    public BackgroundAssetReference GetBackgroundForScene(BackgroundAssetReference defaultBackground, string backgroundName) {
+        if (TryGetBackgroundDefinition(backgroundName, out var backgroundDefinition)
+            && backgroundDefinition.DisableBaseBackground)
             return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
         
         return defaultBackground;
-    }
-    
-    private bool TryGetCustomVisualsInfo(TrackInfoAssetReference trackInfoRef, out CustomVisualsInfo customVisualsInfo) {
-        if (!trackInfoRef.IsCustomFile) {
-            customVisualsInfo = null;
-
-            return false;
-        }
-        
-        string uniqueName = trackInfoRef.UniqueName;
-
-        if (cachedVisualsInfo.TryGetValue(uniqueName, out customVisualsInfo))
-            return true;
-
-        if (!CustomChartUtility.TryGetCustomData(trackInfoRef.customFile, "CustomVisualsInfo", out customVisualsInfo))
-            return false;
-
-        cachedVisualsInfo.Add(uniqueName, customVisualsInfo);
-
-        return true;
     }
 
     private bool TryGetBackgroundDefinition(string name, out BackgroundDefinition backgroundDefinition) {
