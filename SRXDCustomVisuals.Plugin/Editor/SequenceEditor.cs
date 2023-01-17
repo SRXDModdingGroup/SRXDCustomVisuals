@@ -32,11 +32,65 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     public void UpdateEditor() {
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+            MoveTime(1);
         
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+            MoveTime(-1);
+        
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+            MovePosition(1);
+        
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+            MovePosition(-1);
+        
+        if (Input.GetKeyDown(KeyCode.PageUp))
+            ChangeChannel(1);
+        
+        if (Input.GetKeyDown(KeyCode.PageDown))
+            ChangeChannel(-1);
     }
 
     public void Exit() {
         sequence = new TrackVisualsEventSequence();
         playState = null;
     }
+
+    private void MoveTime(int direction) {
+        if (AltPressed())
+            direction *= 8;
+
+        var trackEditor = Track.Instance.trackEditor;
+        long tickBefore = playState.currentTrackTick;
+        
+        trackEditor.SetCurrentTrackTime(trackEditor.GetQuantizedMoveTime(direction), false);
+        
+        long tickAfter = playState.currentTrackTick;
+    }
+    
+    private void MovePosition(int direction) {
+        if (AltPressed())
+            direction *= 8;
+        
+        state.CursorIndex += direction;
+
+        if (state.CursorIndex < 0)
+            state.CursorIndex = 0;
+        else if (state.CursorIndex > 255)
+            state.CursorIndex = 255;
+    }
+
+    private void ChangeChannel(int direction) {
+        if (AltPressed())
+            direction *= 8;
+        
+        state.CurrentChannel += direction;
+
+        if (state.CurrentChannel < 0)
+            state.CurrentChannel = 0;
+        else if (state.CurrentChannel > 255)
+            state.CurrentChannel = 255;
+    }
+
+    private static bool AltPressed() => Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
 }

@@ -7,6 +7,8 @@ public class TrackVisualsEventPlayback {
     private TrackVisualsEventSequence eventSequence = new();
     private int[] lastOnOffEventIndex = new int[256];
     private OnOffEvent[] onOffEventsToSend = new OnOffEvent[256];
+    private bool playing;
+    private long lastTime;
 
     public void SetSequence(TrackVisualsEventSequence eventSequence) {
         VisualsEventManager.Instance.ResetAll();
@@ -17,17 +19,36 @@ public class TrackVisualsEventPlayback {
             onOffEventsToSend[i] = null;
         }
     }
-    
+
+    public void Play(long time) {
+        playing = true;
+        
+        if (time != lastTime)
+            Jump(time);
+    }
+
+    public void Pause() => playing = false;
+
     public void Advance(long time) {
+        if (!playing)
+            return;
+
         foreach (var channel in eventSequence.Channels)
             AdvanceChannel(channel, time);
+        
+        lastTime = time;
     }
 
     public void Jump(long time) {
+        if (!playing)
+            return;
+        
         VisualsEventManager.Instance.ResetAll();
         
         foreach (var channel in eventSequence.Channels)
             JumpChannel(channel, time);
+        
+        lastTime = time;
     }
 
     private void AdvanceChannel(TrackVisualsEventChannel channel, long time) {
