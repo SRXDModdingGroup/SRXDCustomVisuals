@@ -3,15 +3,12 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEventChannel {
-    public byte Index { get; set; }
-    
     public List<OnOffEvent> OnOffEvents { get; }
     
-    public List<ControlCurve> ControlCurves { get; }
+    public ControlCurve[] ControlCurves { get; }
 
-    public TrackVisualsEventChannel(byte index) {
-        Index = index;
+    public TrackVisualsEventChannel() {
         OnOffEvents = new List<OnOffEvent>();
-        ControlCurves = new List<ControlCurve>();
+        ControlCurves = new ControlCurve[256];
     }
 }

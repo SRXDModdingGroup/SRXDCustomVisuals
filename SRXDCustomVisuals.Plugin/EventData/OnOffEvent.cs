@@ -1,6 +1,8 @@
-﻿namespace SRXDCustomVisuals.Plugin; 
+﻿using System;
 
-public class OnOffEvent {
+namespace SRXDCustomVisuals.Plugin; 
+
+public class OnOffEvent : IComparable<OnOffEvent> {
     public long Time { get; set; }
     
     public OnOffEventType Type { get; set; }
@@ -15,4 +17,6 @@ public class OnOffEvent {
         Index = index;
         Value = value;
     }
+
+    public int CompareTo(OnOffEvent other) => Time.CompareTo(other.Time);
 }

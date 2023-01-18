@@ -12,10 +12,10 @@ namespace SRXDCustomVisuals.Plugin;
 
 public class Patches {
     private static NoteClearType previousClearType;
-    private static bool sequenceEditMode;
     private static VisualsInfoLoader visualsInfoLoader = new();
     private static VisualsSceneManager visualsSceneManager = new();
     private static TrackVisualsEventPlayback eventPlayback = new();
+    private static SequenceEditor sequenceEditor;
     private static NoteEventController noteEventController = new(255, 11);
     private static SpectrumBufferController spectrumBufferController = new();
 
@@ -32,7 +32,7 @@ public class Patches {
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
     private static void Track_Awake_Postfix(Track __instance) {
         new GameObject("Visuals Event Manager", typeof(VisualsEventManager));
-        new GameObject("Sequence Editor", typeof(SequenceEditor));
+        sequenceEditor = new GameObject("Sequence Editor", typeof(SequenceEditor)).GetComponent<SequenceEditor>();
         VisualsSceneManager.CreateDirectories();
     }
 
@@ -54,8 +54,7 @@ public class Patches {
             eventSequence = new TrackVisualsEventSequence();
 
         eventPlayback.SetSequence(eventSequence);
-        SequenceEditor.Instance.Init(eventSequence, playState);
-        SequenceEditor.Instance.Visible = sequenceEditMode && __instance.IsInEditMode;
+        sequenceEditor.Init(eventSequence, playState);
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
@@ -63,8 +62,8 @@ public class Patches {
         noteEventController.Reset();
         visualsSceneManager.UnloadScene();
         eventPlayback.SetSequence(new TrackVisualsEventSequence());
-        SequenceEditor.Instance.Exit();
-        SequenceEditor.Instance.Visible = false;
+        sequenceEditor.Exit();
+        sequenceEditor.Visible = false;
     }
 
     [HarmonyPatch(typeof(PlayState.ScoreState), nameof(PlayState.ScoreState.UpdateNoteStates)), HarmonyPrefix]
@@ -172,35 +171,32 @@ public class Patches {
 
     [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.UpdateEditor)), HarmonyPrefix]
     private static void TrackEditorGUI_UpdateEditor_Prefix(TrackEditorGUI __instance) {
-        if (Input.GetKeyDown(KeyCode.F1)) {
-            sequenceEditMode = !sequenceEditMode;
-            SequenceEditor.Instance.Visible = sequenceEditMode;
-
-            if (sequenceEditMode) {
-                __instance.UpdateFrameInfo();
-                __instance.frameInfo.trackData.ClearNoteSelection();
-            }
-        }
+        bool wasVisible = sequenceEditor.Visible;
         
-        if (sequenceEditMode)
-            SequenceEditor.Instance.UpdateEditor();
+        sequenceEditor.UpdateEditor();
+        
+        if (wasVisible || !sequenceEditor.Visible)
+            return;
+        
+        __instance.UpdateFrameInfo();
+        __instance.frameInfo.trackData.ClearNoteSelection();
     }
     
     [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.SetCurrentTrackTime)), HarmonyPrefix]
     private static void TrackEditorGUI_SetCurrentTrackTime_Prefix(ref bool canChangeSelection) {
-        if (sequenceEditMode)
+        if (sequenceEditor.Visible)
             canChangeSelection = false;
     }
 
     [HarmonyPatch(typeof(TrackEditorGUI), "HandleNoteEditorInput"), HarmonyPrefix]
-    private static bool TrackEditorGUI_HandleNoteEditorInput_Prefix() => !sequenceEditMode;
+    private static bool TrackEditorGUI_HandleNoteEditorInput_Prefix() => !sequenceEditor.Visible;
     
     [HarmonyPatch(typeof(TrackEditorGUI), "HandleMoveCursorInput"), HarmonyPrefix]
-    private static bool TrackEditorGUI_HandleMoveCursorInput_Prefix() => !sequenceEditMode;
+    private static bool TrackEditorGUI_HandleMoveCursorInput_Prefix() => !sequenceEditor.Visible;
 
     [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.CheckCommand)), HarmonyPrefix]
     private static bool TrackEditorGUI_CheckCommand_Prefix(InputMapping.SpinCommands command, ref bool __result) {
-        if (!sequenceEditMode || command is not (
+        if (!sequenceEditor.Visible || command is not (
                 InputMapping.SpinCommands.EditorRedo or
                 InputMapping.SpinCommands.EditorUndo or
                 InputMapping.SpinCommands.AddCuePoint or 

@@ -33,9 +33,9 @@ public class TrackVisualsEventPlayback {
         if (!playing)
             return;
 
-        foreach (var channel in eventSequence.Channels)
-            AdvanceChannel(channel, time);
-        
+        for (int i = 0; i < 256; i++)
+            AdvanceChannel((byte) i, time);
+
         lastTime = time;
     }
 
@@ -45,15 +45,15 @@ public class TrackVisualsEventPlayback {
         
         VisualsEventManager.Instance.ResetAll();
         
-        foreach (var channel in eventSequence.Channels)
-            JumpChannel(channel, time);
+        for (int i = 0; i < 256; i++)
+            JumpChannel((byte) i, time);
         
         lastTime = time;
     }
 
-    private void AdvanceChannel(TrackVisualsEventChannel channel, long time) {
+    private void AdvanceChannel(byte channelIndex, long time) {
+        var channel = eventSequence.Channels[channelIndex];
         var visualsEventManager = VisualsEventManager.Instance;
-        byte channelIndex = channel.Index;
         var onOffEvents = channel.OnOffEvents;
         int startIndex = lastOnOffEventIndex[channelIndex];
         int newIndex = startIndex;
@@ -85,9 +85,9 @@ public class TrackVisualsEventPlayback {
         lastOnOffEventIndex[channelIndex] = newIndex;
     }
 
-    private void JumpChannel(TrackVisualsEventChannel channel, long time) {
+    private void JumpChannel(byte channelIndex, long time) {
+        var channel = eventSequence.Channels[channelIndex];
         var visualsEventManager = VisualsEventManager.Instance;
-        byte channelIndex = channel.Index;
         var onOffEvents = channel.OnOffEvents;
         int newIndex = -1;
 
