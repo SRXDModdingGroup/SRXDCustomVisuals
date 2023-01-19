@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Input = UnityEngine.Input;
 
 namespace SRXDCustomVisuals.Plugin;
 
 public class SequenceEditor : MonoBehaviour {
+    private const float TIME_TO_TICK = 100000f;
     private const float TICK_TO_TIME = 0.00001f;
     private const float WINDOW_WIDTH = 800;
     private const float WINDOW_HEIGHT = 600;
@@ -65,7 +67,7 @@ public class SequenceEditor : MonoBehaviour {
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, 0, 240);
 
         if (moveSelected) {
-            
+            MoveSelectedByIndex(direction);
         }
         else if (changeSelection) {
             state.SelectionEndIndex = state.CursorIndex;
@@ -91,12 +93,13 @@ public class SequenceEditor : MonoBehaviour {
         }
         else
             trackEditor.SetCurrentTrackTime(trackEditor.GetQuantizedMoveTime(TICK_TO_TIME * state.Time, direction), false);
+
+        long previousTime = state.Time;
         
         state.Time = playState.currentTrackTick;
 
-        if (moveSelected) {
-            
-        }
+        if (moveSelected)
+            MoveSelectedByTime(state.Time - previousTime);
         else if (changeSelection) {
             state.SelectionEndTime = state.Time;
             UpdateSelection();
@@ -108,8 +111,47 @@ public class SequenceEditor : MonoBehaviour {
     private void PlaceOnOffEventAtCursor(OnOffEventType type) {
         ClearSelection();
         DeleteSelected();
-        sequence.OnOffEvents.InsertSorted(new OnOffEvent(state.Time, type, state.CursorIndex, 255));
+        
+        if (TimeInBounds(state.Time))
+            sequence.OnOffEvents.InsertSorted(new OnOffEvent(state.Time, type, state.CursorIndex, 255));
+        
         ClearSelection();
+    }
+
+    private void MoveSelectedByTime(long amount) {
+        var selectedIndices = state.SelectedIndices;
+        var onOffEvents = sequence.OnOffEvents;
+        var toAdd = new List<OnOffEvent>();
+
+        foreach (int index in selectedIndices)
+            toAdd.Add(onOffEvents[index]);
+
+        for (int i = selectedIndices.Count - 1; i >= 0; i--)
+            onOffEvents.RemoveAt(selectedIndices[i]);
+        
+        selectedIndices.Clear();
+
+        foreach (var onOffEvent in toAdd) {
+            onOffEvent.Time += amount;
+            
+            if (!TimeInBounds(onOffEvent.Time))
+                continue;
+
+            int index = onOffEvents.GetInsertIndex(onOffEvent);
+            
+            onOffEvents.Insert(index, onOffEvent);
+            selectedIndices.Add(index);
+        }
+    }
+
+    private void MoveSelectedByIndex(int amount) {
+        var onOffEvents = sequence.OnOffEvents;
+        
+        foreach (int index in state.SelectedIndices) {
+            var onOffEvent = onOffEvents[index];
+
+            onOffEvent.Index = Mod(onOffEvent.Index + amount, 256);
+        }
     }
 
     private void DeleteSelected() {
@@ -211,6 +253,8 @@ public class SequenceEditor : MonoBehaviour {
 
         return true;
     }
+
+    private bool TimeInBounds(long time) => time >= 0 && time < TIME_TO_TICK * playState.trackData.SoundEndTime;
 
     private static int Mod(int a, int b) => (a % b + b) % b;
 }
