@@ -4,42 +4,28 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Core; 
 
 public class VisualsEventReceiver : MonoBehaviour {
-    [SerializeField] private int channel;
-
-    public int Channel => channel;
-
-    public event Action<VisualsEvent> OnNoteOn;
+    public event Action<VisualsEvent> On;
     
-    public event Action<VisualsEvent> OnNoteOff;
+    public event Action<VisualsEvent> Off;
     
-    public event Action<VisualsEvent> OnControlChange;
+    public event Action<VisualsEvent> ControlChange;
 
     public event Action OnReset;
 
-    private void Awake() {
-        if (channel is < 0 or >= 256 )
-            return;
+    private void Awake() => VisualsEventManager.Instance.AddReceiver(this);
 
-        VisualsEventManager.Instance.AddReceiver(this);
-    }
-
-    private void OnDestroy() {
-        if (channel is < 0 or >= 256 )
-            return;
-        
-        VisualsEventManager.Instance.RemoveReceiver(this);
-    }
+    private void OnDestroy() => VisualsEventManager.Instance.RemoveReceiver(this);
 
     internal void ReceiveEvent(VisualsEvent visualsEvent) {
         switch (visualsEvent.Type) {
             case VisualsEventType.On:
-                OnNoteOn?.Invoke(visualsEvent);
+                On?.Invoke(visualsEvent);
                 break;
             case VisualsEventType.Off:
-                OnNoteOff?.Invoke(visualsEvent);
+                Off?.Invoke(visualsEvent);
                 break;
             case VisualsEventType.ControlChange:
-                OnControlChange?.Invoke(visualsEvent);
+                ControlChange?.Invoke(visualsEvent);
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

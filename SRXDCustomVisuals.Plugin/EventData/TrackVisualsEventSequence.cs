@@ -4,59 +4,52 @@ using System.Collections.Generic;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEventSequence {
-    public TrackVisualsEventChannel[] Channels { get; }
+    public List<OnOffEvent> OnOffEvents { get; }
+    
+    public ControlCurve[] ControlCurves { get; }
 
     public TrackVisualsEventSequence() {
-        Channels = new TrackVisualsEventChannel[256];
+        OnOffEvents = new List<OnOffEvent>();
+        ControlCurves = new ControlCurve[256];
 
         for (int i = 0; i < 256; i++)
-            Channels[i] = new TrackVisualsEventChannel();
+            ControlCurves[i] = new ControlCurve();
     }
 
     public TrackVisualsEventSequence(List<TrackVisualsEvent> events) {
-        Channels = new TrackVisualsEventChannel[256];
-
-        for (int i = 0; i < 256; i++)
-            Channels[i] = new TrackVisualsEventChannel();
+        OnOffEvents = new List<OnOffEvent>();
+        ControlCurves = new ControlCurve[256];
         
         foreach (var visualsEvent in events) {
-            var channel = Channels[visualsEvent.Index];
-
             if (visualsEvent.Type == TrackVisualsEventType.ControlKeyframe)
-                channel.ControlCurves[visualsEvent.Index].Keyframes.Add(new ControlKeyframe(visualsEvent.Time, visualsEvent.KeyframeType, (byte) visualsEvent.Value));
+                ControlCurves[visualsEvent.Index].Keyframes.Add(new ControlKeyframe(visualsEvent.Time, visualsEvent.KeyframeType, visualsEvent.Value));
             else
-                channel.OnOffEvents.Add(new OnOffEvent(visualsEvent.Time, ToOnOffEventType(visualsEvent.Type), (byte) visualsEvent.Index, (byte) visualsEvent.Value));
+                OnOffEvents.Add(new OnOffEvent(visualsEvent.Time, ToOnOffEventType(visualsEvent.Type), visualsEvent.Index, visualsEvent.Value));
         }
     }
 
     public List<TrackVisualsEvent> ToVisualsEvents() {
         var visualsEvents = new List<TrackVisualsEvent>();
 
-        for (int i = 0; i < Channels.Length; i++) {
-            var channel = Channels[i];
-            
-            foreach (var onOffEvent in channel.OnOffEvents) {
-                visualsEvents.InsertSorted(new TrackVisualsEvent(
-                    onOffEvent.Time,
-                    ToTrackVisualsEventType(onOffEvent.Type),
-                    ControlKeyframeType.Constant,
-                    i,
-                    onOffEvent.Index,
-                    onOffEvent.Value));
-            }
+        foreach (var onOffEvent in OnOffEvents) {
+            visualsEvents.InsertSorted(new TrackVisualsEvent(
+                onOffEvent.Time,
+                ToTrackVisualsEventType(onOffEvent.Type),
+                ControlKeyframeType.Constant,
+                onOffEvent.Index,
+                onOffEvent.Value));
+        }
 
-            for (int j = 0; j < channel.ControlCurves.Length; j++) {
-                var controlCurve = channel.ControlCurves[j];
+        for (int j = 0; j < 256; j++) {
+            var controlCurve = ControlCurves[j];
                 
-                foreach (var controlKeyframe in controlCurve.Keyframes) {
-                    visualsEvents.InsertSorted(new TrackVisualsEvent(
-                        controlKeyframe.Time,
-                        TrackVisualsEventType.ControlKeyframe,
-                        controlKeyframe.Type,
-                        i,
-                        j,
-                        controlKeyframe.Value));
-                }
+            foreach (var controlKeyframe in controlCurve.Keyframes) {
+                visualsEvents.InsertSorted(new TrackVisualsEvent(
+                    controlKeyframe.Time,
+                    TrackVisualsEventType.ControlKeyframe,
+                    controlKeyframe.Type,
+                    j,
+                    controlKeyframe.Value));
             }
         }
 

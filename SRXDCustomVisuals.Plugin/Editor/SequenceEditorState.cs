@@ -5,7 +5,5 @@ public class SequenceEditorState {
     
     public int CursorIndex { get; set; }
     
-    public int CurrentChannel { get; set; }
-    
     public int ColumnPan { get; set; }
 }

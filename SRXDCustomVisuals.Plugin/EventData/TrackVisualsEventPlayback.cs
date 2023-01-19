@@ -5,7 +5,7 @@ namespace SRXDCustomVisuals.Plugin;
 
 public class TrackVisualsEventPlayback {
     private TrackVisualsEventSequence eventSequence = new();
-    private int[] lastOnOffEventIndex = new int[256];
+    private int lastOnOffEventIndex = -1;
     private OnOffEvent[] onOffEventsToSend = new OnOffEvent[256];
     private bool playing;
     private long lastTime;
@@ -13,11 +13,6 @@ public class TrackVisualsEventPlayback {
     public void SetSequence(TrackVisualsEventSequence eventSequence) {
         VisualsEventManager.Instance.ResetAll();
         this.eventSequence = eventSequence;
-
-        for (int i = 0; i < 256; i++) {
-            lastOnOffEventIndex[i] = -1;
-            onOffEventsToSend[i] = null;
-        }
     }
 
     public void Play(long time) {
@@ -33,29 +28,9 @@ public class TrackVisualsEventPlayback {
         if (!playing)
             return;
 
-        for (int i = 0; i < 256; i++)
-            AdvanceChannel((byte) i, time);
-
-        lastTime = time;
-    }
-
-    public void Jump(long time) {
-        if (!playing)
-            return;
-        
-        VisualsEventManager.Instance.ResetAll();
-        
-        for (int i = 0; i < 256; i++)
-            JumpChannel((byte) i, time);
-        
-        lastTime = time;
-    }
-
-    private void AdvanceChannel(byte channelIndex, long time) {
-        var channel = eventSequence.Channels[channelIndex];
         var visualsEventManager = VisualsEventManager.Instance;
-        var onOffEvents = channel.OnOffEvents;
-        int startIndex = lastOnOffEventIndex[channelIndex];
+        var onOffEvents = eventSequence.OnOffEvents;
+        int startIndex = lastOnOffEventIndex;
         int newIndex = startIndex;
 
         for (int i = startIndex + 1; i < onOffEvents.Count; i++) {
@@ -66,14 +41,14 @@ public class TrackVisualsEventPlayback {
         
             switch (onOffEvent.Type) {
                 case OnOffEventType.On:
-                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, channelIndex, onOffEvent.Index, onOffEvent.Value));
+                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
                     break;
                 case OnOffEventType.Off:
-                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, channelIndex, onOffEvent.Index, onOffEvent.Value));
+                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, onOffEvent.Index, onOffEvent.Value));
                     break;
                 case OnOffEventType.OnOff:
-                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, channelIndex, onOffEvent.Index, onOffEvent.Value));
-                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, channelIndex, onOffEvent.Index, onOffEvent.Value));
+                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
+                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, onOffEvent.Index, onOffEvent.Value));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -82,14 +57,19 @@ public class TrackVisualsEventPlayback {
             newIndex = i;
         }
         
-        lastOnOffEventIndex[channelIndex] = newIndex;
+        lastOnOffEventIndex = newIndex;
+        lastTime = time;
     }
 
-    private void JumpChannel(byte channelIndex, long time) {
-        var channel = eventSequence.Channels[channelIndex];
+    public void Jump(long time) {
+        if (!playing)
+            return;
+
         var visualsEventManager = VisualsEventManager.Instance;
-        var onOffEvents = channel.OnOffEvents;
+        var onOffEvents = eventSequence.OnOffEvents;
         int newIndex = -1;
+        
+        visualsEventManager.ResetAll();
 
         for (int i = 0; i < onOffEvents.Count; i++) {
             var onOffEvent = onOffEvents[i];
@@ -111,10 +91,11 @@ public class TrackVisualsEventPlayback {
             if (onOffEvent == null)
                 continue;
             
-            visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, channelIndex, onOffEvent.Index, onOffEvent.Value));
+            visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
             onOffEventsToSend[i] = null;
         }
         
-        lastOnOffEventIndex[channelIndex] = newIndex;
+        lastOnOffEventIndex = newIndex;
+        lastTime = time;
     }
 }

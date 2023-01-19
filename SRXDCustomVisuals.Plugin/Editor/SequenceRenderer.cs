@@ -60,12 +60,10 @@ public class SequenceRenderer {
         
         var editorState = info.EditorState;
         int cursorIndex = editorState.CursorIndex;
-        int currentChannel = editorState.CurrentChannel;
         int columnPan = editorState.ColumnPan;
         
         var sequence = info.Sequence;
-        var channel = sequence.Channels[currentChannel];
-        var onOffEvents = channel.OnOffEvents;
+        var onOffEvents = sequence.OnOffEvents;
         
         long time = playState.currentTrackTick;
         float timeAsFloat = playState.currentTrackTick.ToSecondsFloat();
@@ -129,7 +127,7 @@ public class SequenceRenderer {
                 DrawSustainLine(relativeLastNoteOnTime, TOP_TIME_OFFSET, i);
         }
         
-        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, 20f), $"Channel: {currentChannel:X2}    Index: {cursorIndex:X2}");
+        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, 20f), $"Index: {cursorIndex:X2}");
         GUI.DragWindow();
     }
 

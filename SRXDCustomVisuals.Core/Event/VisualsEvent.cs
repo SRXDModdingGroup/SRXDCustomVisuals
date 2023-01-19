@@ -3,15 +3,12 @@
 public class VisualsEvent {
     public VisualsEventType Type { get; }
     
-    public byte Channel { get; }
+    public int Index { get; }
     
-    public byte Index { get; }
-    
-    public uint Value { get; }
+    public int Value { get; }
 
-    public VisualsEvent(VisualsEventType type, byte channel, byte index, uint value) {
+    public VisualsEvent(VisualsEventType type, int index, int value) {
         Type = type;
-        Channel = channel;
         Index = index;
         Value = value;
     }

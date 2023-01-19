@@ -5,6 +5,7 @@ using Input = UnityEngine.Input;
 namespace SRXDCustomVisuals.Plugin;
 
 public class SequenceEditor : MonoBehaviour {
+    private const float TICK_TO_TIME = 0.00001f;
     private const float WINDOW_WIDTH = 800;
     private const float WINDOW_HEIGHT = 600;
     private const int COLUMN_COUNT = 16;
@@ -44,8 +45,9 @@ public class SequenceEditor : MonoBehaviour {
             return;
         
         long previousTime = state.Time;
-        
+
         CheckInputs();
+
         state.Time = playState.currentTrackTick;
     }
 
@@ -55,7 +57,6 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     private void CheckInputs() {
-        bool altPressed = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
         int direction = 0;
 
         if (Input.GetKeyDown(KeyCode.UpArrow))
@@ -65,10 +66,11 @@ public class SequenceEditor : MonoBehaviour {
             direction--;
 
         if (direction != 0) {
-            if (altPressed)
-                direction *= 8;
-            
-            MoveTime(direction);
+            MoveTime(
+                direction,
+                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
+                Input.GetKey(KeyCode.F),
+                Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
             
             return;
         }
@@ -80,64 +82,62 @@ public class SequenceEditor : MonoBehaviour {
             direction--;
         
         if (direction != 0) {
-            if (altPressed)
-                direction *= 8;
-            
-            MoveCursorIndex(direction);
-            
-            return;
-        }
-
-        if (Input.GetKeyDown(KeyCode.PageUp))
-            direction++;
-
-        if (Input.GetKeyDown(KeyCode.PageDown))
-            direction--;
-        
-        if (direction != 0) {
-            if (altPressed)
-                direction *= 8;
-            
-            ChangeChannel(direction);
+            MoveCursorIndex(
+                direction,
+                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
+                Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
             
             return;
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha1)) {
-            PlaceOnOffEvent(OnOffEventType.On);
+            PlaceOnOffEventAtCursor(OnOffEventType.OnOff);
             
             return;
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha2)) {
-            PlaceOnOffEvent(OnOffEventType.Off);
+            PlaceOnOffEventAtCursor(OnOffEventType.On);
             
             return;
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha3)) {
-            PlaceOnOffEvent(OnOffEventType.OnOff);
+            PlaceOnOffEventAtCursor(OnOffEventType.Off);
             
             return;
         }
     }
     
-    private void MoveCursorIndex(int direction) {
+    private void MoveCursorIndex(int direction, bool largeMovement, bool moveSelected) {
+        if (largeMovement)
+            direction *= 8;
+        
         state.CursorIndex = Mod(state.CursorIndex + direction, 256);
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, state.CursorIndex - (COLUMN_COUNT - 2), state.CursorIndex - 1);
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, 0, 240);
     }
 
-    private void ChangeChannel(int direction) => state.CurrentChannel = Mod(state.CurrentChannel + direction, 256);
-
-    private void PlaceOnOffEvent(OnOffEventType type) {
-        sequence.Channels[state.CurrentChannel].OnOffEvents.InsertSorted(new OnOffEvent(state.Time, type, (byte) state.CursorIndex, 255));
+    private void PlaceOnOffEventAtCursor(OnOffEventType type) {
+        sequence.OnOffEvents.InsertSorted(new OnOffEvent(state.Time, type, state.CursorIndex, 255));
     }
 
-    private static void MoveTime(int direction) {
+    private void MoveTime(int direction, bool largeMovement, bool smallMovement, bool moveSelected) {
+        if (largeMovement)
+            direction *= 8;
+
         var trackEditor = Track.Instance.trackEditor;
-        
-        trackEditor.SetCurrentTrackTime(trackEditor.GetQuantizedMoveTime(direction), false);
+
+        if (smallMovement || moveSelected) {
+            float directionFloat = 0.125f * direction;
+
+            if (smallMovement)
+                directionFloat *= 0.125f;
+            
+            trackEditor.SetCurrentTrackTime(playState.trackData.GetTimeOffsetByTicks(TICK_TO_TIME * state.Time, directionFloat), false);
+        }
+        else
+            trackEditor.SetCurrentTrackTime(trackEditor.GetQuantizedMoveTime(TICK_TO_TIME * state.Time, direction), false);
     }
 
     private static int Mod(int a, int b) => (a % b + b) % b;

@@ -3,20 +3,27 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class OnOffEvent : IComparable<OnOffEvent> {
-    public long Time { get; set; }
+    public long Time { get; }
     
-    public OnOffEventType Type { get; set; }
+    public OnOffEventType Type { get; }
     
-    public byte Index { get; set; }
+    public int Index { get; }
     
-    public byte Value { get; set; }
+    public int Value { get; }
 
-    public OnOffEvent(long time, OnOffEventType type, byte index, byte value) {
+    public OnOffEvent(long time, OnOffEventType type, int index, int value) {
         Time = time;
         Type = type;
         Index = index;
         Value = value;
     }
 
-    public int CompareTo(OnOffEvent other) => Time.CompareTo(other.Time);
+    public int CompareTo(OnOffEvent other) {
+        int timeComparison = Time.CompareTo(other.Time);
+
+        if (timeComparison != 0)
+            return timeComparison;
+
+        return Index.CompareTo(other.Index);
+    }
 }
