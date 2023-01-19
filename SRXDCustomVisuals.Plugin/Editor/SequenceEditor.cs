@@ -111,12 +111,41 @@ public class SequenceEditor : MonoBehaviour {
             ClearSelection();
     }
 
+    private void ChangeValue(int direction, bool largeAmount) {
+        if (largeAmount)
+            direction *= 16;
+        
+        var onOffEvents = sequence.OnOffEvents;
+        
+        foreach (int index in state.SelectedIndices) {
+            var onOffEvent = onOffEvents[index];
+
+            onOffEvent.Value = Mathf.Clamp(onOffEvent.Value + direction, 0, 255);
+        }
+    }
+
     private void PlaceOnOffEventAtCursor(OnOffEventType type) {
         ClearSelection();
         DeleteSelected();
         
-        if (TimeInBounds(state.Time))
-            sequence.OnOffEvents.InsertSorted(new OnOffEvent(state.Time, type, state.CursorIndex, 255));
+        if (TimeInBounds(state.Time)) {
+            var onOffEvents = sequence.OnOffEvents;
+            var onOffEvent = new OnOffEvent(state.Time, type, state.CursorIndex, 255);
+            int index = onOffEvents.GetInsertIndex(onOffEvent);
+            
+            onOffEvents.Insert(index, onOffEvent);
+
+            for (int i = index - 1; i >= 0; i--) {
+                var other = onOffEvents[i];
+
+                if (other.Type == OnOffEventType.Off || other.Index != onOffEvent.Index)
+                    continue;
+                
+                onOffEvent.Value = other.Value;
+
+                break;
+            }
+        }
         
         ClearSelection();
     }
@@ -301,6 +330,20 @@ public class SequenceEditor : MonoBehaviour {
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
                 selecting && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)),
                 Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
+            
+            return true;
+        }
+        
+        if (Input.GetKeyDown(KeyCode.Equals))
+            direction++;
+
+        if (Input.GetKeyDown(KeyCode.Minus))
+            direction--;
+        
+        if (direction != 0) {
+            ChangeValue(
+                direction,
+                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt));
             
             return true;
         }
