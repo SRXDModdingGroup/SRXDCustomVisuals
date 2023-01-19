@@ -10,12 +10,16 @@ public class SequenceRenderer {
     private const float TOP_PADDING = 20f;
     private const float ON_EVENT_HEIGHT = 4f;
     private const float OFF_EVENT_HEIGHT = 2f;
+    private const float ON_EVENT_HEIGHT_SELECTED = 6f;
+    private const float OFF_EVENT_HEIGHT_SELECTED = 4f;
     private const float ON_OFF_EVENT_PADDING = 4f;
     private static readonly Color BEAT_BAR_COLOR = new(0.5f, 0.5f, 0.5f);
     private static readonly Color NOW_BAR_COLOR = Color.white;
     private static readonly Color COLUMN_BOX_COLOR = new(0.5f, 1f, 1f, 0.2f);
     private static readonly Color ON_EVENT_COLOR = new(0f, 0.5f, 1f);
     private static readonly Color OFF_EVENT_COLOR = Color.white;
+    private static readonly Color ON_EVENT_COLOR_SELECTED = new(0.5f, 0.75f, 1f);
+    private static readonly Color OFF_EVENT_COLOR_SELECTED = Color.white;
 
     private Rect windowRect;
     private int columnCount;
@@ -61,6 +65,7 @@ public class SequenceRenderer {
         var editorState = info.EditorState;
         int cursorIndex = editorState.CursorIndex;
         int columnPan = editorState.ColumnPan;
+        var selectedIndices = editorState.SelectedIndices;
         
         var sequence = info.Sequence;
         var onOffEvents = sequence.OnOffEvents;
@@ -88,9 +93,11 @@ public class SequenceRenderer {
         for (int i = 0; i < columnCount; i++)
             lastNoteOnTimeInColumn[i] = long.MinValue;
 
-        foreach (var onOffEvent in onOffEvents) {
-            int column = onOffEvent.Index - columnPan;
+        for (int i = 0; i < onOffEvents.Count; i++) {
+            var onOffEvent = onOffEvents[i];
             
+            int column = onOffEvent.Index - columnPan;
+
             if (column < 0 || column >= columnCount)
                 continue;
 
@@ -105,14 +112,14 @@ public class SequenceRenderer {
                 if (relativeLastNoteOnTime <= TOP_TIME_OFFSET && relativeTime >= BOTTOM_TIME_OFFSET)
                     DrawSustainLine(relativeLastNoteOnTime, relativeTime, column);
             }
-            
+
             if (eventType == OnOffEventType.On)
                 lastNoteOnTimeInColumn[column] = eventTime;
             else
                 lastNoteOnTimeInColumn[column] = long.MinValue;
 
             if (relativeTime >= BOTTOM_TIME_OFFSET && relativeTime <= TOP_TIME_OFFSET)
-                DrawOnOffEvent(eventType, relativeTime, column);
+                DrawOnOffEvent(eventType, relativeTime, column, selectedIndices.Contains(i));
         }
 
         for (int i = 0; i < columnCount; i++) {
@@ -135,11 +142,38 @@ public class SequenceRenderer {
 
     private void DrawColumnBox(int column) => DrawRect(ColumnToX(column), topY, columnWidth, paddedHeight, COLUMN_BOX_COLOR, true);
 
-    private void DrawOnOffEvent(OnOffEventType type, float relativeTime, int column) {
-        if (type == OnOffEventType.Off)
-            DrawRect(ColumnToX(column) + ON_OFF_EVENT_PADDING, RelativeTimeToY(relativeTime) - OFF_EVENT_HEIGHT, columnWidth - 2f * ON_OFF_EVENT_PADDING, OFF_EVENT_HEIGHT, OFF_EVENT_COLOR, false);
-        else
-            DrawRect(ColumnToX(column) + ON_OFF_EVENT_PADDING, RelativeTimeToY(relativeTime) - ON_EVENT_HEIGHT, columnWidth - 2f * ON_OFF_EVENT_PADDING, ON_EVENT_HEIGHT, ON_EVENT_COLOR, false);
+    private void DrawOnOffEvent(OnOffEventType type, float relativeTime, int column, bool selected) {
+        float height;
+        Color color;
+
+        if (type == OnOffEventType.Off) {
+            if (selected) {
+                height = OFF_EVENT_HEIGHT_SELECTED;
+                color = OFF_EVENT_COLOR_SELECTED;
+            }
+            else {
+                height = OFF_EVENT_HEIGHT;
+                color = OFF_EVENT_COLOR;
+            }
+        }
+        else {
+            if (selected) {
+                height = ON_EVENT_HEIGHT_SELECTED;
+                color = ON_EVENT_COLOR_SELECTED;
+            }
+            else {
+                height = ON_EVENT_HEIGHT;
+                color = ON_EVENT_COLOR;
+            }
+        }
+        
+        DrawRect(
+            ColumnToX(column) + ON_OFF_EVENT_PADDING,
+            RelativeTimeToY(relativeTime) - height,
+            columnWidth - 2f * ON_OFF_EVENT_PADDING,
+            height,
+            color,
+            false);
     }
 
     private void DrawSustainLine(float relativeStartTime, float relativeEndTime, int column) {

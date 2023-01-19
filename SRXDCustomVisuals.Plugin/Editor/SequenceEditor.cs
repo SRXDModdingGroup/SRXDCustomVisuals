@@ -9,6 +9,7 @@ public class SequenceEditor : MonoBehaviour {
     private const float WINDOW_WIDTH = 800;
     private const float WINDOW_HEIGHT = 600;
     private const int COLUMN_COUNT = 16;
+    private const long SELECTION_EPSILON = 1000L;
     
     public bool Visible { get; set; }
 
@@ -35,94 +36,46 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     public void UpdateEditor() {
-        if (Input.GetKeyDown(KeyCode.F1)) {
+        if (Input.GetKeyDown(KeyCode.F1))
             Visible = !Visible;
-            
-            return;
-        }
-        
+
         if (!Visible)
             return;
         
         long previousTime = state.Time;
-
-        CheckInputs();
+        bool anyInput = CheckInputs();
 
         state.Time = playState.currentTrackTick;
-    }
 
-    public void Exit() {
-        sequence = new TrackVisualsEventSequence();
-        playState = null;
-    }
-
-    private void CheckInputs() {
-        int direction = 0;
-
-        if (Input.GetKeyDown(KeyCode.UpArrow))
-            direction++;
-
-        if (Input.GetKeyDown(KeyCode.DownArrow))
-            direction--;
-
-        if (direction != 0) {
-            MoveTime(
-                direction,
-                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
-                Input.GetKey(KeyCode.F),
-                Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
-            
+        if (anyInput || state.Time == previousTime || !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
             return;
-        }
-
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-            direction++;
-
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
-            direction--;
         
-        if (direction != 0) {
-            MoveCursorIndex(
-                direction,
-                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
-                Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
-            
-            return;
-        }
-
-        if (Input.GetKeyDown(KeyCode.Alpha1)) {
-            PlaceOnOffEventAtCursor(OnOffEventType.OnOff);
-            
-            return;
-        }
-
-        if (Input.GetKeyDown(KeyCode.Alpha2)) {
-            PlaceOnOffEventAtCursor(OnOffEventType.On);
-            
-            return;
-        }
-
-        if (Input.GetKeyDown(KeyCode.Alpha3)) {
-            PlaceOnOffEventAtCursor(OnOffEventType.Off);
-            
-            return;
-        }
+        state.SelectionEndTime = state.Time;
+        UpdateSelection();
     }
+
+    public void Exit() => sequence = new TrackVisualsEventSequence();
     
-    private void MoveCursorIndex(int direction, bool largeMovement, bool moveSelected) {
+    private void MoveCursorIndex(int direction, bool largeMovement, bool changeSelection, bool moveSelected) {
         if (largeMovement)
             direction *= 8;
         
         state.CursorIndex = Mod(state.CursorIndex + direction, 256);
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, state.CursorIndex - (COLUMN_COUNT - 2), state.CursorIndex - 1);
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, 0, 240);
+
+        if (moveSelected) {
+            
+        }
+        else if (changeSelection) {
+            state.SelectionEndIndex = state.CursorIndex;
+            UpdateSelection();
+        }
+        else
+            ClearSelection();
     }
 
-    private void PlaceOnOffEventAtCursor(OnOffEventType type) {
-        sequence.OnOffEvents.InsertSorted(new OnOffEvent(state.Time, type, state.CursorIndex, 255));
-    }
-
-    private void MoveTime(int direction, bool largeMovement, bool smallMovement, bool moveSelected) {
+    private void MoveTime(int direction, bool largeMovement, bool smallMovement, bool changeSelection, bool moveSelected) {
         if (largeMovement)
             direction *= 8;
 
@@ -138,6 +91,125 @@ public class SequenceEditor : MonoBehaviour {
         }
         else
             trackEditor.SetCurrentTrackTime(trackEditor.GetQuantizedMoveTime(TICK_TO_TIME * state.Time, direction), false);
+        
+        state.Time = playState.currentTrackTick;
+
+        if (moveSelected) {
+            
+        }
+        else if (changeSelection) {
+            state.SelectionEndTime = state.Time;
+            UpdateSelection();
+        }
+        else
+            ClearSelection();
+    }
+
+    private void PlaceOnOffEventAtCursor(OnOffEventType type) {
+        ClearSelection();
+        DeleteSelected();
+        sequence.OnOffEvents.InsertSorted(new OnOffEvent(state.Time, type, state.CursorIndex, 255));
+        ClearSelection();
+    }
+
+    private void DeleteSelected() {
+        var selectedIndices = state.SelectedIndices;
+        var onOffEvents = sequence.OnOffEvents;
+        
+        for (int i = selectedIndices.Count - 1; i >= 0; i--)
+            onOffEvents.RemoveAt(selectedIndices[i]);
+
+        ClearSelection();
+    }
+    
+    private void ClearSelection() {
+        state.SelectionStartTime = state.Time;
+        state.SelectionEndTime = state.Time;
+        state.SelectionStartIndex = state.CursorIndex;
+        state.SelectionEndIndex = state.CursorIndex;
+        UpdateSelection();
+    }
+
+    private void UpdateSelection() {
+        var onOffEvents = sequence.OnOffEvents;
+        var selectedIndices = state.SelectedIndices;
+        
+        selectedIndices.Clear();
+
+        long startTime = state.SelectionStartTime;
+        long endTime = state.SelectionEndTime;
+        int startIndex = state.SelectionStartIndex;
+        int endIndex = state.SelectionEndIndex;
+
+        if (endTime < startTime)
+            (startTime, endTime) = (endTime, startTime);
+
+        startTime -= SELECTION_EPSILON;
+        endTime += SELECTION_EPSILON;
+
+        if (endIndex < startIndex)
+            (startIndex, endIndex) = (endIndex, startIndex);
+
+        for (int i = 0; i < onOffEvents.Count; i++) {
+            var onOffEvent = onOffEvents[i];
+            long time = onOffEvent.Time;
+            int index = onOffEvent.Index;
+
+            if (time >= startTime && time <= endTime && index >= startIndex && index <= endIndex)
+                selectedIndices.Add(i);
+        }
+    }
+
+    private bool CheckInputs() {
+        int direction = 0;
+
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+            direction++;
+
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+            direction--;
+
+        if (direction != 0) {
+            MoveTime(
+                direction,
+                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
+                Input.GetKey(KeyCode.F),
+                Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift),
+                Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
+            
+            return true;
+        }
+
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+            direction++;
+
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+            direction--;
+        
+        if (direction != 0) {
+            MoveCursorIndex(
+                direction,
+                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
+                Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift),
+                Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
+            
+            return true;
+        }
+
+        if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
+            ClearSelection();
+        else if (Input.GetKeyDown(KeyCode.Alpha1))
+            PlaceOnOffEventAtCursor(OnOffEventType.OnOff);
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+            PlaceOnOffEventAtCursor(OnOffEventType.On);
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
+            PlaceOnOffEventAtCursor(OnOffEventType.Off);
+        else if (Input.GetKeyDown(KeyCode.Delete) || Input.GetKeyDown(KeyCode.Backspace))
+            DeleteSelected();
+        else
+            return false;
+
+        return true;
     }
 
     private static int Mod(int a, int b) => (a % b + b) % b;
