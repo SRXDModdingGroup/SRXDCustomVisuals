@@ -4,7 +4,7 @@ namespace SRXDCustomVisuals.Plugin;
 
 public class SequenceRenderer {
     private const float TICK_TO_TIME = 0.00001f;
-    private const float BOTTOM_TIME_OFFSET = -0.1f;
+    private const float BOTTOM_TIME_OFFSET = -0.25f;
     private const float TOP_TIME_OFFSET = 1f;
     private const float SIDE_PADDING = 8f;
     private const float TOP_PADDING = 20f;

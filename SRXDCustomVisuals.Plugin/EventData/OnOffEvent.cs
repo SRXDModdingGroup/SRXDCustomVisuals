@@ -18,6 +18,13 @@ public class OnOffEvent : IComparable<OnOffEvent> {
         Value = value;
     }
 
+    public OnOffEvent(OnOffEvent other) {
+        Time = other.Time;
+        Type = other.Type;
+        Index = other.Index;
+        Value = other.Value;
+    }
+
     public int CompareTo(OnOffEvent other) {
         int timeComparison = Time.CompareTo(other.Time);
 

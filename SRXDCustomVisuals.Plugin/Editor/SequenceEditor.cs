@@ -19,11 +19,14 @@ public class SequenceEditor : MonoBehaviour {
     private SequenceRenderer renderer;
     private PlayState playState;
     private TrackVisualsEventSequence sequence;
+    private List<OnOffEvent> onOffEventClipboard;
+    private bool selecting;
 
     private void Awake() {
         state = new SequenceEditorState();
         renderer = new SequenceRenderer(WINDOW_WIDTH, WINDOW_HEIGHT, COLUMN_COUNT);
         sequence = new TrackVisualsEventSequence();
+        onOffEventClipboard = new List<OnOffEvent>();
     }
 
     private void OnGUI() {
@@ -49,7 +52,7 @@ public class SequenceEditor : MonoBehaviour {
 
         state.Time = playState.currentTrackTick;
 
-        if (anyInput || state.Time == previousTime || !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
+        if (!selecting || anyInput || state.Time == state.SelectionEndTime || !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
             return;
         
         state.SelectionEndTime = state.Time;
@@ -163,6 +166,69 @@ public class SequenceEditor : MonoBehaviour {
 
         ClearSelection();
     }
+
+    private void CopySelected() {
+        var selectedIndices = state.SelectedIndices;
+        
+        if (selectedIndices.Count == 0)
+            return;
+        
+        var onOffEvents = sequence.OnOffEvents;
+        long firstTime = onOffEvents[selectedIndices[0]].Time;
+        int firstIndex = int.MaxValue;
+
+        foreach (int index in selectedIndices) {
+            int eventIndex = onOffEvents[index].Index;
+
+            if (eventIndex < firstIndex)
+                firstIndex = eventIndex;
+        }
+        
+        onOffEventClipboard.Clear();
+
+        foreach (int index in selectedIndices) {
+            var newEvent = new OnOffEvent(onOffEvents[index]);
+
+            newEvent.Time -= firstTime;
+            newEvent.Index -= firstIndex;
+            onOffEventClipboard.Add(newEvent);
+        }
+    }
+
+    private void CutSelected() {
+        CopySelected();
+        DeleteSelected();
+    }
+
+    private void Paste() {
+        long time = state.Time;
+        int cursorIndex = state.CursorIndex;
+        var selectedIndices = state.SelectedIndices;
+        var onOffEvents = sequence.OnOffEvents;
+        
+        ClearSelection();
+        selectedIndices.Clear();
+
+        foreach (var onOffEvent in onOffEventClipboard) {
+            var newEvent = new OnOffEvent(onOffEvent);
+
+            newEvent.Time += time;
+            newEvent.Index = Mod(newEvent.Index + cursorIndex, 256);
+
+            if (!TimeInBounds(newEvent.Time))
+                continue;
+            
+            int index = onOffEvents.GetInsertIndex(newEvent);
+
+            onOffEvents.Insert(index, newEvent);
+            selectedIndices.Add(index);
+        }
+    }
+
+    private void BeginSelection() {
+        ClearSelection();
+        selecting = true;
+    }
     
     private void ClearSelection() {
         state.SelectionStartTime = state.Time;
@@ -170,6 +236,7 @@ public class SequenceEditor : MonoBehaviour {
         state.SelectionStartIndex = state.CursorIndex;
         state.SelectionEndIndex = state.CursorIndex;
         UpdateSelection();
+        selecting = false;
     }
 
     private void UpdateSelection() {
@@ -216,7 +283,7 @@ public class SequenceEditor : MonoBehaviour {
                 direction,
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
                 Input.GetKey(KeyCode.F),
-                Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift),
+                selecting && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)),
                 Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
             
             return true;
@@ -232,14 +299,14 @@ public class SequenceEditor : MonoBehaviour {
             MoveCursorIndex(
                 direction,
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
-                Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift),
+                selecting && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)),
                 Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
             
             return true;
         }
 
         if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
-            ClearSelection();
+            BeginSelection();
         else if (Input.GetKeyDown(KeyCode.Alpha1))
             PlaceOnOffEventAtCursor(OnOffEventType.OnOff);
         else if (Input.GetKeyDown(KeyCode.Alpha2))
@@ -248,6 +315,12 @@ public class SequenceEditor : MonoBehaviour {
             PlaceOnOffEventAtCursor(OnOffEventType.Off);
         else if (Input.GetKeyDown(KeyCode.Delete) || Input.GetKeyDown(KeyCode.Backspace))
             DeleteSelected();
+        else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            CopySelected();
+        else if (Input.GetKeyDown(KeyCode.X) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            CutSelected();
+        else if (Input.GetKeyDown(KeyCode.V) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            Paste();
         else
             return false;
 
