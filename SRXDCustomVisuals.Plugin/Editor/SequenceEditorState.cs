@@ -18,4 +18,6 @@ public class SequenceEditorState {
     public int SelectionEndIndex { get; set; }
 
     public List<int> SelectedIndices { get; } = new();
+    
+    public bool ShowValue { get; set; }
 }

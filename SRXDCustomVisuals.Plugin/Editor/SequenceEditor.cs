@@ -47,16 +47,23 @@ public class SequenceEditor : MonoBehaviour {
         if (!Visible)
             return;
         
-        long previousTime = state.Time;
+        bool wasShowingValue = state.ShowValue;
+
+        state.ShowValue = false;
+        
         bool anyInput = CheckInputs();
 
-        state.Time = playState.currentTrackTick;
+        if (!anyInput && wasShowingValue)
+            state.ShowValue = true;
 
+        state.Time = playState.currentTrackTick;
+        
         if (!selecting || anyInput || state.Time == state.SelectionEndTime || !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
             return;
         
         state.SelectionEndTime = state.Time;
         UpdateSelection();
+        state.ShowValue = false;
     }
 
     public void Exit() => sequence = new TrackVisualsEventSequence();
@@ -122,6 +129,8 @@ public class SequenceEditor : MonoBehaviour {
 
             onOffEvent.Value = Mathf.Clamp(onOffEvent.Value + direction, 0, 255);
         }
+
+        state.ShowValue = true;
     }
 
     private void PlaceOnOffEventAtCursor(OnOffEventType type) {

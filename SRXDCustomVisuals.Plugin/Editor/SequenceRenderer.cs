@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin;
 
@@ -14,6 +15,7 @@ public class SequenceRenderer {
     private const float OFF_EVENT_HEIGHT_SELECTED = 4f;
     private const float ON_OFF_EVENT_PADDING = 4f;
     private const float VALUE_BAR_HEIGHT = 2f;
+    private const float VALUE_LABEL_HEIGHT = 20f;
     private static readonly Color BEAT_BAR_COLOR = new(0.5f, 0.5f, 0.5f);
     private static readonly Color NOW_BAR_COLOR = Color.white;
     private static readonly Color COLUMN_BOX_COLOR = new(0.5f, 1f, 1f, 0.2f);
@@ -68,6 +70,7 @@ public class SequenceRenderer {
         int cursorIndex = editorState.CursorIndex;
         int columnPan = editorState.ColumnPan;
         var selectedIndices = editorState.SelectedIndices;
+        bool showValue = editorState.ShowValue;
         
         var sequence = info.Sequence;
         var onOffEvents = sequence.OnOffEvents;
@@ -121,7 +124,7 @@ public class SequenceRenderer {
                 lastNoteOnTimeInColumn[column] = long.MinValue;
 
             if (relativeTime >= BOTTOM_TIME_OFFSET && relativeTime <= TOP_TIME_OFFSET)
-                DrawOnOffEvent(eventType, onOffEvent.Value, relativeTime, column, selectedIndices.Contains(i));
+                DrawOnOffEvent(eventType, onOffEvent.Value, relativeTime, column, selectedIndices.Contains(i), showValue);
         }
 
         for (int i = 0; i < columnCount; i++) {
@@ -144,7 +147,7 @@ public class SequenceRenderer {
 
     private void DrawColumnBox(int column) => DrawRect(ColumnToX(column), topY, columnWidth, paddedHeight, COLUMN_BOX_COLOR, true);
 
-    private void DrawOnOffEvent(OnOffEventType type, int value, float relativeTime, int column, bool selected) {
+    private void DrawOnOffEvent(OnOffEventType type, int value, float relativeTime, int column, bool selected, bool showValue) {
         float height;
         Color color;
 
@@ -174,9 +177,14 @@ public class SequenceRenderer {
         float width = columnWidth - 2f * ON_OFF_EVENT_PADDING;
         
         DrawRect(x, y, width, height, color, false);
+
+        if (type == OnOffEventType.Off)
+            return;
         
-        if (type != OnOffEventType.Off)
-            DrawRect(x, y, width * value / 255f, VALUE_BAR_HEIGHT, VALUE_BAR_COLOR, false);
+        DrawRect(x, y, width * value / 255f, VALUE_BAR_HEIGHT, VALUE_BAR_COLOR, false);
+        
+        if (selected && showValue)
+            GUI.Label(new Rect(x, y - VALUE_LABEL_HEIGHT, width, VALUE_LABEL_HEIGHT), $"{value:X2}");
     }
 
     private void DrawSustainLine(float relativeStartTime, float relativeEndTime, int column) {
