@@ -5,6 +5,7 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Plugin;
 
 public class SequenceRenderer {
+    private const float TIME_TO_TICK = 100000f;
     private const float TICK_TO_TIME = 0.00001f;
     private const float BOTTOM_TIME_OFFSET = -0.25f;
     private const float TOP_TIME_OFFSET = 1f;
@@ -14,8 +15,8 @@ public class SequenceRenderer {
     private const float OFF_EVENT_HEIGHT = 2f;
     private const float OFF_EVENT_HEIGHT_SELECTED = 4f;
     private const float ON_OFF_EVENT_PADDING = 4f;
-    private const float CONTROL_KEYFRAME_SIZE = 3f;
-    private const float CONTROL_KEYFRAME_SIZE_SELECTED = 5f;
+    private const float CONTROL_KEYFRAME_SIZE = 5f;
+    private const float CONTROL_KEYFRAME_SIZE_SELECTED = 9f;
     private const float CONTROL_CURVE_PADDING = 4f;
     private const float VALUE_BAR_HEIGHT = 2f;
     private const float VALUE_LABEL_HEIGHT = 20f;
@@ -29,6 +30,7 @@ public class SequenceRenderer {
     private static readonly Color ON_EVENT_COLOR_SELECTED = new(0.75f, 0.875f, 1f);
     private static readonly Color VALUE_BAR_COLOR = new(1f, 0.5f, 0f);
     private static readonly Color CONTROL_KEYFRAME_COLOR = Color.white;
+    private static readonly Color CONTROL_CURVE_COLOR = new(1f, 0.5f, 0f);
 
     private Rect windowRect;
     private int columnCount;
@@ -171,12 +173,36 @@ public class SequenceRenderer {
     private void DrawControlCurves(long time, ControlCurve[] controlCurves, List<int>[] selectedIndicesPerColumn, int columnPan, bool showValues) {
         for (int i = 0, j = columnPan; i < columnCount; i++, j++) {
             var keyframes = controlCurves[j].Keyframes;
+            
+            for (int k = 0; k < keyframes.Count - 1; k++) {
+                var startKeyframe = keyframes[k];
+                var endKeyframe = keyframes[k + 1];
+                float relativeStartTime = TICK_TO_TIME * (startKeyframe.Time - time);
+                float relativeEndTime = TICK_TO_TIME * (endKeyframe.Time - time);
+
+                if (relativeStartTime <= TOP_TIME_OFFSET && relativeEndTime >= BOTTOM_TIME_OFFSET)
+                    DrawCurveSegment(startKeyframe, endKeyframe, time, relativeStartTime, relativeEndTime, i);
+            }
+
+            if (keyframes.Count > 0) {
+                var keyframe = keyframes[0];
+                float relativeTime = TICK_TO_TIME * (keyframe.Time - time);
+
+                if (relativeTime >= BOTTOM_TIME_OFFSET)
+                    DrawStraightCurveSegment(BOTTOM_TIME_OFFSET, relativeTime, keyframe.Value, i);
+
+                keyframe = keyframes[keyframes.Count - 1];
+                relativeTime = TICK_TO_TIME * (keyframe.Time - time);
+                
+                if (relativeTime <= TOP_TIME_OFFSET)
+                    DrawStraightCurveSegment(relativeTime, TOP_TIME_OFFSET, keyframe.Value, i);
+            }
+            
             var selectedIndices = selectedIndicesPerColumn[j];
 
             for (int k = 0; k < keyframes.Count; k++) {
                 var keyframe = keyframes[k];
-                long keyframeTime = keyframe.Time;
-                float relativeTime = TICK_TO_TIME * (keyframeTime - time);
+                float relativeTime = TICK_TO_TIME * (keyframe.Time - time);
 
                 if (relativeTime < BOTTOM_TIME_OFFSET)
                     continue;
@@ -236,6 +262,28 @@ public class SequenceRenderer {
         DrawRect(ColumnToX(column) + 0.5f * columnWidth, endY, 1f, startY - endY, ON_EVENT_COLOR, false);
     }
 
+    private void DrawCurveSegment(ControlKeyframe startKeyframe, ControlKeyframe endKeyframe, long time, float relativeStartTime, float relativeEndTime, int column) {
+        float startY = Mathf.Clamp(Mathf.Round(RelativeTimeToY(relativeStartTime)), topY, bottomY);
+        float endY = Mathf.Clamp(Mathf.Round(RelativeTimeToY(relativeEndTime)), topY, bottomY);
+        float sideX = ColumnToX(column) + CONTROL_CURVE_PADDING;
+
+        for (float y = endY; y <= startY; y++) {
+            long timeForY = (long) (TIME_TO_TICK * YToRelativeTime(y)) + time;
+            float value = (float) ControlCurve.Interpolate(startKeyframe, endKeyframe, timeForY);
+            float x = sideX + controlCurveXScale * value;
+            
+            DrawRect(x, y, 1f, 1f, CONTROL_CURVE_COLOR, false);
+        }
+    }
+
+    private void DrawStraightCurveSegment(float relativeStartTime, float relativeEndTime, int value, int column) {
+        float x = ColumnToX(column) + CONTROL_CURVE_PADDING + controlCurveXScale * value;
+        float startY = Mathf.Clamp(RelativeTimeToY(relativeStartTime), topY, bottomY);
+        float endY = Mathf.Clamp(RelativeTimeToY(relativeEndTime), topY, bottomY);
+        
+        DrawRect(x, endY, 1f, startY - endY, CONTROL_CURVE_COLOR, false);
+    }
+
     private void DrawKeyframe(float relativeTime, int value, int column, bool selected, bool showValue) {
         float size = selected ? CONTROL_KEYFRAME_SIZE_SELECTED : CONTROL_KEYFRAME_SIZE;
         float offset = -0.5f * (size - 1f);
@@ -255,4 +303,6 @@ public class SequenceRenderer {
     private float ColumnToX(int index) => columnWidth * index + leftX;
 
     private float RelativeTimeToY(float time) => yMapScale * time + yMapOffset;
+
+    private float YToRelativeTime(float y) => (y - yMapOffset) / yMapScale;
 }
