@@ -5,9 +5,9 @@ public class VisualsEvent {
     
     public int Index { get; }
     
-    public int Value { get; }
+    public double Value { get; }
 
-    public VisualsEvent(VisualsEventType type, int index, int value) {
+    public VisualsEvent(VisualsEventType type, int index, double value) {
         Type = type;
         Index = index;
         Value = value;
