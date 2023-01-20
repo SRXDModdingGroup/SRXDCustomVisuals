@@ -40,8 +40,8 @@ public class NoteEventController {
         
         for (int i = 0, j = 256 - Count; i < Count; i++, j++) {
             if (hits[i]) {
-                visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, j, 255L));
-                visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, j, 255L));
+                visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, j, 255d));
+                visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, j, 255d));
                 
                 continue;
             }
@@ -50,9 +50,9 @@ public class NoteEventController {
             bool after = holdsAfter[i];
             
             if (!before && after)
-                visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, j, 255L));
+                visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, j, 255d));
             else if (before && !after)
-                visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, j, 255L));
+                visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, j, 255d));
             
             holdsBefore[i] = holdsAfter[i];
         }

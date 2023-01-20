@@ -16,7 +16,7 @@ public class ControlCurve {
         
         switch (a.Type) {
             case ControlKeyframeType.Smooth:
-                t = t * t * (3L - 2L * t);
+                t = t * t * (3d - 2d * t);
                 break;
             case ControlKeyframeType.Linear:
                 break;
@@ -24,7 +24,7 @@ public class ControlCurve {
                 t *= t;
                 break;
             case ControlKeyframeType.EaseOut:
-                t = 1L - (1L - t) * (1L - t);
+                t = 1d - (1d - t) * (1d - t);
                 break;
             case ControlKeyframeType.Constant:
             default:
