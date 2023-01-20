@@ -17,7 +17,14 @@ public class SequenceEditorState {
     
     public int SelectionEndIndex { get; set; }
 
-    public List<int> SelectedIndices { get; } = new();
+    public List<int>[] SelectedIndicesPerColumn { get; }
     
     public bool ShowValue { get; set; }
+
+    public SequenceEditorState() {
+        SelectedIndicesPerColumn = new List<int>[256];
+
+        for (int i = 0; i < 256; i++)
+            SelectedIndicesPerColumn[i] = new List<int>();
+    }
 }

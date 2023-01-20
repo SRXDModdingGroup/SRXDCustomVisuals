@@ -1,5 +1,6 @@
 ﻿using System;
-﻿using UnityEngine;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin;
 
@@ -9,20 +10,20 @@ public class SequenceRenderer {
     private const float TOP_TIME_OFFSET = 1f;
     private const float SIDE_PADDING = 8f;
     private const float TOP_PADDING = 20f;
-    private const float ON_EVENT_HEIGHT = 4f;
+    private const float ON_EVENT_HEIGHT = 6f;
     private const float OFF_EVENT_HEIGHT = 2f;
-    private const float ON_EVENT_HEIGHT_SELECTED = 4f;
     private const float OFF_EVENT_HEIGHT_SELECTED = 4f;
     private const float ON_OFF_EVENT_PADDING = 4f;
     private const float VALUE_BAR_HEIGHT = 2f;
     private const float VALUE_LABEL_HEIGHT = 20f;
+    private static readonly Color BACKING_COLOR = new(0f, 0f, 0f, 0.75f);
     private static readonly Color BEAT_BAR_COLOR = new(0.5f, 0.5f, 0.5f);
     private static readonly Color NOW_BAR_COLOR = Color.white;
-    private static readonly Color COLUMN_BOX_COLOR = new(0.5f, 1f, 1f, 0.2f);
-    private static readonly Color ON_EVENT_COLOR = new(0f, 0.5f, 1f);
+    private static readonly Color COLUMN_BOX_COLOR = new(0.5f, 0.5f, 0.5f, 0.05f);
+    private static readonly Color COLUMN_BOX_COLOR_SELECTED = new(0.5f, 1f, 1f, 0.1f);
+    private static readonly Color ON_EVENT_COLOR = new(0f, 0.4f, 0.8f);
     private static readonly Color OFF_EVENT_COLOR = Color.white;
-    private static readonly Color ON_EVENT_COLOR_SELECTED = new(0.5f, 0.75f, 1f);
-    private static readonly Color OFF_EVENT_COLOR_SELECTED = Color.white;
+    private static readonly Color ON_EVENT_COLOR_SELECTED = new(0.75f, 0.875f, 1f);
     private static readonly Color VALUE_BAR_COLOR = new(1f, 0.5f, 0f);
 
     private Rect windowRect;
@@ -69,17 +70,21 @@ public class SequenceRenderer {
         var editorState = info.EditorState;
         int cursorIndex = editorState.CursorIndex;
         int columnPan = editorState.ColumnPan;
-        var selectedIndices = editorState.SelectedIndices;
-        bool showValue = editorState.ShowValue;
-        
-        var sequence = info.Sequence;
-        var onOffEvents = sequence.OnOffEvents;
-        
+
         long time = playState.currentTrackTick;
         float timeAsFloat = playState.currentTrackTick.ToSecondsFloat();
         float[] beatArray = playState.trackData.BeatArray;
         
-        DrawColumnBox(cursorIndex - columnPan);
+        DrawRect(leftX, topY, paddedWidth, paddedHeight, BACKING_COLOR, true);
+
+        int selectedColumn = cursorIndex - columnPan;
+
+        for (int i = 0; i < columnCount; i += 2) {
+            if (i != selectedColumn)
+                DrawColumnBox(i, COLUMN_BOX_COLOR);
+        }
+        
+        DrawColumnBox(selectedColumn, COLUMN_BOX_COLOR_SELECTED);
 
         foreach (float beatTime in beatArray) {
             float relativeBeatTime = beatTime - timeAsFloat;
@@ -94,13 +99,19 @@ public class SequenceRenderer {
         }
         
         DrawHorizontalLine(yMapOffset, NOW_BAR_COLOR);
+        DrawOnOffEvents(time, info.Sequence.OnOffEvents, editorState.SelectedIndicesPerColumn[0], columnPan, editorState.ShowValue);
 
+        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, 20f), $"Index: {cursorIndex:X2}");
+        GUI.DragWindow();
+    }
+
+    private void DrawOnOffEvents(long time, List<OnOffEvent> onOffEvents, List<int> selectedIndices, int columnPan, bool showValue) {
         for (int i = 0; i < columnCount; i++)
             lastNoteOnTimeInColumn[i] = long.MinValue;
 
         for (int i = 0; i < onOffEvents.Count; i++) {
             var onOffEvent = onOffEvents[i];
-            
+
             int column = onOffEvent.Index - columnPan;
 
             if (column < 0 || column >= columnCount)
@@ -132,44 +143,37 @@ public class SequenceRenderer {
 
             if (lastNoteOnTime == long.MinValue)
                 continue;
-            
+
             float relativeLastNoteOnTime = TICK_TO_TIME * (lastNoteOnTime - time);
 
             if (relativeLastNoteOnTime <= TOP_TIME_OFFSET)
                 DrawSustainLine(relativeLastNoteOnTime, TOP_TIME_OFFSET, i);
         }
-        
-        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, 20f), $"Index: {cursorIndex:X2}");
-        GUI.DragWindow();
     }
 
     private void DrawHorizontalLine(float y, Color color) => DrawRect(leftX, y, paddedWidth, 1f, color, false);
 
-    private void DrawColumnBox(int column) => DrawRect(ColumnToX(column), topY, columnWidth, paddedHeight, COLUMN_BOX_COLOR, true);
+    private void DrawColumnBox(int column, Color color) => DrawRect(ColumnToX(column), topY, columnWidth, paddedHeight, color, true);
 
     private void DrawOnOffEvent(OnOffEventType type, int value, float relativeTime, int column, bool selected, bool showValue) {
         float height;
         Color color;
 
         if (type == OnOffEventType.Off) {
-            if (selected) {
+            if (selected)
                 height = OFF_EVENT_HEIGHT_SELECTED;
-                color = OFF_EVENT_COLOR_SELECTED;
-            }
-            else {
+            else
                 height = OFF_EVENT_HEIGHT;
-                color = OFF_EVENT_COLOR;
-            }
+            
+            color = OFF_EVENT_COLOR;
         }
         else {
-            if (selected) {
-                height = ON_EVENT_HEIGHT_SELECTED;
+            height = ON_EVENT_HEIGHT;
+            
+            if (selected)
                 color = ON_EVENT_COLOR_SELECTED;
-            }
-            else {
-                height = ON_EVENT_HEIGHT;
+            else
                 color = ON_EVENT_COLOR;
-            }
         }
 
         float x = ColumnToX(column) + ON_OFF_EVENT_PADDING;
@@ -188,7 +192,7 @@ public class SequenceRenderer {
     }
 
     private void DrawSustainLine(float relativeStartTime, float relativeEndTime, int column) {
-        float startY = Mathf.Clamp(RelativeTimeToY(relativeStartTime), topY, bottomY);
+        float startY = Mathf.Clamp(RelativeTimeToY(relativeStartTime) - ON_EVENT_HEIGHT, topY, bottomY);
         float endY = Mathf.Clamp(RelativeTimeToY(relativeEndTime), topY, bottomY);
         
         DrawRect(ColumnToX(column) + 0.5f * columnWidth, endY, 1f, startY - endY, ON_EVENT_COLOR, false);
