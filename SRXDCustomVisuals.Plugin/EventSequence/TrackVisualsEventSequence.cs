@@ -4,11 +4,14 @@ using System.Collections.Generic;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEventSequence {
+    public string Background { get; set; }
+    
     public List<OnOffEvent> OnOffEvents { get; }
     
     public ControlCurve[] ControlCurves { get; }
 
     public TrackVisualsEventSequence() {
+        Background = "";
         OnOffEvents = new List<OnOffEvent>();
         ControlCurves = new ControlCurve[256];
 
@@ -16,8 +19,15 @@ public class TrackVisualsEventSequence {
             ControlCurves[i] = new ControlCurve();
     }
 
-    public TrackVisualsEventSequence(List<TrackVisualsEvent> events) : this() {
-        foreach (var visualsEvent in events) {
+    public TrackVisualsEventSequence(CustomVisualsInfo customVisualsInfo) {
+        Background = customVisualsInfo.Background;
+        OnOffEvents = new List<OnOffEvent>();
+        ControlCurves = new ControlCurve[256];
+
+        for (int i = 0; i < 256; i++)
+            ControlCurves[i] = new ControlCurve();
+        
+        foreach (var visualsEvent in customVisualsInfo.Events) {
             if (visualsEvent.Type == TrackVisualsEventType.ControlKeyframe)
                 ControlCurves[visualsEvent.Index].Keyframes.Add(new ControlKeyframe(visualsEvent.Time, visualsEvent.KeyframeType, visualsEvent.Value));
             else
@@ -25,11 +35,11 @@ public class TrackVisualsEventSequence {
         }
     }
 
-    public List<TrackVisualsEvent> ToVisualsEvents() {
-        var visualsEvents = new List<TrackVisualsEvent>();
+    public CustomVisualsInfo ToCustomVisualsInfo() {
+        var events = new List<TrackVisualsEvent>();
 
         foreach (var onOffEvent in OnOffEvents) {
-            visualsEvents.InsertSorted(new TrackVisualsEvent(
+            events.InsertSorted(new TrackVisualsEvent(
                 onOffEvent.Time,
                 ToTrackVisualsEventType(onOffEvent.Type),
                 ControlKeyframeType.Constant,
@@ -41,7 +51,7 @@ public class TrackVisualsEventSequence {
             var controlCurve = ControlCurves[i];
                 
             foreach (var controlKeyframe in controlCurve.Keyframes) {
-                visualsEvents.InsertSorted(new TrackVisualsEvent(
+                events.InsertSorted(new TrackVisualsEvent(
                     controlKeyframe.Time,
                     TrackVisualsEventType.ControlKeyframe,
                     controlKeyframe.Type,
@@ -50,7 +60,7 @@ public class TrackVisualsEventSequence {
             }
         }
 
-        return visualsEvents;
+        return new CustomVisualsInfo(Background, events);
     }
 
     private static OnOffEventType ToOnOffEventType(TrackVisualsEventType type) => type switch {

@@ -76,7 +76,7 @@ public class SequenceEditor : MonoBehaviour {
 
     public void Exit() => sequence = new TrackVisualsEventSequence();
 
-    public List<TrackVisualsEvent> GetSequenceAsVisualsEvents() => sequence.ToVisualsEvents();
+    public CustomVisualsInfo GetCustomVisualsInfo() => sequence.ToCustomVisualsInfo();
 
     private void MoveTime(int direction, bool largeMovement, bool smallMovement, bool changeSelection, bool moveSelected) {
         if (largeMovement)

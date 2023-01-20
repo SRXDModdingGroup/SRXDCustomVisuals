@@ -46,7 +46,7 @@ public class Patches {
         var trackData = playState.trackData;
 
         var customVisualsInfo = visualsInfoAccessor.GetCustomVisualsInfo(trackData.TrackInfoRef);
-        var eventSequence = new TrackVisualsEventSequence(customVisualsInfo.Events);
+        var eventSequence = new TrackVisualsEventSequence(customVisualsInfo);
 
         if (Plugin.EnableCustomVisuals.Value)
             visualsSceneManager.LoadScene(customVisualsInfo.Background);
@@ -209,11 +209,9 @@ public class Patches {
         if (!sequenceEditor.Dirty)
             return;
 
-        var trackInfoRef = __instance.frameInfo.trackData.TrackInfoRef;
-        var customVisualsInfo = visualsInfoAccessor.GetCustomVisualsInfo(trackInfoRef);
-
-        customVisualsInfo.Events = sequenceEditor.GetSequenceAsVisualsEvents();
-        visualsInfoAccessor.SaveCustomVisualsInfo(trackInfoRef, customVisualsInfo);
+        visualsInfoAccessor.SaveCustomVisualsInfo(
+            __instance.frameInfo.trackData.TrackInfoRef,
+            sequenceEditor.GetCustomVisualsInfo());
     }
 
     [HarmonyPatch(typeof(TrackEditorGUI), "HandleNoteEditorInput"), HarmonyPrefix]
