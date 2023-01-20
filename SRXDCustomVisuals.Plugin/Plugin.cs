@@ -4,8 +4,6 @@ using HarmonyLib;
 using SMU.Utilities;
 using SpinCore;
 using SpinCore.UI;
-using SRXDCustomVisuals.Core;
-using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin;
 

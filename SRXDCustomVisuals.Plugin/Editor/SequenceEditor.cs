@@ -15,6 +15,8 @@ public class SequenceEditor : MonoBehaviour {
     
     public bool Visible { get; set; }
 
+    public bool Dirty => true;
+
     private SequenceEditorState state;
     private SequenceRenderer renderer;
     private PlayState playState;
@@ -58,7 +60,7 @@ public class SequenceEditor : MonoBehaviour {
 
         state.Time = playState.currentTrackTick;
         
-        if (!selecting || anyInput || state.Time == state.SelectionEndTime || !(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
+        if (!selecting || anyInput || state.Time == state.SelectionEndTime)
             return;
         
         state.SelectionEndTime = state.Time;
@@ -67,6 +69,8 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     public void Exit() => sequence = new TrackVisualsEventSequence();
+
+    public List<TrackVisualsEvent> GetSequenceAsVisualsEvents() => sequence.ToVisualsEvents();
     
     private void MoveCursorIndex(int direction, bool largeMovement, bool changeSelection, bool moveSelected) {
         if (largeMovement)
@@ -308,6 +312,9 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     private bool CheckInputs() {
+        if (!(Input.GetKey(KeyCode.LeftShift) || !Input.GetKey(KeyCode.RightShift)))
+            selecting = false;
+        
         int direction = 0;
 
         if (Input.GetKeyDown(KeyCode.UpArrow))
@@ -321,7 +328,7 @@ public class SequenceEditor : MonoBehaviour {
                 direction,
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
                 Input.GetKey(KeyCode.F),
-                selecting && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)),
+                selecting,
                 Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
             
             return true;
@@ -337,7 +344,7 @@ public class SequenceEditor : MonoBehaviour {
             MoveCursorIndex(
                 direction,
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
-                selecting && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)),
+                selecting,
                 Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
             
             return true;

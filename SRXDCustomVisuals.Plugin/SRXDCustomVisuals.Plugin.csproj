@@ -113,7 +113,7 @@
         <Compile Include="Util.cs" />
         <Compile Include="Visuals\VisualsElementAssetReference.cs" />
         <Compile Include="Visuals\VisualsElementReference.cs" />
-        <Compile Include="Visuals\VisualsInfoLoader.cs" />
+        <Compile Include="Visuals\VisualsInfoAccessor.cs" />
         <Compile Include="Visuals\VisualsScene.cs" />
         <Compile Include="Visuals\VisualsSceneManager.cs" />
     </ItemGroup>

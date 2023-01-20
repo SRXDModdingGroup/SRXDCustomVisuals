@@ -12,7 +12,7 @@ namespace SRXDCustomVisuals.Plugin;
 
 public class Patches {
     private static NoteClearType previousClearType;
-    private static VisualsInfoLoader visualsInfoLoader = new();
+    private static VisualsInfoAccessor visualsInfoAccessor = new();
     private static VisualsSceneManager visualsSceneManager = new();
     private static TrackVisualsEventPlayback eventPlayback = new();
     private static SequenceEditor sequenceEditor;
@@ -20,10 +20,12 @@ public class Patches {
     private static SpectrumBufferController spectrumBufferController = new();
 
     private static BackgroundAssetReference OverrideBackgroundIfVisualsInfoHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
-        if (!Plugin.EnableCustomVisuals.Value || !visualsInfoLoader.TryGetCustomVisualsInfo(handle.Setup.TrackDataSegments[0].trackInfoRef, out var customVisualsInfo))
+        if (!Plugin.EnableCustomVisuals.Value)
             return defaultBackground;
         
-        return visualsSceneManager.GetBackgroundForScene(defaultBackground, customVisualsInfo.Background);
+        return visualsSceneManager.GetBackgroundForScene(
+            defaultBackground,
+            visualsInfoAccessor.GetCustomVisualsInfo(handle.Setup.TrackDataSegments[0].trackInfoRef).Background);
     }
 
     [HarmonyPatch(typeof(Game), nameof(Game.Update)), HarmonyPostfix]
@@ -40,18 +42,14 @@ public class Patches {
     private static void Track_PlayTrack_Postfix(Track __instance) {
         noteEventController.Reset();
 
-        TrackVisualsEventSequence eventSequence;
         var playState = __instance.playStateFirst;
         var trackData = playState.trackData;
 
-        if (visualsInfoLoader.TryGetCustomVisualsInfo(trackData.TrackInfoRef, out var customVisualsInfo)) {
-            eventSequence = new TrackVisualsEventSequence(customVisualsInfo.Events);
-            
-            if (Plugin.EnableCustomVisuals.Value)
-                visualsSceneManager.LoadScene(customVisualsInfo.Background);
-        }
-        else
-            eventSequence = new TrackVisualsEventSequence();
+        var customVisualsInfo = visualsInfoAccessor.GetCustomVisualsInfo(trackData.TrackInfoRef);
+        var eventSequence = new TrackVisualsEventSequence(customVisualsInfo.Events);
+
+        if (Plugin.EnableCustomVisuals.Value)
+            visualsSceneManager.LoadScene(customVisualsInfo.Background);
 
         eventPlayback.SetSequence(eventSequence);
         sequenceEditor.Init(eventSequence, playState);
@@ -67,16 +65,25 @@ public class Patches {
     }
 
     [HarmonyPatch(typeof(PlayState.ScoreState), nameof(PlayState.ScoreState.UpdateNoteStates)), HarmonyPrefix]
-    private static void ScoreState_UpdateNoteStates_Prefix() => noteEventController.Listen();
+    private static void ScoreState_UpdateNoteStates_Prefix() {
+        if (Plugin.EnableCustomVisuals.Value)
+            noteEventController.Listen();
+    }
 
     [HarmonyPatch(typeof(PlayState.ScoreState), nameof(PlayState.ScoreState.UpdateNoteStates)), HarmonyPostfix]
-    private static void ScoreState_UpdateNoteStates_Postfix() => noteEventController.Send();
+    private static void ScoreState_UpdateNoteStates_Postfix() {
+        if (Plugin.EnableCustomVisuals.Value)
+            noteEventController.Send();
+    }
 
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPrefix]
     private static void TrackGameplayLogic_UpdateNoteStateInternal_Prefix(PlayState playState, int noteIndex) => previousClearType = playState.noteStates[noteIndex].clearType;
     
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPostfix]
     private static void TrackGameplayLogic_UpdateNoteStateInternal_Postfix(PlayState playState, int noteIndex) {
+        if (!Plugin.EnableCustomVisuals.Value)
+            return;
+        
         var trackData = playState.trackData;
         var clearType = playState.noteStates[noteIndex].clearType;
         var note = trackData.GetNote(noteIndex);
@@ -127,6 +134,9 @@ public class Patches {
 
     [HarmonyPatch(typeof(FreestyleSectionLogic), nameof(FreestyleSectionLogic.UpdateFreestyleSectionState)), HarmonyPostfix]
     private static void FreestyleSectionLogic_UpdateFreestyleSectionState_Postfix(PlayState playState, int noteIndex) {
+        if (!Plugin.EnableCustomVisuals.Value)
+            return;
+        
         var sustainSection = playState.trackData.NoteData.FreestyleSections.GetSectionForNote(noteIndex);
         
         if (!sustainSection.HasValue)
@@ -140,6 +150,9 @@ public class Patches {
     
     [HarmonyPatch(typeof(SpinSectionLogic), nameof(SpinSectionLogic.UpdateSpinSectionState)), HarmonyPostfix]
     private static void SpinSectionLogic_UpdateSpinSectionState_Postfix(PlayState playState, int noteIndex) {
+        if (!Plugin.EnableCustomVisuals.Value)
+            return;
+        
         var spinSection = playState.trackData.NoteData.SpinnerSections.GetSectionForNote(noteIndex);
         
         if (!spinSection.HasValue)
@@ -158,6 +171,9 @@ public class Patches {
     
     [HarmonyPatch(typeof(ScratchSectionLogic), nameof(ScratchSectionLogic.UpdateScratchSectionState)), HarmonyPostfix]
     private static void ScratchSectionLogic_UpdateScratchSectionState_Postfix(PlayState playState, int noteIndex) {
+        if (!Plugin.EnableCustomVisuals.Value)
+            return;
+        
         var scratchSection = playState.trackData.NoteData.ScratchSections.GetSectionForNote(noteIndex);
         
         if (!scratchSection.HasValue)
@@ -186,6 +202,18 @@ public class Patches {
     private static void TrackEditorGUI_SetCurrentTrackTime_Prefix(ref bool canChangeSelection) {
         if (sequenceEditor.Visible)
             canChangeSelection = false;
+    }
+
+    [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.SaveChanges)), HarmonyPrefix]
+    private static void TrackEditorGUI_SaveChanges_Prefix(TrackEditorGUI __instance) {
+        if (!sequenceEditor.Dirty)
+            return;
+
+        var trackInfoRef = __instance.frameInfo.trackData.TrackInfoRef;
+        var customVisualsInfo = visualsInfoAccessor.GetCustomVisualsInfo(trackInfoRef);
+
+        customVisualsInfo.Events = sequenceEditor.GetSequenceAsVisualsEvents();
+        visualsInfoAccessor.SaveCustomVisualsInfo(trackInfoRef, customVisualsInfo);
     }
 
     [HarmonyPatch(typeof(TrackEditorGUI), "HandleNoteEditorInput"), HarmonyPrefix]

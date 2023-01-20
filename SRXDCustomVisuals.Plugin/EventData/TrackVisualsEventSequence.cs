@@ -16,10 +16,7 @@ public class TrackVisualsEventSequence {
             ControlCurves[i] = new ControlCurve();
     }
 
-    public TrackVisualsEventSequence(List<TrackVisualsEvent> events) {
-        OnOffEvents = new List<OnOffEvent>();
-        ControlCurves = new ControlCurve[256];
-        
+    public TrackVisualsEventSequence(List<TrackVisualsEvent> events) : this() {
         foreach (var visualsEvent in events) {
             if (visualsEvent.Type == TrackVisualsEventType.ControlKeyframe)
                 ControlCurves[visualsEvent.Index].Keyframes.Add(new ControlKeyframe(visualsEvent.Time, visualsEvent.KeyframeType, visualsEvent.Value));
@@ -40,15 +37,15 @@ public class TrackVisualsEventSequence {
                 onOffEvent.Value));
         }
 
-        for (int j = 0; j < 256; j++) {
-            var controlCurve = ControlCurves[j];
+        for (int i = 0; i < 256; i++) {
+            var controlCurve = ControlCurves[i];
                 
             foreach (var controlKeyframe in controlCurve.Keyframes) {
                 visualsEvents.InsertSorted(new TrackVisualsEvent(
                     controlKeyframe.Time,
                     TrackVisualsEventType.ControlKeyframe,
                     controlKeyframe.Type,
-                    j,
+                    i,
                     controlKeyframe.Value));
             }
         }
@@ -59,7 +56,7 @@ public class TrackVisualsEventSequence {
     private static OnOffEventType ToOnOffEventType(TrackVisualsEventType type) => type switch {
         TrackVisualsEventType.On => OnOffEventType.On,
         TrackVisualsEventType.Off => OnOffEventType.Off,
-        TrackVisualsEventType.OnOff => OnOffEventType.Off,
+        TrackVisualsEventType.OnOff => OnOffEventType.OnOff,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
     };
 

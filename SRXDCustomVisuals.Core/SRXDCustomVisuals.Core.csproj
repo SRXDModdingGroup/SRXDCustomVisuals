@@ -56,8 +56,6 @@
         <Compile Include="Event\VisualsEventManager.cs" />
         <Compile Include="Event\VisualsEventReceiver.cs" />
         <Compile Include="Event\VisualsEventType.cs" />
-        <Compile Include="Util\SafeSerialize.cs" />
-        <Compile Include="Util\UnityObjectConverter.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
