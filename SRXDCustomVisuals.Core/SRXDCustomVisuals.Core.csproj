@@ -52,11 +52,11 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="Event\VisualsEvent.cs" />
-        <Compile Include="Event\VisualsEventManager.cs" />
-        <Compile Include="Event\VisualsEventReceiver.cs" />
-        <Compile Include="Event\VisualsEventType.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
+        <Compile Include="VisualsEvent.cs" />
+        <Compile Include="VisualsEventManager.cs" />
+        <Compile Include="VisualsEventReceiver.cs" />
+        <Compile Include="VisualsEventType.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

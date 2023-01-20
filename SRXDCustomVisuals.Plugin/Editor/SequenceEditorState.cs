@@ -3,11 +3,15 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class SequenceEditorState {
+    public SequenceEditorMode Mode { get; set; }
+    
     public long Time { get; set; }
     
     public int CursorIndex { get; set; }
     
     public int ColumnPan { get; set; }
+    
+    public bool Selecting { get; set; }
     
     public long SelectionStartTime { get; set; }
     
@@ -19,7 +23,7 @@ public class SequenceEditorState {
 
     public List<int>[] SelectedIndicesPerColumn { get; }
     
-    public bool ShowValue { get; set; }
+    public bool ShowValues { get; set; }
 
     public SequenceEditorState() {
         SelectedIndicesPerColumn = new List<int>[256];

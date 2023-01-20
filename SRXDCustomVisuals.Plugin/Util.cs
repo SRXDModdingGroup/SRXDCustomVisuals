@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace SRXDCustomVisuals.Plugin; 
 
-internal static class Util {
+public static class Util {
     public static string AssemblyPath { get; } = Path.GetDirectoryName(Assembly.GetAssembly(typeof(Plugin)).Location);
 
     public static void InsertSorted<T>(this List<T> list, T item) where T : IComparable<T> => list.Insert(list.GetInsertIndex(item), item);

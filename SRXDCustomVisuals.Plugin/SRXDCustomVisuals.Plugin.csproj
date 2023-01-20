@@ -88,8 +88,9 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="Editor\SequenceEditorMode.cs" />
         <Compile Include="Editor\SequenceEditorState.cs" />
-        <Compile Include="Editor\RenderInfo.cs" />
+        <Compile Include="Editor\SequenceRenderInfo.cs" />
         <Compile Include="Editor\SequenceEditor.cs" />
         <Compile Include="Editor\SequenceRenderer.cs" />
         <Compile Include="EventData\ControlCurve.cs" />
