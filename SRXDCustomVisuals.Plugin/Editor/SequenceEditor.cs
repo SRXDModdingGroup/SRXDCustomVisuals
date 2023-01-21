@@ -179,9 +179,6 @@ public class SequenceEditor : MonoBehaviour {
                 
                 break;
             }
-            case SequenceEditorMode.Count:
-            default:
-                break;
         }
 
         state.ShowValues = true;
@@ -325,9 +322,6 @@ public class SequenceEditor : MonoBehaviour {
                 
                 break;
             }
-            case SequenceEditorMode.Count:
-            default:
-                break;
         }
     }
 
@@ -391,13 +385,27 @@ public class SequenceEditor : MonoBehaviour {
                 
                 break;
             }
-            case SequenceEditorMode.Count:
-            default:
-                break;
         }
     }
-
+    
+    private void SelectAll(bool all, bool inRow) {
+        if (all || inRow) {
+            state.SelectionStartIndex = 0;
+            state.SelectionEndIndex = INDEX_COUNT - 1;
+        }
+        
+        if (all || !inRow) {
+            state.SelectionStartTime = 0;
+            state.SelectionEndTime = (long) (TIME_TO_TICK * playState.trackData.SoundEndTime);
+        }
+        
+        UpdateSelection();
+    }
+    
     private void MoveSelectedByTime(long amount) {
+        state.SelectionStartTime = long.MaxValue;
+        state.SelectionEndTime = 0;
+        
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
                 var selectedIndices = state.SelectedIndicesPerColumn[0];
@@ -422,6 +430,12 @@ public class SequenceEditor : MonoBehaviour {
             
                     onOffEvents.Insert(index, onOffEvent);
                     selectedIndices.Add(index);
+
+                    if (onOffEvent.Time < state.SelectionStartTime)
+                        state.SelectionStartTime = onOffEvent.Time;
+                    
+                    if (onOffEvent.Time > state.SelectionEndTime)
+                        state.SelectionEndTime = onOffEvent.Time;
                 }
                 
                 break;
@@ -455,18 +469,24 @@ public class SequenceEditor : MonoBehaviour {
             
                         keyframes.Insert(index, keyframe);
                         selectedIndices.Add(index);
+                        
+                        if (keyframe.Time < state.SelectionStartTime)
+                            state.SelectionStartTime = keyframe.Time;
+                    
+                        if (keyframe.Time > state.SelectionEndTime)
+                            state.SelectionEndTime = keyframe.Time;
                     }
                 }
                 
                 break;
             }
-            case SequenceEditorMode.Count:
-            default:
-                break;
         }
     }
 
     private void MoveSelectedByIndex(int amount) {
+        state.SelectionStartIndex = int.MaxValue;
+        state.SelectionEndIndex = 0;
+        
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
         
         switch (state.Mode) {
@@ -490,6 +510,12 @@ public class SequenceEditor : MonoBehaviour {
             
                     onOffEvents.Insert(index, onOffEvent);
                     selectedIndices.Add(index);
+                    
+                    if (onOffEvent.Index < state.SelectionStartIndex)
+                        state.SelectionStartIndex = onOffEvent.Index;
+                    
+                    if (onOffEvent.Index > state.SelectionEndIndex)
+                        state.SelectionEndIndex = onOffEvent.Index;
                 }
 
                 break;
@@ -523,13 +549,16 @@ public class SequenceEditor : MonoBehaviour {
 
                     keyframes.Insert(index, keyframe);
                     selectedIndicesPerColumn[newColumn].Add(index);
+                    
+                    if (newColumn < state.SelectionStartIndex)
+                        state.SelectionStartIndex = newColumn;
+                    
+                    if (newColumn > state.SelectionEndIndex)
+                        state.SelectionEndIndex = newColumn;
                 }
 
                 break;
             }
-            case SequenceEditorMode.Count:
-            default:
-                break;
         }
     }
 
@@ -558,9 +587,6 @@ public class SequenceEditor : MonoBehaviour {
                 
                 break;
             }
-            case SequenceEditorMode.Count:
-            default:
-                break;
         }
 
         ClearSelection();
@@ -626,9 +652,6 @@ public class SequenceEditor : MonoBehaviour {
 
                 break;
             }
-            case SequenceEditorMode.Count:
-            default:
-                break;
         }
     }
     
@@ -709,10 +732,6 @@ public class SequenceEditor : MonoBehaviour {
                 case SequenceEditorMode.ControlCurves:
                     PlaceControlKeyframeAtCursor(ControlKeyframeType.Constant);
                     break;
-                case SequenceEditorMode.Details:
-                case SequenceEditorMode.Count:
-                default:
-                    break;
             }
         }
         else if (Input.GetKeyDown(KeyCode.Alpha2)) {
@@ -723,10 +742,6 @@ public class SequenceEditor : MonoBehaviour {
                 case SequenceEditorMode.ControlCurves:
                     PlaceControlKeyframeAtCursor(ControlKeyframeType.Smooth);
                     break;
-                case SequenceEditorMode.Details:
-                case SequenceEditorMode.Count:
-                default:
-                    break;
             }
         }
         else if (Input.GetKeyDown(KeyCode.Alpha3)) {
@@ -736,10 +751,6 @@ public class SequenceEditor : MonoBehaviour {
                     break;
                 case SequenceEditorMode.ControlCurves:
                     PlaceControlKeyframeAtCursor(ControlKeyframeType.Linear);
-                    break;
-                case SequenceEditorMode.Details:
-                case SequenceEditorMode.Count:
-                default:
                     break;
             }
         }
@@ -755,6 +766,11 @@ public class SequenceEditor : MonoBehaviour {
             Cut();
         else if (Input.GetKeyDown(KeyCode.V) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             Paste();
+        else if (Input.GetKeyDown(KeyCode.A)) {
+            SelectAll(
+                Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl),
+                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt));
+        }
         else
             return false;
 
