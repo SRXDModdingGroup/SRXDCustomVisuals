@@ -332,11 +332,6 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     private void Paste() {
-        state.SelectionStartTime = long.MaxValue;
-        state.SelectionEndTime = 0;
-        state.SelectionStartIndex = int.MaxValue;
-        state.SelectionEndIndex = 0;
-        
         long time = state.Time;
         int cursorIndex = state.CursorIndex;
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
@@ -361,8 +356,6 @@ public class SequenceEditor : MonoBehaviour {
 
                     onOffEvents.Insert(index, newEvent);
                     selectedIndices.Add(index);
-                    ExpandSelectionToTime(newEvent.Time);
-                    ExpandSelectionToIndex(newEvent.Index);
                 }
                 
                 break;
@@ -387,15 +380,15 @@ public class SequenceEditor : MonoBehaviour {
                         
                         keyframes.Insert(index, newKeyframe);
                         selectedIndices.Add(index);
-                        ExpandSelectionToTime(newKeyframe.Time);
                     }
                     
-                    ExpandSelectionToIndex(newColumn);
                 }
                 
                 break;
             }
         }
+        
+        MatchSelectionBoxToSelection();
     }
     
     private void SelectAll(bool all, bool inRow) {
@@ -413,9 +406,6 @@ public class SequenceEditor : MonoBehaviour {
     }
     
     private void MoveSelectedByTime(long amount) {
-        state.SelectionStartTime = long.MaxValue;
-        state.SelectionEndTime = 0;
-        
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
                 var selectedIndices = state.SelectedIndicesPerColumn[0];
@@ -440,7 +430,6 @@ public class SequenceEditor : MonoBehaviour {
             
                     onOffEvents.Insert(index, onOffEvent);
                     selectedIndices.Add(index);
-                    ExpandSelectionToTime(onOffEvent.Time);
                 }
                 
                 break;
@@ -474,19 +463,17 @@ public class SequenceEditor : MonoBehaviour {
             
                         keyframes.Insert(index, keyframe);
                         selectedIndices.Add(index);
-                        ExpandSelectionToTime(keyframe.Time);
                     }
                 }
                 
                 break;
             }
         }
+        
+        MatchSelectionBoxToSelection();
     }
 
     private void MoveSelectedByIndex(int amount) {
-        state.SelectionStartIndex = int.MaxValue;
-        state.SelectionEndIndex = 0;
-        
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
         
         switch (state.Mode) {
@@ -510,7 +497,6 @@ public class SequenceEditor : MonoBehaviour {
             
                     onOffEvents.Insert(index, onOffEvent);
                     selectedIndices.Add(index);
-                    ExpandSelectionToIndex(onOffEvent.Index);
                 }
 
                 break;
@@ -544,12 +530,13 @@ public class SequenceEditor : MonoBehaviour {
 
                     keyframes.Insert(index, keyframe);
                     selectedIndicesPerColumn[newColumn].Add(index);
-                    ExpandSelectionToIndex(newColumn);
                 }
 
                 break;
             }
         }
+        
+        MatchSelectionBoxToSelection();
     }
 
     private void DeleteSelected() {
@@ -659,20 +646,75 @@ public class SequenceEditor : MonoBehaviour {
         state.Selecting = false;
     }
 
-    private void ExpandSelectionToTime(long time) {
-        if (time < state.SelectionStartTime)
-            state.SelectionStartTime = time;
+    private void MatchSelectionBoxToSelection() {
+        state.SelectionStartTime = long.MaxValue;
+        state.SelectionEndTime = -1;
+        state.SelectionStartIndex = int.MaxValue;
+        state.SelectionEndIndex = -1;
+        
+        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
 
-        if (time > state.SelectionEndTime)
-            state.SelectionEndTime = time;
-    }
-    
-    private void ExpandSelectionToIndex(int index) {
-        if (index < state.SelectionStartIndex)
-            state.SelectionStartIndex = index;
+        switch (state.Mode) {
+            case SequenceEditorMode.OnOffEvents: {
+                var onOffEvents = sequence.OnOffEvents;
+        
+                foreach (int eventIndex in selectedIndicesPerColumn[0]) {
+                    var onOffEvent = onOffEvents[eventIndex];
+                    long time = onOffEvent.Time;
+                    int index = onOffEvent.Index;
+                    
+                    if (time < state.SelectionStartTime)
+                        state.SelectionStartTime = time;
 
-        if (index > state.SelectionEndIndex)
-            state.SelectionEndIndex = index;
+                    if (time > state.SelectionEndTime)
+                        state.SelectionEndTime = time;
+                    
+                    if (index < state.SelectionStartIndex)
+                        state.SelectionStartIndex = index;
+
+                    if (index > state.SelectionEndIndex)
+                        state.SelectionEndIndex = index;
+                }
+                
+                break;
+            }
+            case SequenceEditorMode.ControlCurves: {
+                var controlCurves = sequence.ControlCurves;
+
+                for (int i = 0; i < INDEX_COUNT; i++) {
+                    var selectedIndices = selectedIndicesPerColumn[i];
+                    
+                    if (selectedIndices.Count == 0)
+                        continue;
+
+                    var keyframes = controlCurves[i].Keyframes;
+                    
+                    foreach (int index in selectedIndices) {
+                        long time = keyframes[index].Time;
+                        
+                        if (time < state.SelectionStartTime)
+                            state.SelectionStartTime = time;
+
+                        if (time > state.SelectionEndTime)
+                            state.SelectionEndTime = time;
+                    }
+                    
+                    if (i < state.SelectionStartIndex)
+                        state.SelectionStartIndex = i;
+
+                    if (i > state.SelectionEndIndex)
+                        state.SelectionEndIndex = i;
+                }
+                
+                break;
+            }
+        }
+
+        if (state.SelectionEndTime >= 0)
+            return;
+        
+        ClearSelection();
+        UpdateSelection();
     }
 
     private bool CheckInputs() {
