@@ -19,7 +19,11 @@ public class SequenceRenderer {
     private const float CONTROL_KEYFRAME_SIZE_SELECTED = 9f;
     private const float CONTROL_CURVE_PADDING = 4f;
     private const float VALUE_BAR_HEIGHT = 2f;
+    private const float INFO_LABEL_HEIGHT = 20f;
     private const float VALUE_LABEL_HEIGHT = 20f;
+    private const float FIELD_HEIGHT = 20f;
+    private const float FIELD_LABEL_WIDTH = 100f;
+    private const float DETAILS_START_Y = 60f;
     private static readonly Color BACKING_COLOR = new(0f, 0f, 0f, 0.75f);
     private static readonly Color BEAT_BAR_COLOR = new(0.5f, 0.5f, 0.5f);
     private static readonly Color NOW_BAR_COLOR = Color.white;
@@ -85,46 +89,33 @@ public class SequenceRenderer {
         float[] beatArray = playState.trackData.BeatArray;
         
         DrawRect(leftX, topY, paddedWidth, paddedHeight, BACKING_COLOR, true);
-
-        int selectedColumn = cursorIndex - columnPan;
-
-        for (int i = 0; i < columnCount; i += 2) {
-            if (i != selectedColumn)
-                DrawColumnBox(i, COLUMN_BOX_COLOR);
-        }
         
-        DrawColumnBox(selectedColumn, COLUMN_BOX_COLOR_SELECTED);
-
-        foreach (float beatTime in beatArray) {
-            float relativeBeatTime = beatTime - timeAsFloat;
-            
-            if (relativeBeatTime > TOP_TIME_OFFSET)
-                break;
-            
-            if (relativeBeatTime < BOTTOM_TIME_OFFSET)
-                continue;
-            
-            DrawHorizontalLine(RelativeTimeToY(relativeBeatTime), BEAT_BAR_COLOR);
-        }
-        
-        DrawHorizontalLine(yMapOffset, NOW_BAR_COLOR);
-
         switch (mode) {
+            case SequenceEditorMode.Details:
+                DrawDetails(editorState);
+                break;
             case SequenceEditorMode.OnOffEvents:
-                DrawOnOffEvents(time, info.Sequence.OnOffEvents, editorState.SelectedIndicesPerColumn[0], columnPan, editorState.ShowValues);
+                DrawOnOffEvents(time, timeAsFloat, beatArray, info.Sequence.OnOffEvents, editorState.SelectedIndicesPerColumn[0], cursorIndex, columnPan, editorState.ShowValues);
                 break;
             case SequenceEditorMode.ControlCurves:
-                DrawControlCurves(time, info.Sequence.ControlCurves, editorState.SelectedIndicesPerColumn, columnPan, editorState.ShowValues);
+                DrawControlCurves(time, timeAsFloat, beatArray, info.Sequence.ControlCurves, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
                 break;
+            case SequenceEditorMode.Count:
             default:
                 throw new ArgumentOutOfRangeException();
         }
         
-        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, 20f), $"Mode: {mode}    Index: {cursorIndex:X2}");
         GUI.DragWindow();
     }
 
-    private void DrawOnOffEvents(long time, List<OnOffEvent> onOffEvents, List<int> selectedIndices, int columnPan, bool showValues) {
+    private void DrawDetails(SequenceEditorState state) {
+        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), "Mode: Details");
+        state.BackgroundField = DrawField(state.BackgroundField, "Background:", 0);
+    }
+
+    private void DrawOnOffEvents(long time, float timeAsFloat, float[] beatArray, List<OnOffEvent> onOffEvents, List<int> selectedIndices, int cursorIndex, int columnPan, bool showValues) {
+        DrawGrid(timeAsFloat, beatArray, cursorIndex, columnPan);
+        
         for (int i = 0; i < columnCount; i++)
             lastNoteOnTimeInColumn[i] = long.MinValue;
 
@@ -168,9 +159,13 @@ public class SequenceRenderer {
             if (relativeLastNoteOnTime <= TOP_TIME_OFFSET)
                 DrawSustainLine(relativeLastNoteOnTime, TOP_TIME_OFFSET, i);
         }
+        
+        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), $"Mode: Events    Index: {cursorIndex:X2}");
     }
 
-    private void DrawControlCurves(long time, ControlCurve[] controlCurves, List<int>[] selectedIndicesPerColumn, int columnPan, bool showValues) {
+    private void DrawControlCurves(long time, float timeAsFloat, float[] beatArray, ControlCurve[] controlCurves, List<int>[] selectedIndicesPerColumn, int cursorIndex, int columnPan, bool showValues) {
+        DrawGrid(timeAsFloat, beatArray, cursorIndex, columnPan);
+        
         for (int i = 0, j = columnPan; i < columnCount; i++, j++) {
             var keyframes = controlCurves[j].Keyframes;
             
@@ -213,6 +208,41 @@ public class SequenceRenderer {
                 DrawKeyframe(relativeTime, keyframe.Value, i, selectedIndices.Contains(k), showValues);
             }
         }
+        
+        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), $"Mode: Curves    Index: {cursorIndex:X2}");
+    }
+
+    private string DrawField( string value, string label, int row) {
+        float y = TOP_PADDING + DETAILS_START_Y + row * FIELD_HEIGHT;
+        
+        GUI.Label(new Rect(SIDE_PADDING, y, FIELD_LABEL_WIDTH, FIELD_HEIGHT), label);
+        
+        return GUI.TextField(new Rect(SIDE_PADDING + FIELD_LABEL_WIDTH, y, paddedWidth - FIELD_LABEL_WIDTH, FIELD_HEIGHT), value);
+    }
+
+    private void DrawGrid(float timeAsFloat, float[] beatArray, int cursorIndex, int columnPan) {
+        int selectedColumn = cursorIndex - columnPan;
+
+        for (int i = 0; i < columnCount; i += 2) {
+            if (i != selectedColumn)
+                DrawColumnBox(i, COLUMN_BOX_COLOR);
+        }
+        
+        DrawColumnBox(selectedColumn, COLUMN_BOX_COLOR_SELECTED);
+
+        foreach (float beatTime in beatArray) {
+            float relativeBeatTime = beatTime - timeAsFloat;
+            
+            if (relativeBeatTime > TOP_TIME_OFFSET)
+                break;
+            
+            if (relativeBeatTime < BOTTOM_TIME_OFFSET)
+                continue;
+            
+            DrawHorizontalLine(RelativeTimeToY(relativeBeatTime), BEAT_BAR_COLOR);
+        }
+        
+        DrawHorizontalLine(yMapOffset, NOW_BAR_COLOR);
     }
 
     private void DrawHorizontalLine(float y, Color color) => DrawRect(leftX, y, paddedWidth, 1f, color, false);

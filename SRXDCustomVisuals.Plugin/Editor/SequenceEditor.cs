@@ -43,9 +43,11 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     public void Init(TrackVisualsEventSequence sequence, PlayState playState) {
-        state = new SequenceEditorState();
         this.sequence = sequence;
         this.playState = playState;
+        state = new SequenceEditorState {
+            BackgroundField = sequence.Background
+        };
     }
 
     public void UpdateEditor() {
@@ -54,6 +56,18 @@ public class SequenceEditor : MonoBehaviour {
 
         if (!Visible)
             return;
+        
+        if (Input.GetKeyDown(KeyCode.Home)) {
+            CycleModes();
+            
+            return;
+        }
+        
+        if (state.Mode == SequenceEditorMode.Details) {
+            sequence.Background = state.BackgroundField;
+            
+            return;
+        }
         
         bool wasShowingValue = state.ShowValues;
 
@@ -685,9 +699,7 @@ public class SequenceEditor : MonoBehaviour {
             return true;
         }
 
-        if (Input.GetKeyDown(KeyCode.Home))
-            CycleModes();
-        else if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
+        if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
             BeginSelection();
         else if (Input.GetKeyDown(KeyCode.Alpha1)) {
             switch (state.Mode) {
@@ -697,6 +709,7 @@ public class SequenceEditor : MonoBehaviour {
                 case SequenceEditorMode.ControlCurves:
                     PlaceControlKeyframeAtCursor(ControlKeyframeType.Constant);
                     break;
+                case SequenceEditorMode.Details:
                 case SequenceEditorMode.Count:
                 default:
                     break;
@@ -710,6 +723,7 @@ public class SequenceEditor : MonoBehaviour {
                 case SequenceEditorMode.ControlCurves:
                     PlaceControlKeyframeAtCursor(ControlKeyframeType.Smooth);
                     break;
+                case SequenceEditorMode.Details:
                 case SequenceEditorMode.Count:
                 default:
                     break;
@@ -723,6 +737,7 @@ public class SequenceEditor : MonoBehaviour {
                 case SequenceEditorMode.ControlCurves:
                     PlaceControlKeyframeAtCursor(ControlKeyframeType.Linear);
                     break;
+                case SequenceEditorMode.Details:
                 case SequenceEditorMode.Count:
                 default:
                     break;

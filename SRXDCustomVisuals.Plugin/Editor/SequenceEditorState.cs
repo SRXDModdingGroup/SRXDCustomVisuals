@@ -24,6 +24,8 @@ public class SequenceEditorState {
     public List<int>[] SelectedIndicesPerColumn { get; }
     
     public bool ShowValues { get; set; }
+    
+    public string BackgroundField { get; set; }
 
     public SequenceEditorState() {
         SelectedIndicesPerColumn = new List<int>[256];
