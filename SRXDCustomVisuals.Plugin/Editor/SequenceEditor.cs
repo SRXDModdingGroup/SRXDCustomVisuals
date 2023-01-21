@@ -13,7 +13,7 @@ public class SequenceEditor : MonoBehaviour {
     private const int INDEX_COUNT = 256;
     private const int COLUMN_COUNT = 16;
     private const int VALUE_MAX = 255;
-    private const long SELECTION_EPSILON = 1000L;
+    private const long SELECTION_EPSILON = 100L;
     
     public bool Visible { get; set; }
 
@@ -92,7 +92,7 @@ public class SequenceEditor : MonoBehaviour {
 
     public CustomVisualsInfo GetCustomVisualsInfo() => sequence.ToCustomVisualsInfo();
 
-    private void MoveTime(int direction, bool largeMovement, bool smallMovement, bool changeSelection, bool moveSelected) {
+    private void MoveTime(int direction, bool largeMovement, bool smallMovement, bool moveToNext, bool changeSelection, bool moveSelected) {
         if (largeMovement)
             direction *= 8;
 
@@ -105,6 +105,71 @@ public class SequenceEditor : MonoBehaviour {
                 directionFloat *= 0.125f;
             
             trackEditor.SetCurrentTrackTime(playState.trackData.GetTimeOffsetByTicks(TICK_TO_TIME * state.Time, directionFloat), false);
+        }
+        else if (moveToNext) {
+            long time = state.Time;
+            int cursorIndex = state.CursorIndex;
+            
+            switch (state.Mode) {
+                case SequenceEditorMode.OnOffEvents: {
+                    var onOffEvents = sequence.OnOffEvents;
+
+                    if (direction > 0) {
+                        foreach (var onOffEvent in onOffEvents) {
+                            if (onOffEvent.Index != cursorIndex || onOffEvent.Time <= time + SELECTION_EPSILON)
+                                continue;
+
+                            state.Time = onOffEvent.Time;
+
+                            break;
+                        }
+                    }
+                    else if (direction < 0) {
+                        for (int i = onOffEvents.Count - 1; i >= 0; i--) {
+                            var onOffEvent = onOffEvents[i];
+                            
+                            if (onOffEvent.Index != cursorIndex || onOffEvent.Time >= time - SELECTION_EPSILON)
+                                continue;
+
+                            state.Time = onOffEvent.Time;
+
+                            break;
+                        }
+                    }
+
+                    break;
+                }
+                case SequenceEditorMode.ControlCurves: {
+                    var keyframes = sequence.ControlCurves[state.CursorIndex].Keyframes;
+
+                    if (direction > 0) {
+                        foreach (var keyframe in keyframes) {
+                            if (keyframe.Time <= time + SELECTION_EPSILON)
+                                continue;
+
+                            state.Time = keyframe.Time;
+
+                            break;
+                        }
+                    }
+                    else if (direction < 0) {
+                        for (int i = keyframes.Count - 1; i >= 0; i--) {
+                            var keyframe = keyframes[i];
+                            
+                            if (keyframe.Time >= time - SELECTION_EPSILON)
+                                continue;
+
+                            state.Time = keyframe.Time;
+
+                            break;
+                        }
+                    }
+
+                    break;
+                }
+            }
+            
+            trackEditor.SetCurrentTrackTime(TICK_TO_TIME * state.Time, false);
         }
         else
             trackEditor.SetCurrentTrackTime(trackEditor.GetQuantizedMoveTime(TICK_TO_TIME * state.Time, direction), false);
@@ -734,6 +799,7 @@ public class SequenceEditor : MonoBehaviour {
                 direction,
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
                 Input.GetKey(KeyCode.F),
+                Input.GetKey(KeyCode.D),
                 state.Selecting,
                 Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
             
