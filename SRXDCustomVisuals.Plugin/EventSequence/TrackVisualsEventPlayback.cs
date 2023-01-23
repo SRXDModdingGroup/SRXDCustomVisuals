@@ -25,8 +25,14 @@ public class TrackVisualsEventPlayback {
     public void Pause() => playing = false;
 
     public void Advance(long time) {
-        if (!playing)
+        if (!playing || time == lastTime)
             return;
+
+        if (time < lastTime) {
+            Jump(time);
+            
+            return;
+        }
 
         var visualsEventManager = VisualsEventManager.Instance;
         var onOffEvents = eventSequence.OnOffEvents;
@@ -62,7 +68,7 @@ public class TrackVisualsEventPlayback {
     }
 
     public void Jump(long time) {
-        if (!playing)
+        if (!playing || time == lastTime)
             return;
 
         var visualsEventManager = VisualsEventManager.Instance;

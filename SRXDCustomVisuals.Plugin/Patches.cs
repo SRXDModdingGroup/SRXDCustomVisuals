@@ -36,6 +36,7 @@ public class Patches {
         new GameObject("Visuals Event Manager", typeof(VisualsEventManager));
         sequenceEditor = new GameObject("Sequence Editor", typeof(SequenceEditor)).GetComponent<SequenceEditor>();
         VisualsSceneManager.CreateDirectories();
+        eventPlayback.SetSequence(new TrackVisualsEventSequence());
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
@@ -52,6 +53,7 @@ public class Patches {
             visualsSceneManager.LoadScene(customVisualsInfo.Background);
 
         eventPlayback.SetSequence(eventSequence);
+        eventPlayback.Play(playState.currentTrackTick);
         sequenceEditor.Init(eventSequence, playState);
     }
 
@@ -62,6 +64,27 @@ public class Patches {
         eventPlayback.SetSequence(new TrackVisualsEventSequence());
         sequenceEditor.Exit();
         sequenceEditor.Visible = false;
+    }
+
+    [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
+    private static void Track_Update_Postfix(Track __instance) {
+        var playState = __instance.playStateFirst;
+        
+        if (playState.playStateStatus != PlayStateStatus.Playing)
+            return;
+        
+        if (Time.timeScale > 0)
+            eventPlayback.Advance(playState.currentTrackTick);
+        else
+            eventPlayback.Jump(playState.currentTrackTick);
+    }
+
+    [HarmonyPatch(typeof(Track), nameof(Track.SetDebugPaused)), HarmonyPostfix]
+    private static void Track_SetDebugPaused_Postfix(Track __instance, bool paused) {
+        if (paused)
+            eventPlayback.Pause();
+        else
+            eventPlayback.Play(__instance.playStateFirst.currentTrackTick);
     }
 
     [HarmonyPatch(typeof(PlayState.ScoreState), nameof(PlayState.ScoreState.UpdateNoteStates)), HarmonyPrefix]
@@ -188,9 +211,10 @@ public class Patches {
     [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.UpdateEditor)), HarmonyPrefix]
     private static void TrackEditorGUI_UpdateEditor_Prefix(TrackEditorGUI __instance) {
         bool wasVisible = sequenceEditor.Visible;
-        
-        sequenceEditor.UpdateEditor();
-        
+
+        if (sequenceEditor.UpdateEditor())
+            eventPlayback.Jump(__instance.frameInfo.currentTick);
+
         if (wasVisible || !sequenceEditor.Visible)
             return;
         

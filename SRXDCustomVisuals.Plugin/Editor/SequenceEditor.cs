@@ -50,23 +50,25 @@ public class SequenceEditor : MonoBehaviour {
         };
     }
 
-    public void UpdateEditor() {
+    public void Exit() => sequence = new TrackVisualsEventSequence();
+
+    public bool UpdateEditor() {
         if (Input.GetKeyDown(KeyCode.F1))
             Visible = !Visible;
 
         if (!Visible)
-            return;
+            return false;
         
         if (Input.GetKeyDown(KeyCode.Home)) {
             CycleModes();
             
-            return;
+            return false;
         }
         
         if (state.Mode == SequenceEditorMode.Details) {
             sequence.Background = state.BackgroundField;
             
-            return;
+            return true;
         }
         
         bool wasShowingValue = state.ShowValues;
@@ -81,14 +83,14 @@ public class SequenceEditor : MonoBehaviour {
         state.Time = playState.currentTrackTick;
         
         if (!state.Selecting || anyInput || state.Time == state.SelectionEndTime)
-            return;
+            return anyInput;
         
         state.SelectionEndTime = state.Time;
         UpdateSelection();
         state.ShowValues = false;
-    }
 
-    public void Exit() => sequence = new TrackVisualsEventSequence();
+        return false;
+    }
 
     public CustomVisualsInfo GetCustomVisualsInfo() => sequence.ToCustomVisualsInfo();
 
