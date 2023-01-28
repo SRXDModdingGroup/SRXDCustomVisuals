@@ -69,14 +69,9 @@ public class Patches {
     [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
     private static void Track_Update_Postfix(Track __instance) {
         var playState = __instance.playStateFirst;
-        
-        if (playState.playStateStatus != PlayStateStatus.Playing)
-            return;
-        
-        if (Time.timeScale > 0)
+
+        if (playState.playStateStatus == PlayStateStatus.Playing)
             eventPlayback.Advance(playState.currentTrackTick);
-        else
-            eventPlayback.Jump(playState.currentTrackTick);
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.SetDebugPaused)), HarmonyPostfix]

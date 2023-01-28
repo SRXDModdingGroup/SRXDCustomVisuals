@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using SMU.Utilities;
 using SRXDCustomVisuals.Core;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 namespace SRXDCustomVisuals.Plugin; 
 
@@ -27,7 +28,8 @@ public class VisualsSceneManager {
         var mainCamera = MainCamera.Instance.GetComponent<Camera>();
         
         mainCamera.clearFlags = CameraClearFlags.Skybox;
-        
+        mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = false;
+
         if (currentScene != null) {
             currentScene.Unload();
             currentScene = null;
@@ -40,6 +42,7 @@ public class VisualsSceneManager {
         if (backgroundDefinition.DisableBaseBackground) {
             mainCamera.clearFlags = CameraClearFlags.SolidColor;
             mainCamera.backgroundColor = Color.black;
+            mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = true;
         }
 
         currentScene.Load(new[] { null, mainCamera.transform });

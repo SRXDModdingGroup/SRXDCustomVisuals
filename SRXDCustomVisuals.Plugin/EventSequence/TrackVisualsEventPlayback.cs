@@ -4,22 +4,39 @@ using SRXDCustomVisuals.Core;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEventPlayback {
-    private TrackVisualsEventSequence eventSequence = new();
-    private int lastOnOffEventIndex = -1;
-    private OnOffEvent[] onOffEventsToSend = new OnOffEvent[256];
+    private const long MIN_JUMP_INTERVAL = 2000L;
+    
+    private TrackVisualsEventSequence eventSequence;
+    private int lastOnOffEventIndex;
+    private OnOffEvent[] onOffEventsToSend;
+    private int[] lastControlKeyframeIndex;
     private bool playing;
     private long lastTime;
+
+    public TrackVisualsEventPlayback() {
+        eventSequence = new TrackVisualsEventSequence();
+        lastOnOffEventIndex = -1;
+        onOffEventsToSend = new OnOffEvent[Constants.IndexCount];
+        lastControlKeyframeIndex = new int[Constants.IndexCount];
+
+        for (int i = 0; i < lastControlKeyframeIndex.Length; i++)
+            lastControlKeyframeIndex[i] = -1;
+    }
 
     public void SetSequence(TrackVisualsEventSequence eventSequence) {
         VisualsEventManager.Instance.ResetAll();
         this.eventSequence = eventSequence;
+        lastOnOffEventIndex = -1;
+        
+        for (int i = 0; i < onOffEventsToSend.Length; i++) {
+            onOffEventsToSend[i] = null;
+            lastControlKeyframeIndex[i] = -1;
+        }
     }
 
     public void Play(long time) {
         playing = true;
-        
-        if (time != lastTime)
-            Jump(time);
+        Jump(time);
     }
 
     public void Pause() => playing = false;
@@ -56,8 +73,6 @@ public class TrackVisualsEventPlayback {
                     visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
                     visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, onOffEvent.Index, onOffEvent.Value));
                     break;
-                default:
-                    throw new ArgumentOutOfRangeException();
             }
 
             newIndex = i;
@@ -65,11 +80,21 @@ public class TrackVisualsEventPlayback {
         
         lastOnOffEventIndex = newIndex;
         lastTime = time;
+        ProcessControlCurves(time);
     }
 
     public void Jump(long time) {
         if (!playing || time == lastTime)
             return;
+        
+        if (time < lastTime && lastTime - time < MIN_JUMP_INTERVAL)
+            return;
+        
+        if (time > lastTime && time - lastTime < MIN_JUMP_INTERVAL) {
+            Advance(time);
+            
+            return;
+        }
 
         var visualsEventManager = VisualsEventManager.Instance;
         var onOffEvents = eventSequence.OnOffEvents;
@@ -91,7 +116,7 @@ public class TrackVisualsEventPlayback {
             newIndex = i;
         }
 
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < onOffEventsToSend.Length; i++) {
             var onOffEvent = onOffEventsToSend[i];
             
             if (onOffEvent == null)
@@ -103,5 +128,45 @@ public class TrackVisualsEventPlayback {
         
         lastOnOffEventIndex = newIndex;
         lastTime = time;
+        
+        for (int i = 0; i < lastControlKeyframeIndex.Length; i++)
+            lastControlKeyframeIndex[i] = -1;
+        
+        ProcessControlCurves(time);
+    }
+
+    private void ProcessControlCurves(long time) {
+        var visualsEventManager = VisualsEventManager.Instance;
+        var controlCurves = eventSequence.ControlCurves;
+
+        for (int i = 0; i < controlCurves.Length; i++) {
+            var keyframes = controlCurves[i].Keyframes;
+            
+            if (keyframes.Count == 0)
+                continue;
+            
+            int index = lastControlKeyframeIndex[i];
+
+            for (int j = index + 1; j < keyframes.Count; j++) {
+                var keyframe = keyframes[j];
+
+                if (keyframe.Time > time)
+                    break;
+
+                index = j;
+            }
+
+            float value;
+
+            if (index < 0)
+                value = keyframes[0].Value;
+            else if (index >= keyframes.Count - 1)
+                value = keyframes[keyframes.Count - 1].Value;
+            else
+                value = ControlCurve.Interpolate(keyframes[index], keyframes[index + 1], time);
+
+            visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.ControlChange, i, value));
+            lastControlKeyframeIndex[i] = index;
+        }
     }
 }

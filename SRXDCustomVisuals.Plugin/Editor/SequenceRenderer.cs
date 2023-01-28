@@ -63,7 +63,7 @@ public class SequenceRenderer {
         columnWidth = paddedWidth / columnCount;
         yMapScale = (topY - bottomY) / (TOP_TIME_OFFSET - BOTTOM_TIME_OFFSET);
         yMapOffset = bottomY - yMapScale * BOTTOM_TIME_OFFSET;
-        controlCurveXScale = (columnWidth - 2f * CONTROL_CURVE_PADDING) / 255f;
+        controlCurveXScale = (columnWidth - 2f * CONTROL_CURVE_PADDING) / Constants.MaxEventValue;
 
         whiteTexture = new Texture2D(2, 2, TextureFormat.RGB24, false);
         whiteTexture.SetPixel(0, 0, Color.white);
@@ -100,9 +100,6 @@ public class SequenceRenderer {
             case SequenceEditorMode.ControlCurves:
                 DrawControlCurves(time, timeAsFloat, beatArray, info.Sequence.ControlCurves, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
                 break;
-            case SequenceEditorMode.Count:
-            default:
-                throw new ArgumentOutOfRangeException();
         }
         
         GUI.DragWindow();
@@ -279,7 +276,7 @@ public class SequenceRenderer {
         if (type == OnOffEventType.Off)
             return;
         
-        DrawRect(x, y, width * value / 255f, VALUE_BAR_HEIGHT, VALUE_BAR_COLOR, false);
+        DrawRect(x, y, width * value / Constants.MaxEventValue, VALUE_BAR_HEIGHT, VALUE_BAR_COLOR, false);
         
         if (selected && showValue)
             GUI.Label(new Rect(x, y - VALUE_LABEL_HEIGHT, width, VALUE_LABEL_HEIGHT), $"{value:X2}");

@@ -10,8 +10,7 @@ public static class Util {
 
     public static void InsertSorted<T>(this List<T> list, T item) where T : IComparable<T> => list.Insert(list.GetInsertIndex(item), item);
     
-    public static bool TryLoadAssembly(string name) {
-        string fileName = Path.ChangeExtension(name, ".dll");
+    public static bool TryLoadAssembly(string fileName) {
         string path = Path.Combine(AssemblyPath, fileName);
         
         if (!File.Exists(path)) {

@@ -10,7 +10,7 @@ public class VisualsEventReceiver : MonoBehaviour {
     
     public event Action<VisualsEvent> ControlChange;
 
-    public event Action OnReset;
+    public event Action Reset;
 
     private void Start() => VisualsEventManager.Instance.AddReceiver(this);
 
@@ -27,10 +27,8 @@ public class VisualsEventReceiver : MonoBehaviour {
             case VisualsEventType.ControlChange:
                 ControlChange?.Invoke(visualsEvent);
                 break;
-            default:
-                throw new ArgumentOutOfRangeException();
         }
     }
 
-    internal void Reset() => OnReset?.Invoke();
+    internal void DoReset() => Reset?.Invoke();
 }

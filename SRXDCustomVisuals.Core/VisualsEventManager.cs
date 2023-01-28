@@ -20,7 +20,7 @@ public class VisualsEventManager : MonoBehaviour {
 
     public void ResetAll() {
         foreach (var receiver in receivers)
-            receiver.Reset();
+            receiver.DoReset();
     }
 
     internal void AddReceiver(VisualsEventReceiver receiver) => receivers.Add(receiver);

@@ -65,6 +65,9 @@
         <Reference Include="Unity.Mathematics">
           <HintPath>..\Libs\Unity.Mathematics.dll</HintPath>
         </Reference>
+        <Reference Include="Unity.RenderPipelines.Universal.Runtime">
+          <HintPath>..\Libs\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+        </Reference>
         <Reference Include="Unity.TextMeshPro">
           <HintPath>..\Libs\Unity.TextMeshPro.dll</HintPath>
         </Reference>
@@ -101,6 +104,7 @@
         <Compile Include="EventSequence\TrackVisualsEventSequence.cs" />
         <Compile Include="EventSequence\TrackVisualsEventPlayback.cs" />
         <Compile Include="EventSequence\TrackVisualsEventType.cs" />
+        <Compile Include="Constants.cs" />
         <Compile Include="JSON\BackgroundDefinition.cs" />
         <Compile Include="JSON\CustomVisualsInfo.cs" />
         <Compile Include="JSON\TrackVisualsEvent.cs" />

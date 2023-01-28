@@ -28,9 +28,9 @@ public class SequenceEditorState {
     public string BackgroundField { get; set; }
 
     public SequenceEditorState() {
-        SelectedIndicesPerColumn = new List<int>[256];
+        SelectedIndicesPerColumn = new List<int>[Constants.IndexCount];
 
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < SelectedIndicesPerColumn.Length; i++)
             SelectedIndicesPerColumn[i] = new List<int>();
     }
 }
