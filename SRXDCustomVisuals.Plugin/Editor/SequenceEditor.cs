@@ -646,8 +646,6 @@ public class SequenceEditor : MonoBehaviour {
     }
     
     private void MoveSelectedByTime(long amount) {
-        sequence.BeginEdit();
-        
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
         
         switch (state.Mode) {
@@ -713,13 +711,10 @@ public class SequenceEditor : MonoBehaviour {
             }
         }
         
-        sequence.EndEdit();
         MatchSelectionBoxToSelection();
     }
 
     private void MoveSelectedByIndex(int amount) {
-        sequence.BeginEdit();
-        
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
         
         switch (state.Mode) {
@@ -781,7 +776,6 @@ public class SequenceEditor : MonoBehaviour {
             }
         }
         
-        sequence.EndEdit();
         MatchSelectionBoxToSelection();
     }
 
