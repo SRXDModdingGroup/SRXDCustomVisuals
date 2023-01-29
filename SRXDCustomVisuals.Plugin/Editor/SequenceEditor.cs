@@ -59,7 +59,7 @@ public class SequenceEditor : MonoBehaviour {
         if (!Visible)
             return false;
         
-        if (Input.GetKeyDown(KeyCode.Home)) {
+        if (Input.GetKeyDown(KeyCode.Tab)) {
             CycleModes();
             
             return false;
