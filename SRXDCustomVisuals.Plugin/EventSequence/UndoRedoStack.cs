@@ -11,7 +11,7 @@ public class UndoRedoStack {
     private int currentIndex = -1;
 
     public void AddAction(IUndoRedoAction action) {
-        for (int i = actions.Count - 1; i > currentIndex; i++)
+        for (int i = actions.Count - 1; i > currentIndex; i--)
             actions.RemoveAt(i);
         
         actions.Add(action);
