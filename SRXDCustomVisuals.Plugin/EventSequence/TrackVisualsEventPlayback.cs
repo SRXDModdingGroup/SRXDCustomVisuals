@@ -14,24 +14,22 @@ public class TrackVisualsEventPlayback {
     private long lastTime;
 
     public TrackVisualsEventPlayback() {
-        sequence = new TrackVisualsEventSequence();
-        lastOnOffEventIndex = -1;
         onOffEventsToSend = new OnOffEvent[Constants.IndexCount];
         lastControlKeyframeIndex = new int[Constants.IndexCount];
-
-        for (int i = 0; i < lastControlKeyframeIndex.Length; i++)
-            lastControlKeyframeIndex[i] = -1;
+        SetSequence(new TrackVisualsEventSequence());
     }
 
-    public void SetSequence(TrackVisualsEventSequence eventSequence) {
+    public void SetSequence(TrackVisualsEventSequence sequence) {
         VisualsEventManager.Instance.ResetAll();
-        this.sequence = eventSequence;
+        this.sequence = sequence;
         lastOnOffEventIndex = -1;
         
         for (int i = 0; i < onOffEventsToSend.Length; i++) {
             onOffEventsToSend[i] = null;
             lastControlKeyframeIndex[i] = -1;
         }
+
+        lastTime = -1L;
     }
 
     public void Play(long time) {
@@ -83,17 +81,21 @@ public class TrackVisualsEventPlayback {
         ProcessControlCurves(time);
     }
 
-    public void Jump(long time) {
-        if (!playing || time == lastTime)
-            return;
-        
-        if (time < lastTime && lastTime - time < MIN_JUMP_INTERVAL)
-            return;
-        
-        if (time > lastTime && time - lastTime < MIN_JUMP_INTERVAL) {
-            Advance(time);
-            
-            return;
+    public void Jump(long time, bool force = false) {
+        if (!force) {
+            if (!playing || time == lastTime)
+                return;
+
+            if (lastTime >= 0L) {
+                if (time < lastTime && lastTime - time < MIN_JUMP_INTERVAL)
+                    return;
+
+                if (time > lastTime && time - lastTime < MIN_JUMP_INTERVAL) {
+                    Advance(time);
+
+                    return;
+                }
+            }
         }
 
         var visualsEventManager = VisualsEventManager.Instance;

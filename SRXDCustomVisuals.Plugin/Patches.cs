@@ -47,14 +47,14 @@ public class Patches {
         var trackData = playState.trackData;
 
         var customVisualsInfo = visualsInfoAccessor.GetCustomVisualsInfo(trackData.TrackInfoRef);
-        var eventSequence = new TrackVisualsEventSequence(customVisualsInfo);
+        var sequence = new TrackVisualsEventSequence(customVisualsInfo);
 
         if (Plugin.EnableCustomVisuals.Value)
             visualsSceneManager.LoadScene(customVisualsInfo.Background);
 
-        eventPlayback.SetSequence(eventSequence);
+        eventPlayback.SetSequence(sequence);
         eventPlayback.Play(playState.currentTrackTick);
-        sequenceEditor.Init(eventSequence, playState);
+        sequenceEditor.Init(sequence, playState);
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
@@ -210,7 +210,7 @@ public class Patches {
         sequenceEditor.UpdateEditor(out bool anyInput, out bool anyEdit);
         
         if (anyInput)
-            eventPlayback.Jump(__instance.frameInfo.currentTick);
+            eventPlayback.Jump(__instance.frameInfo.currentTick, true);
         
         if (anyEdit) {
             visualsInfoAccessor.SaveCustomVisualsInfo(
