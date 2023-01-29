@@ -74,12 +74,12 @@ public class SequenceRenderer {
         lastNoteOnTimeInColumn = new long[columnCount];
     }
 
-    public void Render(RenderInfo info) => windowRect = GUI.Window(0, windowRect, _ => DrawWindow(info), "Sequence Editor");
+    public void Render(RenderInfo info) => windowRect = GUI.Window(0, windowRect, _ => DrawWindow(info), $"Sequence Editor{(info.Sequence.Dirty ? " *" : string.Empty)}");
 
     private void DrawWindow(RenderInfo info) {
         var playState = info.PlayState;
-        
         var editorState = info.EditorState;
+        var sequence = info.Sequence;
         var mode = editorState.Mode;
         int cursorIndex = editorState.Column;
         int columnPan = editorState.ColumnPan;
@@ -95,10 +95,10 @@ public class SequenceRenderer {
                 DrawDetails(editorState);
                 break;
             case SequenceEditorMode.OnOffEvents:
-                DrawOnOffEvents(time, timeAsFloat, beatArray, info.Sequence.OnOffEvents, editorState.SelectedIndicesPerColumn[0], cursorIndex, columnPan, editorState.ShowValues);
+                DrawOnOffEvents(time, timeAsFloat, beatArray, sequence.OnOffEvents, editorState.SelectedIndicesPerColumn[0], cursorIndex, columnPan, editorState.ShowValues);
                 break;
             case SequenceEditorMode.ControlCurves:
-                DrawControlCurves(time, timeAsFloat, beatArray, info.Sequence.ControlCurves, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
+                DrawControlCurves(time, timeAsFloat, beatArray, sequence.ControlCurves, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
                 break;
         }
         

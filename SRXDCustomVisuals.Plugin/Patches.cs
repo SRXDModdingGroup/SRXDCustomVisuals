@@ -231,6 +231,7 @@ public class Patches {
         visualsInfoAccessor.SaveCustomVisualsInfo(
             __instance.frameInfo.trackData.TrackInfoRef,
             sequenceEditor.GetCustomVisualsInfo());
+        sequenceEditor.ClearDirty();
     }
 
     [HarmonyPatch(typeof(TrackEditorGUI), "HandleNoteEditorInput"), HarmonyPrefix]

@@ -4,11 +4,23 @@ using System.Collections.Generic;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEventSequence {
-    public string Background { get; set; }
-    
+    public string Background {
+        get => background;
+        set {
+            background = value;
+            Dirty = true;
+        }
+    }
+
     public List<OnOffEvent> OnOffEvents { get; }
     
     public ControlCurve[] ControlCurves { get; }
+    
+    public bool Dirty { get; private set; }
+
+    private string background;
+    private UndoRedoStack undoRedoStack;
+    private CompoundAction compoundAction;
 
     public TrackVisualsEventSequence() {
         Background = "";
@@ -17,6 +29,8 @@ public class TrackVisualsEventSequence {
 
         for (int i = 0; i < ControlCurves.Length; i++)
             ControlCurves[i] = new ControlCurve();
+
+        undoRedoStack = new UndoRedoStack();
     }
 
     public TrackVisualsEventSequence(CustomVisualsInfo customVisualsInfo) {
@@ -33,30 +47,86 @@ public class TrackVisualsEventSequence {
             else
                 OnOffEvents.Add(new OnOffEvent(visualsEvent.Time, ToOnOffEventType(visualsEvent.Type), visualsEvent.Index, visualsEvent.Value));
         }
+
+        undoRedoStack = new UndoRedoStack();
     }
 
+    public void BeginEdit() {
+        compoundAction = new CompoundAction();
+    }
+
+    public void EndEdit() {
+        undoRedoStack.AddAction(compoundAction);
+        compoundAction = null;
+        Dirty = true;
+    }
+
+    public void Undo() {
+        if (!undoRedoStack.CanUndo)
+            return;
+        
+        undoRedoStack.Undo();
+        Dirty = true;
+    }
+
+    public void Redo() {
+        if (!undoRedoStack.CanRedo)
+            return;
+        
+        undoRedoStack.Redo();
+        Dirty = true;
+    }
+
+    public void ClearDirty() => Dirty = false;
+
     public void AddOnOffEvent(int index, OnOffEvent onOffEvent) {
-        OnOffEvents.Insert(index, new OnOffEvent(onOffEvent));
+        OnOffEvents.Insert(index, onOffEvent);
+        compoundAction.AddAction(new UndoRedoAction(
+            () => OnOffEvents.RemoveAt(index),
+            () => OnOffEvents.Insert(index, onOffEvent)));
     }
 
     public void RemoveOnOffEvent(int index) {
+        var onOffEvent = OnOffEvents[index];
+        
         OnOffEvents.RemoveAt(index);
+        compoundAction.AddAction(new UndoRedoAction(
+            () => OnOffEvents.Insert(index, onOffEvent),
+            () => OnOffEvents.RemoveAt(index)));
     }
     
     public void ReplaceOnOffEvent(int index, OnOffEvent onOffEvent) {
+        var oldEvent = OnOffEvents[index];
+        
         OnOffEvents[index] = onOffEvent;
+        compoundAction.AddAction(new UndoRedoAction(
+            () => OnOffEvents[index] = oldEvent,
+            () => OnOffEvents[index] = onOffEvent));
     }
     
     public void AddKeyframe(int column, int index, ControlKeyframe keyframe) {
         ControlCurves[column].Keyframes.Insert(index, keyframe);
+        compoundAction.AddAction(new UndoRedoAction(
+            () => ControlCurves[column].Keyframes.RemoveAt(index),
+            () => ControlCurves[column].Keyframes.Insert(index, keyframe)));
     }
 
     public void RemoveKeyframe(int column, int index) {
+        var keyframe = ControlCurves[column].Keyframes[index];
+        
         ControlCurves[column].Keyframes.RemoveAt(index);
+        compoundAction.AddAction(new UndoRedoAction(
+            () => ControlCurves[column].Keyframes.Insert(index, keyframe),
+            () => ControlCurves[column].Keyframes.RemoveAt(index)));
     }
     
     public void ReplaceKeyframe(int column, int index, ControlKeyframe keyframe) {
+        var oldKeyframe = ControlCurves[column].Keyframes[index];
+        
         ControlCurves[column].Keyframes[index] = keyframe;
+        compoundAction.AddAction(new UndoRedoAction(
+            () => ControlCurves[column].Keyframes[index] = oldKeyframe,
+            () => ControlCurves[column].Keyframes[index] = keyframe));
     }
 
     public CustomVisualsInfo ToCustomVisualsInfo() {

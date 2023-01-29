@@ -15,7 +15,7 @@ public class SequenceEditor : MonoBehaviour {
     
     public bool Visible { get; set; }
 
-    public bool Dirty => true;
+    public bool Dirty => sequence.Dirty;
 
     private SequenceEditorState state;
     private SequenceRenderer renderer;
@@ -47,6 +47,8 @@ public class SequenceEditor : MonoBehaviour {
             BackgroundField = sequence.Background
         };
     }
+
+    public void ClearDirty() => sequence.ClearDirty();
 
     public void Exit() => sequence = new TrackVisualsEventSequence();
 
@@ -184,8 +186,11 @@ public class SequenceEditor : MonoBehaviour {
         
         state.Time = playState.currentTrackTick;
 
-        if (moveSelected)
+        if (moveSelected) {
+            sequence.BeginEdit();
             MoveSelectedByTime(state.Time - previousTime);
+            sequence.EndEdit();
+        }
         else if (changeSelection) {
             state.SelectionEndTime = state.Time;
             UpdateSelection();
@@ -196,7 +201,7 @@ public class SequenceEditor : MonoBehaviour {
         }
     }
 
-    private void MoveCursorIndex(int direction, bool largeMovement, bool changeSelection, bool moveSelected) {
+    private void MoveColumn(int direction, bool largeMovement, bool changeSelection, bool moveSelected) {
         if (largeMovement)
             direction *= 8;
         
@@ -205,7 +210,9 @@ public class SequenceEditor : MonoBehaviour {
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, 0, 240);
 
         if (moveSelected) {
+            sequence.BeginEdit();
             MoveSelectedByIndex(direction);
+            sequence.EndEdit();
         }
         else if (changeSelection) {
             state.SelectionEndIndex = state.Column;
@@ -218,6 +225,8 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     private void ChangeType(int direction) {
+        sequence.BeginEdit();
+        
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
 
         switch (state.Mode) {
@@ -250,11 +259,14 @@ public class SequenceEditor : MonoBehaviour {
                 break;
             }
         }
-
+        
+        sequence.EndEdit();
         state.ShowValues = true;
     }
 
     private void ChangeValue(int direction, bool largeAmount) {
+        sequence.BeginEdit();
+        
         if (largeAmount)
             direction *= 16;
         
@@ -291,6 +303,7 @@ public class SequenceEditor : MonoBehaviour {
             }
         }
 
+        sequence.EndEdit();
         state.ShowValues = true;
     }
 
@@ -301,6 +314,7 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     private void PlaceOnOffEventAtCursor(OnOffEventType type) {
+        sequence.BeginEdit();
         ClearSelection();
         UpdateSelection();
         DeleteSelected();
@@ -325,12 +339,14 @@ public class SequenceEditor : MonoBehaviour {
             sequence.AddOnOffEvent(index, onOffEvent.WithValue(value));
         }
         
+        sequence.EndEdit();
         UpdateSelection();
     }
 
     private void PlaceControlKeyframeAtCursor(ControlKeyframeType type) {
         ClearSelection();
         UpdateSelection();
+        sequence.BeginEdit();
         DeleteSelected();
         
         if (TimeInBounds(state.Time)) {
@@ -345,10 +361,13 @@ public class SequenceEditor : MonoBehaviour {
             sequence.AddKeyframe(state.Column, index, keyframe.WithValue(value));
         }
         
+        sequence.EndEdit();
         UpdateSelection();
     }
 
     private void EvenSpaceSelected() {
+        sequence.BeginEdit();
+        
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
         
         switch (state.Mode) {
@@ -455,10 +474,14 @@ public class SequenceEditor : MonoBehaviour {
                 break;
             }
         }
+        
+        sequence.EndEdit();
     }
 
     private void Delete() {
+        sequence.BeginEdit();
         DeleteSelected();
+        sequence.EndEdit();
         UpdateSelection();
     }
 
@@ -541,7 +564,9 @@ public class SequenceEditor : MonoBehaviour {
 
     private void Cut() {
         Copy();
+        sequence.BeginEdit();
         DeleteSelected();
+        sequence.EndEdit();
         UpdateSelection();
     }
 
@@ -551,6 +576,7 @@ public class SequenceEditor : MonoBehaviour {
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
         
         ClearSelection();
+        sequence.BeginEdit();
 
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
@@ -601,6 +627,7 @@ public class SequenceEditor : MonoBehaviour {
             }
         }
         
+        sequence.EndEdit();
         MatchSelectionBoxToSelection();
     }
     
@@ -619,6 +646,8 @@ public class SequenceEditor : MonoBehaviour {
     }
     
     private void MoveSelectedByTime(long amount) {
+        sequence.BeginEdit();
+        
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
         
         switch (state.Mode) {
@@ -684,10 +713,13 @@ public class SequenceEditor : MonoBehaviour {
             }
         }
         
+        sequence.EndEdit();
         MatchSelectionBoxToSelection();
     }
 
     private void MoveSelectedByIndex(int amount) {
+        sequence.BeginEdit();
+        
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
         
         switch (state.Mode) {
@@ -749,6 +781,7 @@ public class SequenceEditor : MonoBehaviour {
             }
         }
         
+        sequence.EndEdit();
         MatchSelectionBoxToSelection();
     }
 
@@ -959,7 +992,7 @@ public class SequenceEditor : MonoBehaviour {
             direction--;
         
         if (direction != 0) {
-            MoveCursorIndex(
+            MoveColumn(
                 direction,
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
                 state.Selecting,
@@ -1037,6 +1070,10 @@ public class SequenceEditor : MonoBehaviour {
                 Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl),
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt));
         }
+        else if (Input.GetKeyDown(KeyCode.Z) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            sequence.Undo();
+        else if (Input.GetKeyDown(KeyCode.Y) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            sequence.Redo();
         else
             return false;
 
