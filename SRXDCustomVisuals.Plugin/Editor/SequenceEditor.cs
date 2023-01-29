@@ -249,8 +249,6 @@ public class SequenceEditor : MonoBehaviour {
                 break;
             }
         }
-        
-        state.ShowValues = true;
     }
 
     private void ChangeValue(int direction, bool largeAmount) {
