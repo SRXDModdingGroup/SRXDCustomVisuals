@@ -5,5 +5,6 @@ public enum ControlKeyframeType {
     Smooth,
     Linear,
     EaseIn,
-    EaseOut
+    EaseOut,
+    Count
 }

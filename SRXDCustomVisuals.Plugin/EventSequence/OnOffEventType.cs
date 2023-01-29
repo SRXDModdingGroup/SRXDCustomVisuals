@@ -3,5 +3,6 @@
 public enum OnOffEventType {
     On,
     Off,
-    OnOff
+    OnOff,
+    Count
 }
