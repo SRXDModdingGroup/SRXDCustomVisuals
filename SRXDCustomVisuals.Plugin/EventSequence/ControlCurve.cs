@@ -4,9 +4,7 @@ using System.Collections.Generic;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class ControlCurve {
-    public List<ControlKeyframe> Keyframes { get; }
-
-    public ControlCurve() => Keyframes = new List<ControlKeyframe>();
+    public List<ControlKeyframe> Keyframes { get; } = new();
 
     public static float Interpolate(ControlKeyframe a, ControlKeyframe b, long time) {
         if (a.Type == ControlKeyframeType.Constant || time < a.Time)

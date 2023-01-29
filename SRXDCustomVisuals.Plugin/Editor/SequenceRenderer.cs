@@ -81,7 +81,7 @@ public class SequenceRenderer {
         
         var editorState = info.EditorState;
         var mode = editorState.Mode;
-        int cursorIndex = editorState.CursorIndex;
+        int cursorIndex = editorState.Column;
         int columnPan = editorState.ColumnPan;
 
         long time = playState.currentTrackTick;

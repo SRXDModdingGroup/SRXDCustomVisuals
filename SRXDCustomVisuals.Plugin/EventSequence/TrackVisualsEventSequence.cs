@@ -35,6 +35,30 @@ public class TrackVisualsEventSequence {
         }
     }
 
+    public void AddOnOffEvent(int index, OnOffEvent onOffEvent) {
+        OnOffEvents.Insert(index, new OnOffEvent(onOffEvent));
+    }
+
+    public void RemoveOnOffEvent(int index) {
+        OnOffEvents.RemoveAt(index);
+    }
+    
+    public void ReplaceOnOffEvent(int index, OnOffEvent onOffEvent) {
+        OnOffEvents[index] = onOffEvent;
+    }
+    
+    public void AddKeyframe(int column, int index, ControlKeyframe keyframe) {
+        ControlCurves[column].Keyframes.Insert(index, keyframe);
+    }
+
+    public void RemoveKeyframe(int column, int index) {
+        ControlCurves[column].Keyframes.RemoveAt(index);
+    }
+    
+    public void ReplaceKeyframe(int column, int index, ControlKeyframe keyframe) {
+        ControlCurves[column].Keyframes[index] = keyframe;
+    }
+
     public CustomVisualsInfo ToCustomVisualsInfo() {
         var events = new List<TrackVisualsEvent>();
 

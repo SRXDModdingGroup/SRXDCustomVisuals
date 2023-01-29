@@ -3,11 +3,11 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class ControlKeyframe : IComparable<ControlKeyframe> {
-    public long Time { get; set; }
+    public long Time { get; }
     
-    public ControlKeyframeType Type { get; set; }
+    public ControlKeyframeType Type { get; }
     
-    public int Value { get; set; }
+    public int Value { get; }
 
     public ControlKeyframe(long time, ControlKeyframeType type, int value) {
         Time = time;
@@ -20,6 +20,12 @@ public class ControlKeyframe : IComparable<ControlKeyframe> {
         Type = other.Type;
         Value = other.Value;
     }
+
+    public ControlKeyframe WithTime(long time) => new(time, Type, Value);
+
+    public ControlKeyframe WithType(ControlKeyframeType type) => new(Time, type, Value);
+
+    public ControlKeyframe WithValue(int value) => new(Time, Type, value);
 
     public int CompareTo(ControlKeyframe other) => Time.CompareTo(other.Time);
 }
