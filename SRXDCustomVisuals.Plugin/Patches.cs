@@ -207,8 +207,16 @@ public class Patches {
     private static void TrackEditorGUI_UpdateEditor_Prefix(TrackEditorGUI __instance) {
         bool wasVisible = sequenceEditor.Visible;
 
-        if (sequenceEditor.UpdateEditor())
+        sequenceEditor.UpdateEditor(out bool anyInput, out bool anyEdit);
+        
+        if (anyInput)
             eventPlayback.Jump(__instance.frameInfo.currentTick);
+        
+        if (anyEdit) {
+            visualsInfoAccessor.SaveCustomVisualsInfo(
+                __instance.frameInfo.trackData.TrackInfoRef,
+                sequenceEditor.GetCustomVisualsInfo());
+        }
 
         if (wasVisible || !sequenceEditor.Visible)
             return;
@@ -221,17 +229,6 @@ public class Patches {
     private static void TrackEditorGUI_SetCurrentTrackTime_Prefix(ref bool canChangeSelection) {
         if (sequenceEditor.Visible)
             canChangeSelection = false;
-    }
-
-    [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.SaveChanges)), HarmonyPrefix]
-    private static void TrackEditorGUI_SaveChanges_Prefix(TrackEditorGUI __instance) {
-        if (!sequenceEditor.Dirty)
-            return;
-
-        visualsInfoAccessor.SaveCustomVisualsInfo(
-            __instance.frameInfo.trackData.TrackInfoRef,
-            sequenceEditor.GetCustomVisualsInfo());
-        sequenceEditor.ClearDirty();
     }
 
     [HarmonyPatch(typeof(TrackEditorGUI), "HandleNoteEditorInput"), HarmonyPrefix]

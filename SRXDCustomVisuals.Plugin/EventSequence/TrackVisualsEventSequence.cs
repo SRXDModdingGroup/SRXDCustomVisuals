@@ -7,8 +7,11 @@ public class TrackVisualsEventSequence {
     public string Background {
         get => background;
         set {
+            if (value == background)
+                return;
+        
             background = value;
-            Dirty = true;
+            dirty = true;
         }
     }
 
@@ -16,14 +19,13 @@ public class TrackVisualsEventSequence {
     
     public ControlCurve[] ControlCurves { get; }
     
-    public bool Dirty { get; private set; }
-
     private string background;
     private UndoRedoStack undoRedoStack;
     private CompoundAction compoundAction;
+    private bool dirty;
 
     public TrackVisualsEventSequence() {
-        Background = "";
+        background = "";
         OnOffEvents = new List<OnOffEvent>();
         ControlCurves = new ControlCurve[Constants.IndexCount];
 
@@ -34,7 +36,7 @@ public class TrackVisualsEventSequence {
     }
 
     public TrackVisualsEventSequence(CustomVisualsInfo customVisualsInfo) {
-        Background = customVisualsInfo.Background;
+        background = customVisualsInfo.Background;
         OnOffEvents = new List<OnOffEvent>();
         ControlCurves = new ControlCurve[Constants.IndexCount];
 
@@ -53,12 +55,7 @@ public class TrackVisualsEventSequence {
 
     public void BeginEdit() {
         compoundAction = new CompoundAction();
-    }
-
-    public void EndEdit() {
-        undoRedoStack.AddAction(compoundAction);
-        compoundAction = null;
-        Dirty = true;
+        dirty = false;
     }
 
     public void Undo() {
@@ -66,7 +63,7 @@ public class TrackVisualsEventSequence {
             return;
         
         undoRedoStack.Undo();
-        Dirty = true;
+        dirty = true;
     }
 
     public void Redo() {
@@ -74,10 +71,8 @@ public class TrackVisualsEventSequence {
             return;
         
         undoRedoStack.Redo();
-        Dirty = true;
+        dirty = true;
     }
-
-    public void ClearDirty() => Dirty = false;
 
     public void AddOnOffEvent(int index, OnOffEvent onOffEvent) {
         OnOffEvents.Insert(index, onOffEvent);
@@ -127,6 +122,20 @@ public class TrackVisualsEventSequence {
         compoundAction.AddAction(new UndoRedoAction(
             () => ControlCurves[column].Keyframes[index] = oldKeyframe,
             () => ControlCurves[column].Keyframes[index] = keyframe));
+    }
+
+    public bool EndEdit() {
+        bool wasDirty = dirty;
+        
+        if (compoundAction.Count > 0) {
+            undoRedoStack.AddAction(compoundAction);
+            wasDirty = true;
+        }
+        
+        compoundAction = null;
+        dirty = false;
+
+        return wasDirty;
     }
 
     public CustomVisualsInfo ToCustomVisualsInfo() {

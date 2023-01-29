@@ -3,6 +3,8 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class CompoundAction : IUndoRedoAction {
+    public int Count => actions.Count;
+    
     private List<IUndoRedoAction> actions = new();
 
     public void AddAction(IUndoRedoAction action) => actions.Add(action);

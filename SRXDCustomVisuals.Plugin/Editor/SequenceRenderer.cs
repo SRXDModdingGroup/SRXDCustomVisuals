@@ -74,7 +74,7 @@ public class SequenceRenderer {
         lastNoteOnTimeInColumn = new long[columnCount];
     }
 
-    public void Render(RenderInfo info) => windowRect = GUI.Window(0, windowRect, _ => DrawWindow(info), $"Sequence Editor{(info.Sequence.Dirty ? " *" : string.Empty)}");
+    public void Render(RenderInfo info) => windowRect = GUI.Window(0, windowRect, _ => DrawWindow(info), "Sequence Editor");
 
     private void DrawWindow(RenderInfo info) {
         var playState = info.PlayState;
