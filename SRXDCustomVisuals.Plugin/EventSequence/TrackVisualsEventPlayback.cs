@@ -6,7 +6,7 @@ namespace SRXDCustomVisuals.Plugin;
 public class TrackVisualsEventPlayback {
     private const long MIN_JUMP_INTERVAL = 2000L;
     
-    private TrackVisualsEventSequence eventSequence;
+    private TrackVisualsEventSequence sequence;
     private int lastOnOffEventIndex;
     private OnOffEvent[] onOffEventsToSend;
     private int[] lastControlKeyframeIndex;
@@ -14,7 +14,7 @@ public class TrackVisualsEventPlayback {
     private long lastTime;
 
     public TrackVisualsEventPlayback() {
-        eventSequence = new TrackVisualsEventSequence();
+        sequence = new TrackVisualsEventSequence();
         lastOnOffEventIndex = -1;
         onOffEventsToSend = new OnOffEvent[Constants.IndexCount];
         lastControlKeyframeIndex = new int[Constants.IndexCount];
@@ -25,7 +25,7 @@ public class TrackVisualsEventPlayback {
 
     public void SetSequence(TrackVisualsEventSequence eventSequence) {
         VisualsEventManager.Instance.ResetAll();
-        this.eventSequence = eventSequence;
+        this.sequence = eventSequence;
         lastOnOffEventIndex = -1;
         
         for (int i = 0; i < onOffEventsToSend.Length; i++) {
@@ -52,7 +52,7 @@ public class TrackVisualsEventPlayback {
         }
 
         var visualsEventManager = VisualsEventManager.Instance;
-        var onOffEvents = eventSequence.OnOffEvents;
+        var onOffEvents = sequence.GetOnOffEvents();
         int startIndex = lastOnOffEventIndex;
         int newIndex = startIndex;
 
@@ -97,7 +97,7 @@ public class TrackVisualsEventPlayback {
         }
 
         var visualsEventManager = VisualsEventManager.Instance;
-        var onOffEvents = eventSequence.OnOffEvents;
+        var onOffEvents = sequence.GetOnOffEvents();
         int newIndex = -1;
         
         visualsEventManager.ResetAll();
@@ -137,10 +137,9 @@ public class TrackVisualsEventPlayback {
 
     private void ProcessControlCurves(long time) {
         var visualsEventManager = VisualsEventManager.Instance;
-        var controlCurves = eventSequence.ControlCurves;
 
-        for (int i = 0; i < controlCurves.Length; i++) {
-            var keyframes = controlCurves[i].Keyframes;
+        for (int i = 0; i < sequence.ColumnCount; i++) {
+            var keyframes = sequence.GetKeyframes(i);
             
             if (keyframes.Count == 0)
                 continue;
@@ -163,7 +162,7 @@ public class TrackVisualsEventPlayback {
             else if (index >= keyframes.Count - 1)
                 value = keyframes[keyframes.Count - 1].Value;
             else
-                value = ControlCurve.Interpolate(keyframes[index], keyframes[index + 1], time);
+                value = ControlKeyframe.Interpolate(keyframes[index], keyframes[index + 1], time);
 
             visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.ControlChange, i, value));
             lastControlKeyframeIndex[i] = index;

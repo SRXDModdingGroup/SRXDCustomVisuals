@@ -4,6 +4,8 @@ using System.Collections.Generic;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEventSequence {
+    public int ColumnCount => Constants.IndexCount;
+    
     public string Background {
         get => background;
         set {
@@ -14,40 +16,38 @@ public class TrackVisualsEventSequence {
             dirty = true;
         }
     }
-
-    public List<OnOffEvent> OnOffEvents { get; }
-    
-    public ControlCurve[] ControlCurves { get; }
     
     private string background;
+    private List<OnOffEvent> onOffEvents;
+    private List<ControlKeyframe>[] controlCurves;
     private UndoRedoStack undoRedoStack;
     private CompoundAction compoundAction;
     private bool dirty;
 
     public TrackVisualsEventSequence() {
         background = "";
-        OnOffEvents = new List<OnOffEvent>();
-        ControlCurves = new ControlCurve[Constants.IndexCount];
+        onOffEvents = new List<OnOffEvent>();
+        controlCurves = new List<ControlKeyframe>[Constants.IndexCount];
 
-        for (int i = 0; i < ControlCurves.Length; i++)
-            ControlCurves[i] = new ControlCurve();
+        for (int i = 0; i < controlCurves.Length; i++)
+            controlCurves[i] = new List<ControlKeyframe>();
 
         undoRedoStack = new UndoRedoStack();
     }
 
     public TrackVisualsEventSequence(CustomVisualsInfo customVisualsInfo) {
         background = customVisualsInfo.Background;
-        OnOffEvents = new List<OnOffEvent>();
-        ControlCurves = new ControlCurve[Constants.IndexCount];
+        onOffEvents = new List<OnOffEvent>();
+        controlCurves = new List<ControlKeyframe>[Constants.IndexCount];
 
-        for (int i = 0; i < ControlCurves.Length; i++)
-            ControlCurves[i] = new ControlCurve();
+        for (int i = 0; i < controlCurves.Length; i++)
+            controlCurves[i] = new List<ControlKeyframe>();
         
         foreach (var visualsEvent in customVisualsInfo.Events) {
             if (visualsEvent.Type == TrackVisualsEventType.ControlKeyframe)
-                ControlCurves[visualsEvent.Index].Keyframes.Add(new ControlKeyframe(visualsEvent.Time, visualsEvent.KeyframeType, visualsEvent.Value));
+                controlCurves[visualsEvent.Index].Add(new ControlKeyframe(visualsEvent.Time, visualsEvent.KeyframeType, visualsEvent.Value));
             else
-                OnOffEvents.Add(new OnOffEvent(visualsEvent.Time, ToOnOffEventType(visualsEvent.Type), visualsEvent.Index, visualsEvent.Value));
+                onOffEvents.Add(new OnOffEvent(visualsEvent.Time, ToOnOffEventType(visualsEvent.Type), visualsEvent.Index, visualsEvent.Value));
         }
 
         undoRedoStack = new UndoRedoStack();
@@ -75,53 +75,53 @@ public class TrackVisualsEventSequence {
     }
 
     public void AddOnOffEvent(int index, OnOffEvent onOffEvent) {
-        OnOffEvents.Insert(index, onOffEvent);
+        onOffEvents.Insert(index, onOffEvent);
         compoundAction.AddAction(new UndoRedoAction(
-            () => OnOffEvents.RemoveAt(index),
-            () => OnOffEvents.Insert(index, onOffEvent)));
+            () => onOffEvents.RemoveAt(index),
+            () => onOffEvents.Insert(index, onOffEvent)));
     }
 
     public void RemoveOnOffEvent(int index) {
-        var onOffEvent = OnOffEvents[index];
+        var onOffEvent = onOffEvents[index];
         
-        OnOffEvents.RemoveAt(index);
+        onOffEvents.RemoveAt(index);
         compoundAction.AddAction(new UndoRedoAction(
-            () => OnOffEvents.Insert(index, onOffEvent),
-            () => OnOffEvents.RemoveAt(index)));
+            () => onOffEvents.Insert(index, onOffEvent),
+            () => onOffEvents.RemoveAt(index)));
     }
     
     public void ReplaceOnOffEvent(int index, OnOffEvent onOffEvent) {
-        var oldEvent = OnOffEvents[index];
+        var oldEvent = onOffEvents[index];
         
-        OnOffEvents[index] = onOffEvent;
+        onOffEvents[index] = onOffEvent;
         compoundAction.AddAction(new UndoRedoAction(
-            () => OnOffEvents[index] = oldEvent,
-            () => OnOffEvents[index] = onOffEvent));
+            () => onOffEvents[index] = oldEvent,
+            () => onOffEvents[index] = onOffEvent));
     }
     
     public void AddKeyframe(int column, int index, ControlKeyframe keyframe) {
-        ControlCurves[column].Keyframes.Insert(index, keyframe);
+        controlCurves[column].Insert(index, keyframe);
         compoundAction.AddAction(new UndoRedoAction(
-            () => ControlCurves[column].Keyframes.RemoveAt(index),
-            () => ControlCurves[column].Keyframes.Insert(index, keyframe)));
+            () => controlCurves[column].RemoveAt(index),
+            () => controlCurves[column].Insert(index, keyframe)));
     }
 
     public void RemoveKeyframe(int column, int index) {
-        var keyframe = ControlCurves[column].Keyframes[index];
+        var keyframe = controlCurves[column][index];
         
-        ControlCurves[column].Keyframes.RemoveAt(index);
+        controlCurves[column].RemoveAt(index);
         compoundAction.AddAction(new UndoRedoAction(
-            () => ControlCurves[column].Keyframes.Insert(index, keyframe),
-            () => ControlCurves[column].Keyframes.RemoveAt(index)));
+            () => controlCurves[column].Insert(index, keyframe),
+            () => controlCurves[column].RemoveAt(index)));
     }
     
     public void ReplaceKeyframe(int column, int index, ControlKeyframe keyframe) {
-        var oldKeyframe = ControlCurves[column].Keyframes[index];
+        var oldKeyframe = controlCurves[column][index];
         
-        ControlCurves[column].Keyframes[index] = keyframe;
+        controlCurves[column][index] = keyframe;
         compoundAction.AddAction(new UndoRedoAction(
-            () => ControlCurves[column].Keyframes[index] = oldKeyframe,
-            () => ControlCurves[column].Keyframes[index] = keyframe));
+            () => controlCurves[column][index] = oldKeyframe,
+            () => controlCurves[column][index] = keyframe));
     }
 
     public bool EndEdit() {
@@ -138,10 +138,14 @@ public class TrackVisualsEventSequence {
         return wasDirty;
     }
 
+    public IReadOnlyList<OnOffEvent> GetOnOffEvents() => onOffEvents;
+
+    public IReadOnlyList<ControlKeyframe> GetKeyframes(int column) => controlCurves[column];
+
     public CustomVisualsInfo ToCustomVisualsInfo() {
         var events = new List<TrackVisualsEvent>();
 
-        foreach (var onOffEvent in OnOffEvents) {
+        foreach (var onOffEvent in onOffEvents) {
             events.InsertSorted(new TrackVisualsEvent(
                 onOffEvent.Time,
                 ToTrackVisualsEventType(onOffEvent.Type),
@@ -150,16 +154,16 @@ public class TrackVisualsEventSequence {
                 onOffEvent.Value));
         }
 
-        for (int i = 0; i < ControlCurves.Length; i++) {
-            var controlCurve = ControlCurves[i];
+        for (int i = 0; i < controlCurves.Length; i++) {
+            var keyframes = controlCurves[i];
                 
-            foreach (var controlKeyframe in controlCurve.Keyframes) {
+            foreach (var keyframe in keyframes) {
                 events.InsertSorted(new TrackVisualsEvent(
-                    controlKeyframe.Time,
+                    keyframe.Time,
                     TrackVisualsEventType.ControlKeyframe,
-                    controlKeyframe.Type,
+                    keyframe.Type,
                     i,
-                    controlKeyframe.Value));
+                    keyframe.Value));
             }
         }
 

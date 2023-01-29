@@ -95,10 +95,10 @@ public class SequenceRenderer {
                 DrawDetails(editorState);
                 break;
             case SequenceEditorMode.OnOffEvents:
-                DrawOnOffEvents(time, timeAsFloat, beatArray, sequence.OnOffEvents, editorState.SelectedIndicesPerColumn[0], cursorIndex, columnPan, editorState.ShowValues);
+                DrawOnOffEvents(time, timeAsFloat, beatArray, sequence, editorState.SelectedIndicesPerColumn[0], cursorIndex, columnPan, editorState.ShowValues);
                 break;
             case SequenceEditorMode.ControlCurves:
-                DrawControlCurves(time, timeAsFloat, beatArray, sequence.ControlCurves, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
+                DrawControlCurves(time, timeAsFloat, beatArray, sequence, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
                 break;
         }
         
@@ -110,11 +110,13 @@ public class SequenceRenderer {
         state.BackgroundField = DrawField(state.BackgroundField, "Background:", 0);
     }
 
-    private void DrawOnOffEvents(long time, float timeAsFloat, float[] beatArray, List<OnOffEvent> onOffEvents, List<int> selectedIndices, int cursorIndex, int columnPan, bool showValues) {
+    private void DrawOnOffEvents(long time, float timeAsFloat, float[] beatArray, TrackVisualsEventSequence sequence, List<int> selectedIndices, int cursorIndex, int columnPan, bool showValues) {
         DrawGrid(timeAsFloat, beatArray, cursorIndex, columnPan);
         
         for (int i = 0; i < columnCount; i++)
             lastNoteOnTimeInColumn[i] = long.MinValue;
+
+        var onOffEvents = sequence.GetOnOffEvents();
 
         for (int i = 0; i < onOffEvents.Count; i++) {
             var onOffEvent = onOffEvents[i];
@@ -160,11 +162,11 @@ public class SequenceRenderer {
         GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), $"Mode: Events    Index: {cursorIndex:X2}");
     }
 
-    private void DrawControlCurves(long time, float timeAsFloat, float[] beatArray, ControlCurve[] controlCurves, List<int>[] selectedIndicesPerColumn, int cursorIndex, int columnPan, bool showValues) {
+    private void DrawControlCurves(long time, float timeAsFloat, float[] beatArray, TrackVisualsEventSequence sequence, List<int>[] selectedIndicesPerColumn, int cursorIndex, int columnPan, bool showValues) {
         DrawGrid(timeAsFloat, beatArray, cursorIndex, columnPan);
         
         for (int i = 0, j = columnPan; i < columnCount; i++, j++) {
-            var keyframes = controlCurves[j].Keyframes;
+            var keyframes = sequence.GetKeyframes(j);
             
             for (int k = 0; k < keyframes.Count - 1; k++) {
                 var startKeyframe = keyframes[k];
@@ -296,7 +298,7 @@ public class SequenceRenderer {
 
         for (float y = endY; y <= startY; y++) {
             long timeForY = (long) (TIME_TO_TICK * YToRelativeTime(y)) + time;
-            float value = (float) ControlCurve.Interpolate(startKeyframe, endKeyframe, timeForY);
+            float value = (float) ControlKeyframe.Interpolate(startKeyframe, endKeyframe, timeForY);
             float x = sideX + controlCurveXScale * value;
             
             DrawRect(x, y, 1f, 1f, CONTROL_CURVE_COLOR, false);
