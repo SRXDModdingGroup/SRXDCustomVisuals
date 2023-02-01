@@ -20,7 +20,6 @@ public class TrackVisualsEventPlayback {
     }
 
     public void SetSequence(TrackVisualsEventSequence sequence) {
-        VisualsEventManager.Instance.ResetAll();
         this.sequence = sequence;
         lastOnOffEventIndex = -1;
         

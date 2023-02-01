@@ -52,6 +52,7 @@ public class Patches {
         if (Plugin.EnableCustomVisuals.Value)
             visualsSceneManager.LoadScene(customVisualsInfo.Background);
 
+        VisualsEventManager.Instance.ResetAll();
         eventPlayback.SetSequence(sequence);
         eventPlayback.Play(playState.currentTrackTick);
         sequenceEditor.Init(sequence, playState);
@@ -61,6 +62,7 @@ public class Patches {
     private static void Track_ReturnToPickTrack_Postfix() {
         noteEventController.Reset();
         visualsSceneManager.UnloadScene();
+        VisualsEventManager.Instance.ResetAll();
         eventPlayback.SetSequence(new TrackVisualsEventSequence());
         sequenceEditor.Exit();
         sequenceEditor.Visible = false;

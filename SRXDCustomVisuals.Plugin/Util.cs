@@ -7,8 +7,6 @@ namespace SRXDCustomVisuals.Plugin;
 
 public static class Util {
     public static string AssemblyPath { get; } = Path.GetDirectoryName(Assembly.GetAssembly(typeof(Plugin)).Location);
-
-    public static void InsertSorted<T>(this List<T> list, T item) where T : IComparable<T> => list.Insert(list.GetInsertIndex(item), item);
     
     public static bool TryLoadAssembly(string fileName) {
         string path = Path.Combine(AssemblyPath, fileName);
@@ -31,7 +29,15 @@ public static class Util {
         }
     }
 
-    public static int GetInsertIndex<T>(this IReadOnlyList<T> list, T item) where T : IComparable<T> {
+    public static int InsertSorted<T>(this List<T> list, T item) where T : IComparable<T> {
+        int index = list.GetInsertIndex(item);
+        
+        list.Insert(index, item);
+
+        return index;
+    }
+
+    private static int GetInsertIndex<T>(this IReadOnlyList<T> list, T item) where T : IComparable<T> {
         int index = BinarySearch();
 
         while (index < list.Count && item.CompareTo(list[index]) >= 0)

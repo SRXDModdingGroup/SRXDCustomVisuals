@@ -74,11 +74,16 @@ public class TrackVisualsEventSequence {
         dirty = true;
     }
 
-    public void AddOnOffEvent(int index, OnOffEvent onOffEvent) {
-        onOffEvents.Insert(index, onOffEvent);
-        compoundAction.AddAction(new UndoRedoAction(
-            () => onOffEvents.RemoveAt(index),
-            () => onOffEvents.Insert(index, onOffEvent)));
+    public void AddOnOffEvents(IList<OnOffEvent> toAdd, List<int> indices) {
+        var toAddSorted = new List<OnOffEvent>(toAdd.Count);
+
+        foreach (var onOffEvent in toAdd)
+            toAddSorted.InsertSorted(onOffEvent);
+
+        indices.Clear();
+
+        foreach (var onOffEvent in toAddSorted)
+            indices.InsertSorted(AddOnOffEvent(onOffEvent));
     }
 
     public void RemoveOnOffEvent(int index) {
@@ -98,12 +103,17 @@ public class TrackVisualsEventSequence {
             () => onOffEvents[index] = oldEvent,
             () => onOffEvents[index] = onOffEvent));
     }
-    
-    public void AddKeyframe(int column, int index, ControlKeyframe keyframe) {
-        controlCurves[column].Insert(index, keyframe);
-        compoundAction.AddAction(new UndoRedoAction(
-            () => controlCurves[column].RemoveAt(index),
-            () => controlCurves[column].Insert(index, keyframe)));
+
+    public void AddKeyframes(int column, IList<ControlKeyframe> toAdd, List<int> indices) {
+        var toAddSorted = new List<ControlKeyframe>(toAdd.Count);
+
+        foreach (var keyframe in toAdd)
+            toAddSorted.InsertSorted(keyframe);
+
+        indices.Clear();
+
+        foreach (var keyframe in toAddSorted)
+            indices.InsertSorted(AddKeyframe(column, keyframe));
     }
 
     public void RemoveKeyframe(int column, int index) {
@@ -122,6 +132,26 @@ public class TrackVisualsEventSequence {
         compoundAction.AddAction(new UndoRedoAction(
             () => controlCurves[column][index] = oldKeyframe,
             () => controlCurves[column][index] = keyframe));
+    }
+
+    public int AddOnOffEvent(OnOffEvent onOffEvent) {
+        int index = onOffEvents.InsertSorted(onOffEvent);
+        
+        compoundAction.AddAction(new UndoRedoAction(
+            () => onOffEvents.RemoveAt(index),
+            () => onOffEvents.Insert(index, onOffEvent)));
+
+        return index;
+    }
+    
+    public int AddKeyframe(int column, ControlKeyframe keyframe) {
+        int index = controlCurves[column].InsertSorted(keyframe);
+        
+        compoundAction.AddAction(new UndoRedoAction(
+            () => controlCurves[column].RemoveAt(index),
+            () => controlCurves[column].Insert(index, keyframe)));
+
+        return index;
     }
 
     public bool EndEdit() {

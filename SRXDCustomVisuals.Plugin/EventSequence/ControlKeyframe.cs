@@ -44,11 +44,11 @@ public class ControlKeyframe : IComparable<ControlKeyframe> {
                 break;
             case ControlKeyframeType.Linear:
                 break;
-            case ControlKeyframeType.EaseIn:
-                t *= t;
-                break;
             case ControlKeyframeType.EaseOut:
                 t = 1f - (1f - t) * (1f - t);
+                break;
+            case ControlKeyframeType.EaseIn:
+                t *= t;
                 break;
         }
 

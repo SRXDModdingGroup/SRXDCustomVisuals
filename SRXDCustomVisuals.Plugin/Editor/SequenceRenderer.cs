@@ -229,18 +229,26 @@ public class SequenceRenderer {
         
         DrawColumnBox(selectedColumn, COLUMN_BOX_COLOR_SELECTED);
 
-        foreach (float beatTime in beatArray) {
+        for (int i = 0; i < beatArray.Length; i++) {
+            float beatTime = beatArray[i];
             float relativeBeatTime = beatTime - timeAsFloat;
-            
+
             if (relativeBeatTime > TOP_TIME_OFFSET)
                 break;
-            
-            if (relativeBeatTime < BOTTOM_TIME_OFFSET)
+
+            if (relativeBeatTime >= BOTTOM_TIME_OFFSET)
+                DrawHorizontalLine(RelativeTimeToY(relativeBeatTime), BEAT_BAR_COLOR);
+
+            if (i >= beatArray.Length - 1)
                 continue;
-            
-            DrawHorizontalLine(RelativeTimeToY(relativeBeatTime), BEAT_BAR_COLOR);
+
+            beatTime = 0.5f * (beatArray[i] + beatArray[i + 1]);
+            relativeBeatTime = beatTime - timeAsFloat;
+
+            if (relativeBeatTime >= BOTTOM_TIME_OFFSET)
+                DrawHorizontalLine(RelativeTimeToY(relativeBeatTime), BEAT_BAR_COLOR);
         }
-        
+
         DrawHorizontalLine(yMapOffset, NOW_BAR_COLOR);
     }
 
