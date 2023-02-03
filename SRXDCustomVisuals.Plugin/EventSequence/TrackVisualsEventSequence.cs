@@ -94,6 +94,16 @@ public class TrackVisualsEventSequence {
             () => onOffEvents.Insert(index, onOffEvent),
             () => onOffEvents.RemoveAt(index)));
     }
+
+    public void RemoveOnOffEvents(IList<int> indices) {
+        var indicesSorted = new List<int>(indices.Count);
+
+        foreach (int index in indices)
+            indicesSorted.InsertSorted(index);
+
+        for (int i = indicesSorted.Count - 1; i >= 0; i--)
+            RemoveOnOffEvent(indicesSorted[i]);
+    }
     
     public void ReplaceOnOffEvent(int index, OnOffEvent onOffEvent) {
         var oldEvent = onOffEvents[index];
@@ -123,6 +133,16 @@ public class TrackVisualsEventSequence {
         compoundAction.AddAction(new UndoRedoAction(
             () => controlCurves[column].Insert(index, keyframe),
             () => controlCurves[column].RemoveAt(index)));
+    }
+    
+    public void RemoveKeyframes(int column, IList<int> indices) {
+        var indicesSorted = new List<int>(indices.Count);
+
+        foreach (int index in indices)
+            indicesSorted.InsertSorted(index);
+
+        for (int i = indicesSorted.Count - 1; i >= 0; i--)
+            RemoveKeyframe(column, indicesSorted[i]);
     }
     
     public void ReplaceKeyframe(int column, int index, ControlKeyframe keyframe) {

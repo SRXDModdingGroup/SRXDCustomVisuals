@@ -382,9 +382,7 @@ public class SequenceEditor : MonoBehaviour {
                         toAdd.Add(newOnOffEvent);
                 }
 
-                for (int i = selectedIndices.Count - 1; i >= 0; i--)
-                    sequence.RemoveOnOffEvent(selectedIndices[i]);
-
+                sequence.RemoveOnOffEvents(selectedIndices);
                 sequence.AddOnOffEvents(toAdd, selectedIndices);
 
                 break;
@@ -425,9 +423,7 @@ public class SequenceEditor : MonoBehaviour {
                             toAdd.Add(newKeyframe);
                     }
 
-                    for (int j = selectedIndices.Count - 1; j >= 0; j--)
-                        sequence.RemoveKeyframe(i, selectedIndices[j]);
-
+                    sequence.RemoveKeyframes(i, selectedIndices);
                     sequence.AddKeyframes(i, toAdd, selectedIndices);
                 }
                 
@@ -457,9 +453,7 @@ public class SequenceEditor : MonoBehaviour {
                         toAdd.Add(newEvent);
                 }
                 
-                for (int i = selectedIndices.Count - 1; i >= 0; i--)
-                    sequence.RemoveOnOffEvent(selectedIndices[i]);
-
+                sequence.RemoveOnOffEvents(selectedIndices);
                 sequence.AddOnOffEvents(toAdd, selectedIndices);
                 
                 break;
@@ -478,9 +472,7 @@ public class SequenceEditor : MonoBehaviour {
                             toAdd.Add(newKeyframe);
                     }
 
-                    for (int j = selectedIndices.Count - 1; j >= 0; j--)
-                        sequence.RemoveKeyframe(i, selectedIndices[j]);
-
+                    sequence.RemoveKeyframes(i, selectedIndices);
                     sequence.AddKeyframes(i, toAdd, selectedIndices);
                 }
                 
@@ -659,9 +651,7 @@ public class SequenceEditor : MonoBehaviour {
                         toAdd.Add(newEvent);
                 }
                 
-                for (int i = selectedIndices.Count - 1; i >= 0; i--)
-                    sequence.RemoveOnOffEvent(selectedIndices[i]);
-
+                sequence.RemoveOnOffEvents(selectedIndices);
                 sequence.AddOnOffEvents(toAdd, selectedIndices);
                 
                 break;
@@ -680,9 +670,7 @@ public class SequenceEditor : MonoBehaviour {
                             toAdd.Add(newKeyframe);
                     }
 
-                    for (int j = selectedIndices.Count - 1; j >= 0; j--)
-                        sequence.RemoveKeyframe(i, selectedIndices[j]);
-
+                    sequence.RemoveKeyframes(i, selectedIndices);
                     sequence.AddKeyframes(i, toAdd, selectedIndices);
                 }
                 
@@ -708,9 +696,7 @@ public class SequenceEditor : MonoBehaviour {
                     toAdd.Add(onOffEvent.WithIndex(Mod(onOffEvent.Index + amount, sequence.ColumnCount)));
                 }
 
-                for (int i = selectedIndices.Count - 1; i >= 0; i--)
-                    sequence.RemoveOnOffEvent(selectedIndices[i]);
-        
+                sequence.RemoveOnOffEvents(selectedIndices);
                 sequence.AddOnOffEvents(toAdd, selectedIndices);
 
                 break;
@@ -731,10 +717,7 @@ public class SequenceEditor : MonoBehaviour {
                         toAdd.Add(keyframes[index]);
 
                     toAddPerColumn[i] = toAdd;
-
-                    for (int j = selectedIndices.Count - 1; j >= 0; j--)
-                        sequence.RemoveKeyframe(i, selectedIndices[j]);
-                    
+                    sequence.RemoveKeyframes(i, selectedIndices);
                     selectedIndices.Clear();
                 }
 
@@ -759,22 +742,16 @@ public class SequenceEditor : MonoBehaviour {
     private void DeleteSelected() {
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
-                var selectedIndices = state.SelectedIndicesPerColumn[0];
-
-                for (int i = selectedIndices.Count - 1; i >= 0; i--)
-                    sequence.RemoveOnOffEvent(selectedIndices[i]);
+                sequence.RemoveOnOffEvents(state.SelectedIndicesPerColumn[0]);
                 
                 break;
             }
             case SequenceEditorMode.ControlCurves: {
                 var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    var selectedIndices = selectedIndicesPerColumn[i];
-
-                    for (int j = selectedIndices.Count - 1; j >= 0; j--)
-                        sequence.RemoveKeyframe(i, selectedIndices[j]);
-                }
                 
+                for (int i = 0; i < sequence.ColumnCount; i++)
+                    sequence.RemoveKeyframes(i, selectedIndicesPerColumn[i]);
+
                 break;
             }
         }
