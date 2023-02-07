@@ -10,8 +10,6 @@ public class TrackVisualsEventPlayback {
     private int lastOnOffEventIndex;
     private OnOffEvent[] onOffEventsToSend;
     private int[] lastControlKeyframeIndex;
-    private bool playing;
-    private long lastTime;
 
     public TrackVisualsEventPlayback() {
         onOffEventsToSend = new OnOffEvent[Constants.IndexCount];
@@ -27,27 +25,9 @@ public class TrackVisualsEventPlayback {
             onOffEventsToSend[i] = null;
             lastControlKeyframeIndex[i] = -1;
         }
-
-        lastTime = -1L;
     }
-
-    public void Play(long time) {
-        playing = true;
-        Jump(time);
-    }
-
-    public void Pause() => playing = false;
 
     public void Advance(long time) {
-        if (!playing || time == lastTime)
-            return;
-
-        if (time < lastTime) {
-            Jump(time);
-            
-            return;
-        }
-
         var visualsEventManager = VisualsEventManager.Instance;
         var onOffEvents = sequence.GetOnOffEvents();
         int startIndex = lastOnOffEventIndex;
@@ -76,27 +56,10 @@ public class TrackVisualsEventPlayback {
         }
         
         lastOnOffEventIndex = newIndex;
-        lastTime = time;
         ProcessControlCurves(time);
     }
 
-    public void Jump(long time, bool force = false) {
-        if (!force) {
-            if (!playing || time == lastTime)
-                return;
-
-            if (lastTime >= 0L) {
-                if (time < lastTime && lastTime - time < MIN_JUMP_INTERVAL)
-                    return;
-
-                if (time > lastTime && time - lastTime < MIN_JUMP_INTERVAL) {
-                    Advance(time);
-
-                    return;
-                }
-            }
-        }
-
+    public void Jump(long time) {
         var visualsEventManager = VisualsEventManager.Instance;
         var onOffEvents = sequence.GetOnOffEvents();
         int newIndex = -1;
@@ -128,7 +91,6 @@ public class TrackVisualsEventPlayback {
         }
         
         lastOnOffEventIndex = newIndex;
-        lastTime = time;
         
         for (int i = 0; i < lastControlKeyframeIndex.Length; i++)
             lastControlKeyframeIndex[i] = -1;

@@ -54,7 +54,6 @@ public class Patches {
 
         VisualsEventManager.Instance.ResetAll();
         eventPlayback.SetSequence(sequence);
-        eventPlayback.Play(playState.currentTrackTick);
         sequenceEditor.Init(sequence, playState);
     }
 
@@ -71,17 +70,9 @@ public class Patches {
     [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
     private static void Track_Update_Postfix(Track __instance) {
         var playState = __instance.playStateFirst;
-
-        if (playState.playStateStatus == PlayStateStatus.Playing)
+        
+        if (!Track.IsPaused && playState.currentTrackTick > playState.previousTrackTick)
             eventPlayback.Advance(playState.currentTrackTick);
-    }
-
-    [HarmonyPatch(typeof(Track), nameof(Track.SetDebugPaused)), HarmonyPostfix]
-    private static void Track_SetDebugPaused_Postfix(Track __instance, bool paused) {
-        if (paused)
-            eventPlayback.Pause();
-        else
-            eventPlayback.Play(__instance.playStateFirst.currentTrackTick);
     }
 
     [HarmonyPatch(typeof(PlayState.ScoreState), nameof(PlayState.ScoreState.UpdateNoteStates)), HarmonyPrefix]
@@ -212,7 +203,7 @@ public class Patches {
         sequenceEditor.UpdateEditor(out bool anyInput, out bool anyEdit);
         
         if (anyInput)
-            eventPlayback.Jump(__instance.frameInfo.currentTick, true);
+            eventPlayback.Jump(__instance.frameInfo.currentTick);
         
         if (anyEdit) {
             visualsInfoAccessor.SaveCustomVisualsInfo(
@@ -232,6 +223,9 @@ public class Patches {
         if (sequenceEditor.Visible)
             canChangeSelection = false;
     }
+    
+    [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.SetCurrentTrackTime)), HarmonyPostfix]
+    private static void TrackEditorGUI_SetCurrentTrackTime_Postfix() => eventPlayback.Jump(PlayState.Active.currentTrackTick);
 
     [HarmonyPatch(typeof(TrackEditorGUI), "HandleNoteEditorInput"), HarmonyPrefix]
     private static bool TrackEditorGUI_HandleNoteEditorInput_Prefix() => !sequenceEditor.Visible;
