@@ -35,7 +35,7 @@ public class SequenceEditor : MonoBehaviour {
 
     private void OnGUI() {
         if (Visible)
-            renderer.Render(new RenderInfo(playState, state, sequence));
+            renderer.Render(new RenderInput(playState, state, sequence));
     }
 
     public void Init(TrackVisualsEventSequence sequence, PlayState playState) {

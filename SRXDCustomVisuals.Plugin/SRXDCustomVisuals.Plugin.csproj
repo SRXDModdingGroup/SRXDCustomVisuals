@@ -93,7 +93,7 @@
     <ItemGroup>
         <Compile Include="Editor\SequenceEditorMode.cs" />
         <Compile Include="Editor\SequenceEditorState.cs" />
-        <Compile Include="Editor\SequenceRenderInfo.cs" />
+        <Compile Include="Editor\RenderInput.cs" />
         <Compile Include="Editor\SequenceEditor.cs" />
         <Compile Include="Editor\SequenceRenderer.cs" />
         <Compile Include="EventSequence\CompoundAction.cs" />
@@ -110,6 +110,7 @@
         <Compile Include="EventSequence\UndoRedoStack.cs" />
         <Compile Include="JSON\BackgroundDefinition.cs" />
         <Compile Include="JSON\CustomVisualsInfo.cs" />
+        <Compile Include="JSON\PaletteColor.cs" />
         <Compile Include="JSON\TrackVisualsEvent.cs" />
         <Compile Include="NoteEvents\NoteEventController.cs" />
         <Compile Include="NoteEvents\NoteIndex.cs" />

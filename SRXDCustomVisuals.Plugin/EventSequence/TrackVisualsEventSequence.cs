@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
 
@@ -16,8 +17,11 @@ public class TrackVisualsEventSequence {
             dirty = true;
         }
     }
-    
+
+    public IReadOnlyList<Color32> Palette => palette;
+
     private string background;
+    private List<Color32> palette;
     private List<OnOffEvent> onOffEvents;
     private List<ControlKeyframe>[] controlCurves;
     private UndoRedoStack undoRedoStack;
@@ -26,6 +30,7 @@ public class TrackVisualsEventSequence {
 
     public TrackVisualsEventSequence() {
         background = "";
+        palette = new List<Color32>();
         onOffEvents = new List<OnOffEvent>();
         controlCurves = new List<ControlKeyframe>[Constants.IndexCount];
 
@@ -37,6 +42,12 @@ public class TrackVisualsEventSequence {
 
     public TrackVisualsEventSequence(CustomVisualsInfo customVisualsInfo) {
         background = customVisualsInfo.Background;
+
+        palette = new List<Color32>(customVisualsInfo.Palette.Count);
+
+        foreach (var paletteColor in customVisualsInfo.Palette)
+            palette.Add(new Color32((byte) paletteColor.Red, (byte) paletteColor.Green, (byte) paletteColor.Blue, 255));
+
         onOffEvents = new List<OnOffEvent>();
         controlCurves = new List<ControlKeyframe>[Constants.IndexCount];
 
@@ -193,6 +204,11 @@ public class TrackVisualsEventSequence {
     public IReadOnlyList<ControlKeyframe> GetKeyframes(int column) => controlCurves[column];
 
     public CustomVisualsInfo ToCustomVisualsInfo() {
+        var newPalette = new List<PaletteColor>(palette.Count);
+
+        foreach (var color in palette)
+            newPalette.Add(new PaletteColor(color.r, color.g, color.b));
+
         var events = new List<TrackVisualsEvent>();
 
         foreach (var onOffEvent in onOffEvents) {
@@ -217,7 +233,7 @@ public class TrackVisualsEventSequence {
             }
         }
 
-        return new CustomVisualsInfo(Background, events);
+        return new CustomVisualsInfo(Background, newPalette, events);
     }
 
     private static OnOffEventType ToOnOffEventType(TrackVisualsEventType type) => type switch {

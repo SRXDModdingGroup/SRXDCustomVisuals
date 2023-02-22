@@ -74,12 +74,12 @@ public class SequenceRenderer {
         lastNoteOnTimeInColumn = new long[columnCount];
     }
 
-    public void Render(RenderInfo info) => windowRect = GUI.Window(0, windowRect, _ => DrawWindow(info), "Sequence Editor");
+    public void Render(RenderInput input) => windowRect = GUI.Window(0, windowRect, _ => DrawWindow(input), "Sequence Editor");
 
-    private void DrawWindow(RenderInfo info) {
-        var playState = info.PlayState;
-        var editorState = info.EditorState;
-        var sequence = info.Sequence;
+    private void DrawWindow(RenderInput input) {
+        var playState = input.PlayState;
+        var editorState = input.EditorState;
+        var sequence = input.Sequence;
         var mode = editorState.Mode;
         int cursorIndex = editorState.Column;
         int columnPan = editorState.ColumnPan;
@@ -306,7 +306,7 @@ public class SequenceRenderer {
 
         for (float y = endY; y <= startY; y++) {
             long timeForY = (long) (TIME_TO_TICK * YToRelativeTime(y)) + time;
-            float value = (float) ControlKeyframe.Interpolate(startKeyframe, endKeyframe, timeForY);
+            float value = ControlKeyframe.Interpolate(startKeyframe, endKeyframe, timeForY);
             float x = sideX + controlCurveXScale * value;
             
             DrawRect(x, y, 1f, 1f, CONTROL_CURVE_COLOR, false);
