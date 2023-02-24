@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using UnityEngine;
 using Input = UnityEngine.Input;
 
@@ -35,15 +37,21 @@ public class SequenceEditor : MonoBehaviour {
 
     private void OnGUI() {
         if (Visible)
-            renderer.Render(new RenderInput(playState, state, sequence));
+            renderer.Render(new SequenceRenderInput(playState, state, sequence));
     }
 
     public void Init(TrackVisualsEventSequence sequence, PlayState playState) {
         this.sequence = sequence;
         this.playState = playState;
-        state = new SequenceEditorState {
-            BackgroundField = sequence.Background
-        };
+        state = new SequenceEditorState();
+        
+        state.BackgroundField = sequence.Background;
+
+        for (int i = 0; i < Constants.PaletteSize; i++) {
+            var color = sequence.Palette[i];
+
+            state.PaletteFields[i] = new[] { color.r.ToString(), color.g.ToString(), color.b.ToString() };
+        }
     }
 
     public void Exit() => sequence = new TrackVisualsEventSequence();

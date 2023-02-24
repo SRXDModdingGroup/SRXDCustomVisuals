@@ -26,11 +26,24 @@ public class SequenceEditorState {
     public bool ShowValues { get; set; }
     
     public string BackgroundField { get; set; }
+    
+    public List<string[]> PaletteFields { get; }
 
     public SequenceEditorState() {
         SelectedIndicesPerColumn = new List<int>[Constants.IndexCount];
 
         for (int i = 0; i < SelectedIndicesPerColumn.Length; i++)
             SelectedIndicesPerColumn[i] = new List<int>();
+
+        PaletteFields = new List<string[]>(Constants.PaletteSize);
+
+        for (int i = 0; i < Constants.PaletteSize; i++) {
+            string[] fields = new string[3];
+            
+            for (int j = 0; j < 3; j++)
+                fields[j] = string.Empty;
+            
+            PaletteFields.Add(fields);
+        }
     }
 }

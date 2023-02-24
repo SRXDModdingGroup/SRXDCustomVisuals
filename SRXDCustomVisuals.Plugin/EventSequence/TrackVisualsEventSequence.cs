@@ -21,7 +21,7 @@ public class TrackVisualsEventSequence {
     public IReadOnlyList<Color32> Palette => palette;
 
     private string background;
-    private List<Color32> palette;
+    private Color32[] palette;
     private List<OnOffEvent> onOffEvents;
     private List<ControlKeyframe>[] controlCurves;
     private UndoRedoStack undoRedoStack;
@@ -30,7 +30,11 @@ public class TrackVisualsEventSequence {
 
     public TrackVisualsEventSequence() {
         background = "";
-        palette = new List<Color32>();
+        palette = new Color32[Constants.PaletteSize];
+
+        for (int i = 0; i < Constants.PaletteSize; i++)
+            palette[i] = new Color32(255, 255, 255, 255);
+
         onOffEvents = new List<OnOffEvent>();
         controlCurves = new List<ControlKeyframe>[Constants.IndexCount];
 
@@ -42,11 +46,19 @@ public class TrackVisualsEventSequence {
 
     public TrackVisualsEventSequence(CustomVisualsInfo customVisualsInfo) {
         background = customVisualsInfo.Background;
+        palette = new Color32[Constants.PaletteSize];
 
-        palette = new List<Color32>(customVisualsInfo.Palette.Count);
+        var fromPalette = customVisualsInfo.Palette;
 
-        foreach (var paletteColor in customVisualsInfo.Palette)
-            palette.Add(new Color32((byte) paletteColor.Red, (byte) paletteColor.Green, (byte) paletteColor.Blue, 255));
+        for (int i = 0; i < Constants.PaletteSize; i++) {
+            if (i < fromPalette.Count) {
+                var fromColor = fromPalette[i];
+
+                palette[i] = new Color32((byte) fromColor.Red, (byte) fromColor.Blue, (byte) fromColor.Green, 255);
+            }
+            else
+                palette[i] = new Color32(255, 255, 255, 255);
+        }
 
         onOffEvents = new List<OnOffEvent>();
         controlCurves = new List<ControlKeyframe>[Constants.IndexCount];
@@ -204,7 +216,7 @@ public class TrackVisualsEventSequence {
     public IReadOnlyList<ControlKeyframe> GetKeyframes(int column) => controlCurves[column];
 
     public CustomVisualsInfo ToCustomVisualsInfo() {
-        var newPalette = new List<PaletteColor>(palette.Count);
+        var newPalette = new List<PaletteColor>(Constants.PaletteSize);
 
         foreach (var color in palette)
             newPalette.Add(new PaletteColor(color.r, color.g, color.b));

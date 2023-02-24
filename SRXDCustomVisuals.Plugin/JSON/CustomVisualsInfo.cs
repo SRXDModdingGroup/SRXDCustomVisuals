@@ -17,6 +17,7 @@ public class CustomVisualsInfo {
 
     public CustomVisualsInfo() {
         Background = "";
+        Palette = new List<PaletteColor>();
         Events = new List<TrackVisualsEvent>();
     }
     

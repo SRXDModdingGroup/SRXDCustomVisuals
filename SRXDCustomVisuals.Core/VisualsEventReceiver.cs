@@ -12,7 +12,10 @@ public class VisualsEventReceiver : MonoBehaviour {
 
     public event Action Reset;
 
-    private void Start() => VisualsEventManager.Instance.AddReceiver(this);
+    private void Start() {
+        VisualsEventManager.Instance.AddReceiver(this);
+        Reset?.Invoke();
+    }
 
     private void OnDestroy() => VisualsEventManager.Instance.RemoveReceiver(this);
 

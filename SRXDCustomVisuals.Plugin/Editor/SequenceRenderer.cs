@@ -74,9 +74,11 @@ public class SequenceRenderer {
         lastNoteOnTimeInColumn = new long[columnCount];
     }
 
-    public void Render(RenderInput input) => windowRect = GUI.Window(0, windowRect, _ => DrawWindow(input), "Sequence Editor");
+    public void Render(SequenceRenderInput input) {
+        windowRect = GUI.Window(0, windowRect, _ => DrawWindow(input), "Sequence Editor");
+    }
 
-    private void DrawWindow(RenderInput input) {
+    private void DrawWindow(SequenceRenderInput input) {
         var playState = input.PlayState;
         var editorState = input.EditorState;
         var sequence = input.Sequence;
@@ -107,6 +109,7 @@ public class SequenceRenderer {
 
     private void DrawDetails(SequenceEditorState state) {
         GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), "Mode: Details");
+
         state.BackgroundField = DrawField(state.BackgroundField, "Background:", 0);
     }
 
@@ -211,7 +214,7 @@ public class SequenceRenderer {
         GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), $"Mode: Curves    Index: {cursorIndex:X2}");
     }
 
-    private string DrawField( string value, string label, int row) {
+    private string DrawField(string value, string label, int row) {
         float y = TOP_PADDING + DETAILS_START_Y + row * FIELD_HEIGHT;
         
         GUI.Label(new Rect(SIDE_PADDING, y, FIELD_LABEL_WIDTH, FIELD_HEIGHT), label);
@@ -342,4 +345,11 @@ public class SequenceRenderer {
     private float RelativeTimeToY(float time) => yMapScale * time + yMapOffset;
 
     private float YToRelativeTime(float y) => (y - yMapOffset) / yMapScale;
+
+    // private bool NamedField(string name, string inValue, out string outValue) {
+    //     GUI.SetNextControlName(name);
+    //     outValue = DrawField()
+    //
+    //     return GUI.GetNameOfFocusedControl() == name;
+    // }
 }
