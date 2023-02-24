@@ -7,7 +7,8 @@ namespace SRXDCustomVisuals.Core;
 public class VisualsPaletteManager : MonoBehaviour {
     public static VisualsPaletteManager Instance { get; private set; }
     
-    private IReadOnlyList<Color> palette;
+    internal IReadOnlyList<Color> Palette { get; private set; }
+
     private List<VisualsPaletteReceiver> receivers;
 
     private void Awake() {
@@ -16,16 +17,13 @@ public class VisualsPaletteManager : MonoBehaviour {
     }
 
     public void SetPalette(IReadOnlyList<Color> palette) {
-        this.palette = palette;
+        Palette = palette;
 
         foreach (var receiver in receivers)
-            receiver.SetPalette(palette);
+            receiver.DoPaletteChanged(palette);
     }
 
-    internal void AddReceiver(VisualsPaletteReceiver receiver) {
-        receivers.Add(receiver);
-        receiver.SetPalette(palette);
-    }
+    internal void AddReceiver(VisualsPaletteReceiver receiver) => receivers.Add(receiver);
 
     internal void RemoveReceiver(VisualsPaletteReceiver receiver) => receivers.Remove(receiver);
 }

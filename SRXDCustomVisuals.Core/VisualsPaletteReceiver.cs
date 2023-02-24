@@ -5,16 +5,16 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Core; 
 
 public class VisualsPaletteReceiver : MonoBehaviour {
-    public IReadOnlyList<Color> Palette { get; private set; }
+    public IReadOnlyList<Color> Palette => VisualsPaletteManager.Instance.Palette;
 
     public event Action<IReadOnlyList<Color>> PaletteChanged;
 
-    private void Start() => VisualsPaletteManager.Instance.AddReceiver(this);
+    private void Start() {
+        VisualsPaletteManager.Instance.AddReceiver(this);
+        PaletteChanged?.Invoke(VisualsPaletteManager.Instance.Palette);
+    }
 
     private void OnDestroy() => VisualsPaletteManager.Instance.RemoveReceiver(this);
     
-    internal void SetPalette(IReadOnlyList<Color> palette) {
-        Palette = palette;
-        PaletteChanged?.Invoke(palette);
-    }
+    internal void DoPaletteChanged(IReadOnlyList<Color> palette) => PaletteChanged?.Invoke(palette);
 }
