@@ -917,7 +917,7 @@ public class SequenceEditor : MonoBehaviour {
         for (int i = 0; i < paletteFields.Count; i++) {
             var field = paletteFields[i];
             
-            if (!field.CheckValueChanged() || !Util.TryParseHexString(field.DisplayValue, out var color))
+            if (!field.CheckValueChanged() || !Util.TryParseColor32(field.DisplayValue, out var color))
                 continue;
             
             sequence.SetPaletteColor(i, color);

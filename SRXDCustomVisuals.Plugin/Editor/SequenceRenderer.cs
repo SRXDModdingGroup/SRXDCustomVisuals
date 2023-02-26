@@ -22,7 +22,8 @@ public class SequenceRenderer {
     private const float VALUE_LABEL_HEIGHT = 20f;
     private const float FIELD_HEIGHT = 20f;
     private const float FIELD_LABEL_WIDTH = 100f;
-    private const float DETAILS_START_Y = 60f;
+    private const float FIELD_PADDING = 10f;
+    private const float DETAILS_START_Y = 40f;
     private static readonly Color BACKING_COLOR = new(0f, 0f, 0f, 0.75f);
     private static readonly Color BEAT_BAR_COLOR = new(0.5f, 0.5f, 0.5f);
     private static readonly Color NOW_BAR_COLOR = Color.white;
@@ -93,7 +94,7 @@ public class SequenceRenderer {
         
         switch (mode) {
             case SequenceEditorMode.Details:
-                DrawDetails(editorState);
+                DrawDetails(editorState, sequence.Palette);
                 break;
             case SequenceEditorMode.OnOffEvents:
                 DrawOnOffEvents(time, timeAsFloat, beatArray, sequence, editorState.SelectedIndicesPerColumn[0], cursorIndex, columnPan, editorState.ShowValues);
@@ -106,14 +107,14 @@ public class SequenceRenderer {
         GUI.DragWindow();
     }
 
-    private void DrawDetails(SequenceEditorState state) {
-        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), "Mode: Details");
-        DrawField(state.BackgroundField, "background", "Background:", 0);
+    private void DrawDetails(SequenceEditorState state, IReadOnlyList<Color32> palette) {
+        DrawModeLabel("Mode: Details");
+        DrawSimpleField(state.BackgroundField, "background", "Background:", 0);
 
         var paletteFields = state.PaletteFields;
 
-        for (int i = 0; i < paletteFields.Count; i++)
-            DrawField(paletteFields[i], $"palette_{i}", $"Color {i + 1}:", i + 2);
+        for (int i = 0; i < paletteFields.Count && i < palette.Count; i++)
+            DrawPaletteField(paletteFields[i], $"palette_{i}", $"Color {i + 1}:", i + 2, palette[i].ToColor());
     }
 
     private void DrawOnOffEvents(long time, float timeAsFloat, float[] beatArray, TrackVisualsEventSequence sequence, List<int> selectedIndices, int cursorIndex, int columnPan, bool showValues) {
@@ -165,7 +166,7 @@ public class SequenceRenderer {
                 DrawSustainLine(relativeLastNoteOnTime, TOP_TIME_OFFSET, i);
         }
         
-        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), $"Mode: Events    Index: {cursorIndex:X2}");
+        DrawModeLabel($"Mode: Events    Index: {cursorIndex:X2}");
     }
 
     private void DrawControlCurves(long time, float timeAsFloat, float[] beatArray, TrackVisualsEventSequence sequence, List<int>[] selectedIndicesPerColumn, int cursorIndex, int columnPan, bool showValues) {
@@ -214,19 +215,26 @@ public class SequenceRenderer {
             }
         }
         
-        GUI.Label(new Rect(SIDE_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), $"Mode: Curves    Index: {cursorIndex:X2}");
+        DrawModeLabel($"Mode: Curves    Index: {cursorIndex:X2}");
     }
 
-    private void DrawField(TextFieldState field, string name, string label, int row) {
+    private void DrawModeLabel(string text) => GUI.Label(new Rect(SIDE_PADDING + FIELD_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), text);
+
+    private void DrawSimpleField(TextFieldState field, string name, string label, int row) {
+        const float x = SIDE_PADDING + FIELD_PADDING;
         float y = TOP_PADDING + DETAILS_START_Y + row * FIELD_HEIGHT;
         
-        GUI.Label(new Rect(SIDE_PADDING, y, FIELD_LABEL_WIDTH, FIELD_HEIGHT), label);
-
-        if (GUI.GetNameOfFocusedControl() != name)
-            field.RevertDisplayValue();
+        GUI.Label(new Rect(x, y, FIELD_LABEL_WIDTH, FIELD_HEIGHT), label);
+        DrawField(field, name, x + FIELD_LABEL_WIDTH, y, paddedWidth - FIELD_LABEL_WIDTH - 2 * FIELD_PADDING, FIELD_HEIGHT);
+    }
+    
+    private void DrawPaletteField(TextFieldState field, string name, string label, int row, Color color) {
+        const float x = SIDE_PADDING + FIELD_PADDING;
+        float y = TOP_PADDING + DETAILS_START_Y + row * FIELD_HEIGHT;
         
-        GUI.SetNextControlName(name);
-        field.DisplayValue = GUI.TextField(new Rect(SIDE_PADDING + FIELD_LABEL_WIDTH, y, paddedWidth - FIELD_LABEL_WIDTH, FIELD_HEIGHT), field.DisplayValue);
+        GUI.Label(new Rect(x, y, FIELD_LABEL_WIDTH, FIELD_HEIGHT), label);
+        DrawField(field, name, x + FIELD_LABEL_WIDTH, y, paddedWidth - FIELD_LABEL_WIDTH - 2 * FIELD_PADDING - FIELD_HEIGHT, FIELD_HEIGHT);
+        DrawRect(rightX - FIELD_PADDING - FIELD_HEIGHT, y, FIELD_HEIGHT, FIELD_HEIGHT, color, false);
     }
 
     private void DrawGrid(float timeAsFloat, float[] beatArray, int cursorIndex, int columnPan) {
@@ -352,4 +360,12 @@ public class SequenceRenderer {
     private float RelativeTimeToY(float time) => yMapScale * time + yMapOffset;
 
     private float YToRelativeTime(float y) => (y - yMapOffset) / yMapScale;
+
+    private static void DrawField(TextFieldState field, string name, float x, float y, float width, float height) {
+        if (GUI.GetNameOfFocusedControl() != name)
+            field.RevertDisplayValue();
+        
+        GUI.SetNextControlName(name);
+        field.DisplayValue = GUI.TextField(new Rect(x, y, width, height), field.DisplayValue);
+    }
 }
