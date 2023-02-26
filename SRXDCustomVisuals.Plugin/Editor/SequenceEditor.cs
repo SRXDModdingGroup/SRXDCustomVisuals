@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using Input = UnityEngine.Input;
 
@@ -45,13 +42,10 @@ public class SequenceEditor : MonoBehaviour {
         this.playState = playState;
         state = new SequenceEditorState();
         
-        state.BackgroundField = sequence.Background;
+        state.BackgroundField.Init(sequence.Background);
 
-        for (int i = 0; i < Constants.PaletteSize; i++) {
-            var color = sequence.Palette[i];
-
-            state.PaletteFields[i] = new[] { color.r.ToString(), color.g.ToString(), color.b.ToString() };
-        }
+        for (int i = 0; i < Constants.PaletteSize; i++)
+            state.PaletteFields[i].Init(Util.ToHexString(sequence.Palette[i]));
     }
 
     public void Exit() => sequence = new TrackVisualsEventSequence();
@@ -73,9 +67,9 @@ public class SequenceEditor : MonoBehaviour {
         }
         
         sequence.BeginEdit();
+        CheckFields();
         
         if (state.Mode == SequenceEditorMode.Details) {
-            sequence.Background = state.BackgroundField;
             anyEdit = sequence.EndEdit();
             
             return;
@@ -103,7 +97,7 @@ public class SequenceEditor : MonoBehaviour {
     public CustomVisualsInfo GetCustomVisualsInfo() => sequence.ToCustomVisualsInfo();
 
     private void CycleModes() {
-        state.Mode = (SequenceEditorMode) Mod((int) state.Mode + 1, (int) SequenceEditorMode.Count);
+        state.Mode = (SequenceEditorMode) Util.Mod((int) state.Mode + 1, (int) SequenceEditorMode.Count);
         ClearSelection();
         UpdateSelection();
     }
@@ -128,7 +122,7 @@ public class SequenceEditor : MonoBehaviour {
             
             switch (state.Mode) {
                 case SequenceEditorMode.OnOffEvents: {
-                    var onOffEvents = sequence.GetOnOffEvents();
+                    var onOffEvents = sequence.OnOffEvents;
 
                     if (direction > 0) {
                         foreach (var onOffEvent in onOffEvents) {
@@ -210,7 +204,7 @@ public class SequenceEditor : MonoBehaviour {
         if (largeMovement)
             direction *= 8;
         
-        state.Column = Mod(state.Column + direction, sequence.ColumnCount);
+        state.Column = Util.Mod(state.Column + direction, sequence.ColumnCount);
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, state.Column - (COLUMN_COUNT - 2), state.Column - 1);
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, 0, 240);
 
@@ -231,13 +225,13 @@ public class SequenceEditor : MonoBehaviour {
 
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
-                var onOffEvents = sequence.GetOnOffEvents();
+                var onOffEvents = sequence.OnOffEvents;
         
                 foreach (int index in selectedIndicesPerColumn[0]) {
                     var onOffEvent = onOffEvents[index];
 
                     sequence.ReplaceOnOffEvent(index,
-                        onOffEvent.WithType((OnOffEventType) Mod((int) onOffEvent.Type + direction, (int) OnOffEventType.Count)));
+                        onOffEvent.WithType((OnOffEventType) Util.Mod((int) onOffEvent.Type + direction, (int) OnOffEventType.Count)));
                 }
                 
                 break;
@@ -250,7 +244,7 @@ public class SequenceEditor : MonoBehaviour {
                         var keyframe = keyframes[index];
 
                         sequence.ReplaceKeyframe(i, index,
-                            keyframe.WithType((ControlKeyframeType) Mod((int) keyframe.Type + direction, (int) ControlKeyframeType.Count)));
+                            keyframe.WithType((ControlKeyframeType) Util.Mod((int) keyframe.Type + direction, (int) ControlKeyframeType.Count)));
                     }
                 }
                 
@@ -267,7 +261,7 @@ public class SequenceEditor : MonoBehaviour {
 
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
-                var onOffEvents = sequence.GetOnOffEvents();
+                var onOffEvents = sequence.OnOffEvents;
         
                 foreach (int index in selectedIndicesPerColumn[0]) {
                     var onOffEvent = onOffEvents[index];
@@ -309,7 +303,7 @@ public class SequenceEditor : MonoBehaviour {
         DeleteSelected();
         
         if (TimeInBounds(state.Time)) {
-            var onOffEvents = sequence.GetOnOffEvents();
+            var onOffEvents = sequence.OnOffEvents;
             var onOffEvent = new OnOffEvent(state.Time, type, state.Column, Constants.MaxEventValue);
             int index = sequence.AddOnOffEvent(onOffEvent);
             int value = Constants.MaxEventValue;
@@ -361,7 +355,7 @@ public class SequenceEditor : MonoBehaviour {
                 if (selectedIndices.Count <= 1)
                     return;
 
-                var onOffEvents = sequence.GetOnOffEvents();
+                var onOffEvents = sequence.OnOffEvents;
                 int[] groupIndices = new int[selectedIndices.Count];
                 int groupIndex = 0;
                 long minTime = onOffEvents[selectedIndices[0]].Time;
@@ -450,7 +444,7 @@ public class SequenceEditor : MonoBehaviour {
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
                 var selectedIndices = selectedIndicesPerColumn[0];
-                var onOffEvents = sequence.GetOnOffEvents();
+                var onOffEvents = sequence.OnOffEvents;
                 var toAdd = new List<OnOffEvent>(selectedIndices.Count);
 
                 foreach (int index in selectedIndices) {
@@ -506,7 +500,7 @@ public class SequenceEditor : MonoBehaviour {
                 if (selectedIndices.Count == 0)
                     return;
         
-                var onOffEvents = sequence.GetOnOffEvents();
+                var onOffEvents = sequence.OnOffEvents;
                 long firstTime = onOffEvents[selectedIndices[0]].Time;
                 int firstIndex = int.MaxValue;
 
@@ -593,8 +587,7 @@ public class SequenceEditor : MonoBehaviour {
                 foreach (var onOffEvent in onOffEventClipboard) {
                     var newEvent = new OnOffEvent(
                         onOffEvent.Time + time,
-                        onOffEvent.Type,
-                        Mod(onOffEvent.Index + cursorIndex, sequence.ColumnCount),
+                        onOffEvent.Type, Util.Mod(onOffEvent.Index + cursorIndex, sequence.ColumnCount),
                         onOffEvent.Value);
 
                     if (TimeInBounds(newEvent.Time))
@@ -607,7 +600,7 @@ public class SequenceEditor : MonoBehaviour {
             }
             case SequenceEditorMode.ControlCurves: {
                 for (int i = 0; i < sequence.ColumnCount; i++) {
-                    int newColumn = Mod(i + cursorIndex, sequence.ColumnCount);
+                    int newColumn = Util.Mod(i + cursorIndex, sequence.ColumnCount);
                     var selectedIndices = selectedIndicesPerColumn[newColumn];
                     var toAdd = new List<ControlKeyframe>(selectedIndices.Count);
 
@@ -648,7 +641,7 @@ public class SequenceEditor : MonoBehaviour {
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
                 var selectedIndices = selectedIndicesPerColumn[0];
-                var onOffEvents = sequence.GetOnOffEvents();
+                var onOffEvents = sequence.OnOffEvents;
                 var toAdd = new List<OnOffEvent>(selectedIndices.Count);
 
                 foreach (int index in selectedIndices) {
@@ -695,13 +688,13 @@ public class SequenceEditor : MonoBehaviour {
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
                 var selectedIndices = selectedIndicesPerColumn[0];
-                var onOffEvents = sequence.GetOnOffEvents();
+                var onOffEvents = sequence.OnOffEvents;
                 var toAdd = new List<OnOffEvent>();
 
                 foreach (int index in selectedIndices) {
                     var onOffEvent = onOffEvents[index];
                     
-                    toAdd.Add(onOffEvent.WithIndex(Mod(onOffEvent.Index + amount, sequence.ColumnCount)));
+                    toAdd.Add(onOffEvent.WithIndex(Util.Mod(onOffEvent.Index + amount, sequence.ColumnCount)));
                 }
 
                 sequence.RemoveOnOffEvents(selectedIndices);
@@ -735,7 +728,7 @@ public class SequenceEditor : MonoBehaviour {
                     if (toAdd == null)
                         continue;
                     
-                    int newColumn = Mod(i + amount, sequence.ColumnCount);
+                    int newColumn = Util.Mod(i + amount, sequence.ColumnCount);
                     
                     sequence.AddKeyframes(newColumn, toAdd, selectedIndicesPerColumn[newColumn]);
                 }
@@ -788,7 +781,7 @@ public class SequenceEditor : MonoBehaviour {
         
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
-                var onOffEvents = sequence.GetOnOffEvents();
+                var onOffEvents = sequence.OnOffEvents;
                 var selectedIndices = selectedIndicesPerColumn[0];
 
                 for (int i = 0; i < onOffEvents.Count; i++) {
@@ -852,7 +845,7 @@ public class SequenceEditor : MonoBehaviour {
 
         switch (state.Mode) {
             case SequenceEditorMode.OnOffEvents: {
-                var onOffEvents = sequence.GetOnOffEvents();
+                var onOffEvents = sequence.OnOffEvents;
         
                 foreach (int eventIndex in selectedIndicesPerColumn[0]) {
                     var onOffEvent = onOffEvents[eventIndex];
@@ -909,6 +902,27 @@ public class SequenceEditor : MonoBehaviour {
         
         ClearSelection();
         UpdateSelection();
+    }
+
+    private void CheckFields() {
+        if (state.BackgroundField.CheckValueChanged()) {
+            string value = state.BackgroundField.DisplayValue.Trim();
+
+            sequence.Background = value;
+            state.BackgroundField.ActualValue = value;
+        }
+
+        var paletteFields = state.PaletteFields;
+        
+        for (int i = 0; i < paletteFields.Count; i++) {
+            var field = paletteFields[i];
+            
+            if (!field.CheckValueChanged() || !Util.TryParseHexString(field.DisplayValue, out var color))
+                continue;
+            
+            sequence.SetPaletteColor(i, color);
+            field.ActualValue = Util.ToHexString(color);
+        }
     }
 
     private bool CheckInputs() {
@@ -1033,6 +1047,4 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     private bool TimeInBounds(long time) => time >= 0 && time < TIME_TO_TICK * playState.trackData.SoundEndTime;
-
-    private static int Mod(int a, int b) => (a % b + b) % b;
 }

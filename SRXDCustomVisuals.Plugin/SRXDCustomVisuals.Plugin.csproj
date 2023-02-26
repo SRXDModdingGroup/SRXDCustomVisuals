@@ -60,6 +60,9 @@
         <Reference Include="SSD.PlayerServiceManager">
           <HintPath>..\Libs\SSD.PlayerServiceManager.dll</HintPath>
         </Reference>
+        <Reference Include="SSD.Types">
+          <HintPath>..\Libs\SSD.Types.dll</HintPath>
+        </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="Unity.Mathematics">
@@ -96,6 +99,7 @@
         <Compile Include="Editor\SequenceRenderInput.cs" />
         <Compile Include="Editor\SequenceEditor.cs" />
         <Compile Include="Editor\SequenceRenderer.cs" />
+        <Compile Include="Editor\TextFieldState.cs" />
         <Compile Include="EventSequence\CompoundAction.cs" />
         <Compile Include="EventSequence\ControlKeyframe.cs" />
         <Compile Include="EventSequence\ControlKeyframeType.cs" />
@@ -112,19 +116,18 @@
         <Compile Include="JSON\CustomVisualsInfo.cs" />
         <Compile Include="JSON\PaletteColor.cs" />
         <Compile Include="JSON\TrackVisualsEvent.cs" />
+        <Compile Include="JSON\ElementReference.cs" />
         <Compile Include="NoteEvents\NoteEventController.cs" />
         <Compile Include="NoteEvents\NoteIndex.cs" />
         <Compile Include="Patches.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="PluginInfo.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
-        <Compile Include="SpectrumBufferController.cs" />
         <Compile Include="Util.cs" />
-        <Compile Include="Visuals\VisualsElementAssetReference.cs" />
-        <Compile Include="Visuals\VisualsElementReference.cs" />
+        <Compile Include="Visuals\VisualsElement.cs" />
         <Compile Include="Visuals\VisualsInfoAccessor.cs" />
-        <Compile Include="Visuals\VisualsScene.cs" />
-        <Compile Include="Visuals\VisualsSceneManager.cs" />
+        <Compile Include="Visuals\VisualsBackground.cs" />
+        <Compile Include="Visuals\VisualsBackgroundManager.cs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\SRXDCustomVisuals.Core\SRXDCustomVisuals.Core.csproj">

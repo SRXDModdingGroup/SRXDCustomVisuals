@@ -14,13 +14,17 @@ public class VisualsEventManager : MonoBehaviour {
     }
     
     public void SendEvent(VisualsEvent visualsEvent) {
-        foreach (var receiver in receivers)
-            receiver.ReceiveEvent(visualsEvent);
+        foreach (var receiver in receivers) {
+            if (receiver != null)
+                receiver.ReceiveEvent(visualsEvent);
+        }
     }
 
     public void ResetAll() {
-        foreach (var receiver in receivers)
-            receiver.DoReset();
+        foreach (var receiver in receivers) {
+            if (receiver != null)
+                receiver.DoReset();
+        }
     }
 
     internal void AddReceiver(VisualsEventReceiver receiver) => receivers.Add(receiver);

@@ -2,13 +2,13 @@
 
 namespace SRXDCustomVisuals.Plugin; 
 
-public class VisualsElementAssetReference {
-    [JsonProperty(propertyName: "bundle")]
+public class ElementReference {
+    [JsonProperty(PropertyName = "bundle")]
     public string Bundle { get; set; } = string.Empty;
     
-    [JsonProperty(propertyName: "asset")]
+    [JsonProperty(PropertyName = "asset")]
     public string Asset { get; set; } = string.Empty;
     
-    [JsonProperty(propertyName: "root")]
+    [JsonProperty(PropertyName = "root")]
     public int Root { get; set; }
 }

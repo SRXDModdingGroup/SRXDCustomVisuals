@@ -1,5 +1,4 @@
-﻿using System;
-using SRXDCustomVisuals.Core;
+﻿using SRXDCustomVisuals.Core;
 
 namespace SRXDCustomVisuals.Plugin; 
 
@@ -29,7 +28,7 @@ public class TrackVisualsEventPlayback {
 
     public void Advance(long time) {
         var visualsEventManager = VisualsEventManager.Instance;
-        var onOffEvents = sequence.GetOnOffEvents();
+        var onOffEvents = sequence.OnOffEvents;
         int startIndex = lastOnOffEventIndex;
         int newIndex = startIndex;
 
@@ -61,7 +60,7 @@ public class TrackVisualsEventPlayback {
 
     public void Jump(long time) {
         var visualsEventManager = VisualsEventManager.Instance;
-        var onOffEvents = sequence.GetOnOffEvents();
+        var onOffEvents = sequence.OnOffEvents;
         int newIndex = -1;
         
         visualsEventManager.ResetAll();

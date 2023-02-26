@@ -24,10 +24,10 @@ public class SequenceEditorState {
     public List<int>[] SelectedIndicesPerColumn { get; }
     
     public bool ShowValues { get; set; }
+
+    public TextFieldState BackgroundField { get; } = new();
     
-    public string BackgroundField { get; set; }
-    
-    public List<string[]> PaletteFields { get; }
+    public List<TextFieldState> PaletteFields { get; }
 
     public SequenceEditorState() {
         SelectedIndicesPerColumn = new List<int>[Constants.IndexCount];
@@ -35,15 +35,9 @@ public class SequenceEditorState {
         for (int i = 0; i < SelectedIndicesPerColumn.Length; i++)
             SelectedIndicesPerColumn[i] = new List<int>();
 
-        PaletteFields = new List<string[]>(Constants.PaletteSize);
+        PaletteFields = new List<TextFieldState>(Constants.PaletteSize);
 
-        for (int i = 0; i < Constants.PaletteSize; i++) {
-            string[] fields = new string[3];
-            
-            for (int j = 0; j < 3; j++)
-                fields[j] = string.Empty;
-            
-            PaletteFields.Add(fields);
-        }
+        for (int i = 0; i < Constants.PaletteSize; i++)
+            PaletteFields.Add(new TextFieldState());
     }
 }

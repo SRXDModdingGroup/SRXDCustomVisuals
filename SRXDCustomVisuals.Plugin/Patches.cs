@@ -11,31 +11,27 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class Patches {
-    private static NoteClearType previousClearType;
+    
     private static VisualsInfoAccessor visualsInfoAccessor = new();
-    private static VisualsSceneManager visualsSceneManager = new();
+    private static VisualsBackgroundManager visualsBackgroundManager = new();
     private static TrackVisualsEventPlayback eventPlayback = new();
     private static SequenceEditor sequenceEditor;
     private static NoteEventController noteEventController = new(11);
-    private static SpectrumBufferController spectrumBufferController = new();
 
     private static BackgroundAssetReference OverrideBackgroundIfVisualsInfoHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
         if (!Plugin.EnableCustomVisuals.Value)
             return defaultBackground;
         
-        return visualsSceneManager.GetBackgroundForScene(
+        return visualsBackgroundManager.GetBaseBackground(
             defaultBackground,
             visualsInfoAccessor.GetCustomVisualsInfo(handle.Setup.TrackDataSegments[0].trackInfoRef).Background);
     }
-
-    [HarmonyPatch(typeof(Game), nameof(Game.Update)), HarmonyPostfix]
-    private static void Game_Update_Postfix() => spectrumBufferController.Update();
 
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
     private static void Track_Awake_Postfix(Track __instance) {
         new GameObject("Visuals Event Manager", typeof(VisualsEventManager));
         sequenceEditor = new GameObject("Sequence Editor", typeof(SequenceEditor)).GetComponent<SequenceEditor>();
-        VisualsSceneManager.CreateDirectories();
+        VisualsBackgroundManager.CreateDirectories();
         eventPlayback.SetSequence(new TrackVisualsEventSequence());
     }
 
@@ -50,7 +46,7 @@ public class Patches {
         var sequence = new TrackVisualsEventSequence(customVisualsInfo);
 
         if (Plugin.EnableCustomVisuals.Value)
-            visualsSceneManager.LoadScene(customVisualsInfo.Background);
+            visualsBackgroundManager.LoadBackground(customVisualsInfo.Background);
 
         VisualsEventManager.Instance.ResetAll();
         eventPlayback.SetSequence(sequence);
@@ -60,8 +56,8 @@ public class Patches {
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
     private static void Track_ReturnToPickTrack_Postfix() {
         noteEventController.Reset();
-        visualsSceneManager.UnloadScene();
         VisualsEventManager.Instance.ResetAll();
+        visualsBackgroundManager.UnloadBackground();
         eventPlayback.SetSequence(new TrackVisualsEventSequence());
         sequenceEditor.Exit();
         sequenceEditor.Visible = false;
@@ -88,10 +84,11 @@ public class Patches {
     }
 
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPrefix]
-    private static void TrackGameplayLogic_UpdateNoteStateInternal_Prefix(PlayState playState, int noteIndex) => previousClearType = playState.noteStates[noteIndex].clearType;
+    private static void TrackGameplayLogic_UpdateNoteStateInternal_Prefix(PlayState playState, int noteIndex, out NoteClearType __state)
+        => __state = playState.noteStates[noteIndex].clearType;
     
     [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.UpdateNoteStateInternal)), HarmonyPostfix]
-    private static void TrackGameplayLogic_UpdateNoteStateInternal_Postfix(PlayState playState, int noteIndex) {
+    private static void TrackGameplayLogic_UpdateNoteStateInternal_Postfix(PlayState playState, int noteIndex, NoteClearType __state) {
         if (!Plugin.EnableCustomVisuals.Value)
             return;
         
@@ -108,7 +105,7 @@ public class Patches {
                 noteEventController.Hold((int) NoteIndex.HoldBeat);
         }
 
-        if (clearType == previousClearType || clearType >= NoteClearType.ClearedEarly)
+        if (clearType == __state || clearType >= NoteClearType.ClearedEarly)
             return;
         
         switch (noteType) {
@@ -227,6 +224,14 @@ public class Patches {
     [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.SetCurrentTrackTime)), HarmonyPostfix]
     private static void TrackEditorGUI_SetCurrentTrackTime_Postfix() => eventPlayback.Jump(PlayState.Active.currentTrackTick);
 
+    [HarmonyPatch(typeof(SpectrumProcessor), "UpdateComputeBuffer"), HarmonyPostfix]
+    private static void SpectrumProcessor_UpdateComputeBuffer_Postfix(SpectrumProcessor __instance, SpectrumProcessor.Bands ___bandsLeft, ComputeBuffer ____computeBuffer) {
+        if (___bandsLeft.smoothedBands.Length > 0)
+            visualsBackgroundManager.UpdateSpectrumBuffer(____computeBuffer, __instance.EmptySpectrumBuffer);
+        else
+            visualsBackgroundManager.UpdateSpectrumBuffer(__instance.EmptySpectrumBuffer, __instance.EmptySpectrumBuffer);
+    }
+    
     [HarmonyPatch(typeof(TrackEditorGUI), "HandleNoteEditorInput"), HarmonyPrefix]
     private static bool TrackEditorGUI_HandleNoteEditorInput_Prefix() => !sequenceEditor.Visible;
     

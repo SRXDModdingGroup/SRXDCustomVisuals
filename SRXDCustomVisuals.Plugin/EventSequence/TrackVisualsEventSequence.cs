@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
@@ -19,6 +18,8 @@ public class TrackVisualsEventSequence {
     }
 
     public IReadOnlyList<Color32> Palette => palette;
+
+    public IReadOnlyList<OnOffEvent> OnOffEvents => onOffEvents;
 
     private string background;
     private Color32[] palette;
@@ -54,7 +55,7 @@ public class TrackVisualsEventSequence {
             if (i < fromPalette.Count) {
                 var fromColor = fromPalette[i];
 
-                palette[i] = new Color32((byte) fromColor.Red, (byte) fromColor.Blue, (byte) fromColor.Green, 255);
+                palette[i] = new Color32((byte) fromColor.Red, (byte) fromColor.Green, (byte) fromColor.Blue, 255);
             }
             else
                 palette[i] = new Color32(255, 255, 255, 255);
@@ -94,6 +95,14 @@ public class TrackVisualsEventSequence {
             return;
         
         undoRedoStack.Redo();
+        dirty = true;
+    }
+
+    public void SetPaletteColor(int index, Color32 color) {
+        if (index < 0 || index >= palette.Length || Util.ColorEquals(color, palette[index]))
+            return;
+        
+        palette[index] = color;
         dirty = true;
     }
 
@@ -210,8 +219,6 @@ public class TrackVisualsEventSequence {
 
         return wasDirty;
     }
-
-    public IReadOnlyList<OnOffEvent> GetOnOffEvents() => onOffEvents;
 
     public IReadOnlyList<ControlKeyframe> GetKeyframes(int column) => controlCurves[column];
 
