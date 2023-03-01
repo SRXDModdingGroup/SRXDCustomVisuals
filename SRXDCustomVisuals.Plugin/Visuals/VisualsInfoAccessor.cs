@@ -22,7 +22,7 @@ public class VisualsInfoAccessor {
     }
     
     public CustomVisualsInfo GetCustomVisualsInfo(TrackInfoAssetReference trackInfoRef) {
-        if (!trackInfoRef.IsCustomFile)
+        if (trackInfoRef == null || !trackInfoRef.IsCustomFile)
             return new CustomVisualsInfo();
 
         string uniqueName = trackInfoRef.UniqueName;

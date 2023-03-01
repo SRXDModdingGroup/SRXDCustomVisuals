@@ -35,62 +35,65 @@
     <PropertyGroup>
       <PostBuildEvent>xcopy "$(TargetDir)SRXDCustomVisuals.Plugin.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins" /Y</PostBuildEvent>
     </PropertyGroup>
+    <PropertyGroup>
+        <SpinDir>C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm</SpinDir>
+    </PropertyGroup>
     <ItemGroup>
         <Reference Include="0Harmony">
-          <HintPath>..\Libs\0Harmony.dll</HintPath>
+          <HintPath>$(SpinDir)\BepInEx\core\0Harmony.dll</HintPath>
         </Reference>
         <Reference Include="Assembly-CSharp">
-          <HintPath>..\Libs\Assembly-CSharp.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\Assembly-CSharp.dll</HintPath>
         </Reference>
         <Reference Include="BepInEx">
-          <HintPath>..\Libs\BepInEx.dll</HintPath>
+          <HintPath>$(SpinDir)\BepInEx\core\BepInEx.dll</HintPath>
         </Reference>
-        <Reference Include="Newtonsoft.Json">
-          <HintPath>..\Libs\Newtonsoft.Json.dll</HintPath>
+        <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+          <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
         </Reference>
         <Reference Include="SpinCore">
-          <HintPath>..\Libs\SpinCore.dll</HintPath>
+          <HintPath>$(SpinDir)\BepInEx\plugins\SpinCore.dll</HintPath>
         </Reference>
         <Reference Include="SpinModdingUtilities">
-          <HintPath>..\Libs\SpinModdingUtilities.dll</HintPath>
+          <HintPath>$(SpinDir)\BepInEx\plugins\SpinModdingUtilities.dll</HintPath>
         </Reference>
         <Reference Include="SSD.Game">
-          <HintPath>..\Libs\SSD.Game.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\SSD.Game.dll</HintPath>
         </Reference>
         <Reference Include="SSD.PlayerServiceManager">
-          <HintPath>..\Libs\SSD.PlayerServiceManager.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\SSD.PlayerServiceManager.dll</HintPath>
         </Reference>
         <Reference Include="SSD.Types">
-          <HintPath>..\Libs\SSD.Types.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\SSD.Types.dll</HintPath>
         </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="Unity.Mathematics">
-          <HintPath>..\Libs\Unity.Mathematics.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\Unity.Mathematics.dll</HintPath>
         </Reference>
         <Reference Include="Unity.RenderPipelines.Universal.Runtime">
-          <HintPath>..\Libs\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
         </Reference>
         <Reference Include="Unity.TextMeshPro">
-          <HintPath>..\Libs\Unity.TextMeshPro.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\Unity.TextMeshPro.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine">
-          <HintPath>..\Libs\UnityEngine.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\UnityEngine.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.AssetBundleModule">
-          <HintPath>..\Libs\UnityEngine.AssetBundleModule.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
-          <HintPath>..\Libs\UnityEngine.CoreModule.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.IMGUIModule">
-          <HintPath>..\Libs\UnityEngine.IMGUIModule.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.InputLegacyModule">
-          <HintPath>..\Libs\UnityEngine.InputLegacyModule.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.UI">
-          <HintPath>..\Libs\UnityEngine.UI.dll</HintPath>
+          <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\UnityEngine.UI.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
@@ -134,6 +137,10 @@
         <Project>{eb6e53be-6477-42e6-af4c-9d24f778359b}</Project>
         <Name>SRXDCustomVisuals.Core</Name>
       </ProjectReference>
+    </ItemGroup>
+    <ItemGroup>
+      <None Include="App.config" />
+      <None Include="packages.config" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

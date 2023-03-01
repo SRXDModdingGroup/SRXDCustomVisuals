@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
+using SMU.Extensions;
 using SMU.Utilities;
 using SRXDCustomVisuals.Core;
 using UnityEngine;
@@ -11,21 +12,11 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class Patches {
-    
     private static VisualsInfoAccessor visualsInfoAccessor = new();
     private static VisualsBackgroundManager visualsBackgroundManager = new();
     private static TrackVisualsEventPlayback eventPlayback = new();
     private static SequenceEditor sequenceEditor;
     private static NoteEventController noteEventController = new(11);
-
-    private static BackgroundAssetReference OverrideBackgroundIfVisualsInfoHasOverride(BackgroundAssetReference defaultBackground, PlayableTrackDataHandle handle) {
-        if (!Plugin.EnableCustomVisuals.Value)
-            return defaultBackground;
-        
-        return visualsBackgroundManager.GetBaseBackground(
-            defaultBackground,
-            visualsInfoAccessor.GetCustomVisualsInfo(handle.Setup.TrackDataSegments[0].trackInfoRef).Background);
-    }
 
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
     private static void Track_Awake_Postfix(Track __instance) {
@@ -39,10 +30,8 @@ public class Patches {
     private static void Track_PlayTrack_Postfix(Track __instance) {
         noteEventController.Reset();
 
-        var playState = __instance.playStateFirst;
-        var trackData = playState.trackData;
-
-        var customVisualsInfo = visualsInfoAccessor.GetCustomVisualsInfo(trackData.TrackInfoRef);
+        var playState = PlayState.Active;
+        var customVisualsInfo = visualsInfoAccessor.GetCustomVisualsInfo(playState.TrackInfoRef);
         var sequence = new TrackVisualsEventSequence(customVisualsInfo);
 
         if (Plugin.EnableCustomVisuals.Value)
@@ -65,7 +54,7 @@ public class Patches {
 
     [HarmonyPatch(typeof(Track), nameof(Track.Update)), HarmonyPostfix]
     private static void Track_Update_Postfix(Track __instance) {
-        var playState = __instance.playStateFirst;
+        var playState = PlayState.Active;
         
         if (!Track.IsPaused && playState.currentTrackTick > playState.previousTrackTick)
             eventPlayback.Advance(playState.currentTrackTick);
@@ -204,7 +193,7 @@ public class Patches {
         
         if (anyEdit) {
             visualsInfoAccessor.SaveCustomVisualsInfo(
-                __instance.frameInfo.trackData.TrackInfoRef,
+                __instance.frameInfo.playState.TrackInfoRef,
                 sequenceEditor.GetCustomVisualsInfo());
         }
 
@@ -231,7 +220,23 @@ public class Patches {
         else
             visualsBackgroundManager.UpdateSpectrumBuffer(__instance.EmptySpectrumBuffer, __instance.EmptySpectrumBuffer);
     }
-    
+
+    [HarmonyPatch(typeof(PlayableTrackDataHandle), nameof(PlayableTrackDataHandle.ReplaceSetup)), HarmonyPrefix]
+    private static void PlayableTrackDataHandle_ReplaceSetup_Prefix(PlayableTrackDataHandle __instance, ref PlayableTrackDataSetup newSetup) {
+        if (!Plugin.EnableCustomVisuals.Value)
+            return;
+        
+        var trackInfoRef = newSetup.TrackDataSegments[0].metadata.TrackInfoRef;
+        
+        if (trackInfoRef == null)
+            return;
+
+        newSetup = new PlayableTrackDataSetup(newSetup);
+        newSetup.BackgroundOverride = visualsBackgroundManager.GetBaseBackground(
+            newSetup.BackgroundOverride,
+            visualsInfoAccessor.GetCustomVisualsInfo(trackInfoRef).Background);
+    }
+
     [HarmonyPatch(typeof(TrackEditorGUI), "HandleNoteEditorInput"), HarmonyPrefix]
     private static bool TrackEditorGUI_HandleNoteEditorInput_Prefix() => !sequenceEditor.Visible;
     
@@ -250,25 +255,5 @@ public class Patches {
         __result = false;
 
         return false;
-    }
-
-    [HarmonyPatch(typeof(PlayableTrackDataHandle), "Loading"), HarmonyTranspiler]
-    private static IEnumerable<CodeInstruction> PlayableTrackDataHandle_Loading_Transpiler(IEnumerable<CodeInstruction> instructions) {
-        var instructionsList = instructions.ToList();
-        var operations = new EnumerableOperation<CodeInstruction>();
-        var Patches_OverrideBackgroundIfStoryboardHasOverride = typeof(Patches).GetMethod(nameof(OverrideBackgroundIfVisualsInfoHasOverride), BindingFlags.NonPublic | BindingFlags.Static);
-
-        var match = PatternMatching.Match(instructionsList, new Func<CodeInstruction, bool>[] {
-            instr => instr.opcode == OpCodes.Ldloc_1 // backgroundAssetReference
-        }).ElementAt(1)[0];
-        
-        operations.Insert(match.End, new CodeInstruction[] {
-            new (OpCodes.Ldarg_0), // this
-            new (OpCodes.Call, Patches_OverrideBackgroundIfStoryboardHasOverride),
-            new (OpCodes.Stloc_1), // backgroundAssetReference
-            new (OpCodes.Ldloc_1) // backgroundAssetReference
-        });
-
-        return operations.Enumerate(instructionsList);
     }
 }

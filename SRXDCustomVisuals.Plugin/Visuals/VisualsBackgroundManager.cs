@@ -72,9 +72,8 @@ public class VisualsBackgroundManager {
     }
 
     public BackgroundAssetReference GetBaseBackground(BackgroundAssetReference defaultBaseBackground, string visualsBackgroundName) {
-        if (TryGetBackground(visualsBackgroundName, out var visualsBackground)
-            && visualsBackground.DisableBaseBackground)
-            return BackgroundSystem.UtilityBackgrounds.lowMotionBackground;
+        if (TryGetBackground(visualsBackgroundName, out var visualsBackground) && visualsBackground.DisableBaseBackground)
+            return BackgroundSystem.DefaultBackground;
         
         return defaultBaseBackground;
     }
