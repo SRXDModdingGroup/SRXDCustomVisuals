@@ -1,28 +1,22 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
 
-public class VisualsPaletteManager : MonoBehaviour {
-    public static VisualsPaletteManager Instance { get; private set; }
-    
-    internal IReadOnlyList<Color> Palette { get; private set; }
+public static class VisualsPaletteManager {
+    internal static IReadOnlyList<Color> Palette { get; private set; } = Array.Empty<Color>();
 
-    private List<VisualsPaletteReceiver> receivers;
+    private static List<VisualsPaletteReceiver> receivers = new();
 
-    private void Awake() {
-        Instance = this;
-        receivers = new List<VisualsPaletteReceiver>();
-    }
-
-    public void SetPalette(IReadOnlyList<Color> palette) {
+    public static void SetPalette(IReadOnlyList<Color> palette) {
         Palette = palette;
 
         foreach (var receiver in receivers)
             receiver.DoPaletteChanged(palette);
     }
 
-    internal void AddReceiver(VisualsPaletteReceiver receiver) => receivers.Add(receiver);
+    internal static void AddReceiver(VisualsPaletteReceiver receiver) => receivers.Add(receiver);
 
-    internal void RemoveReceiver(VisualsPaletteReceiver receiver) => receivers.Remove(receiver);
+    internal static void RemoveReceiver(VisualsPaletteReceiver receiver) => receivers.Remove(receiver);
 }

@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using HarmonyLib;
-using SMU.Extensions;
-using SMU.Utilities;
+﻿using HarmonyLib;
 using SRXDCustomVisuals.Core;
 using UnityEngine;
 
@@ -20,7 +13,6 @@ public class Patches {
 
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
     private static void Track_Awake_Postfix(Track __instance) {
-        new GameObject("Visuals Event Manager", typeof(VisualsEventManager));
         sequenceEditor = new GameObject("Sequence Editor", typeof(SequenceEditor)).GetComponent<SequenceEditor>();
         VisualsBackgroundManager.CreateDirectories();
         eventPlayback.SetSequence(new TrackVisualsEventSequence());
@@ -37,7 +29,7 @@ public class Patches {
         if (Plugin.EnableCustomVisuals.Value)
             visualsBackgroundManager.LoadBackground(customVisualsInfo.Background);
 
-        VisualsEventManager.Instance.ResetAll();
+        VisualsEventManager.ResetAll();
         eventPlayback.SetSequence(sequence);
         sequenceEditor.Init(sequence, playState);
     }
@@ -45,7 +37,7 @@ public class Patches {
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
     private static void Track_ReturnToPickTrack_Postfix() {
         noteEventController.Reset();
-        VisualsEventManager.Instance.ResetAll();
+        VisualsEventManager.ResetAll();
         visualsBackgroundManager.UnloadBackground();
         eventPlayback.SetSequence(new TrackVisualsEventSequence());
         sequenceEditor.Exit();
@@ -228,13 +220,13 @@ public class Patches {
         
         var trackInfoRef = newSetup.TrackDataSegments[0].metadata.TrackInfoRef;
         
-        if (trackInfoRef == null)
+        if (trackInfoRef == null
+            || !visualsBackgroundManager.TryGetBackground(visualsInfoAccessor.GetCustomVisualsInfo(trackInfoRef).Background, out var visualsBackground)
+            || !visualsBackground.DisableBaseBackground)
             return;
 
         newSetup = new PlayableTrackDataSetup(newSetup);
-        newSetup.BackgroundOverride = visualsBackgroundManager.GetBaseBackground(
-            newSetup.BackgroundOverride,
-            visualsInfoAccessor.GetCustomVisualsInfo(trackInfoRef).Background);
+        newSetup.BackgroundOverride = BackgroundSystem.DefaultBackground;
     }
 
     [HarmonyPatch(typeof(TrackEditorGUI), "HandleNoteEditorInput"), HarmonyPrefix]

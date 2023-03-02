@@ -27,7 +27,6 @@ public class TrackVisualsEventPlayback {
     }
 
     public void Advance(long time) {
-        var visualsEventManager = VisualsEventManager.Instance;
         var onOffEvents = sequence.OnOffEvents;
         int startIndex = lastOnOffEventIndex;
         int newIndex = startIndex;
@@ -40,14 +39,14 @@ public class TrackVisualsEventPlayback {
         
             switch (onOffEvent.Type) {
                 case OnOffEventType.On:
-                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
+                    VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
                     break;
                 case OnOffEventType.Off:
-                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, onOffEvent.Index, onOffEvent.Value));
+                    VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, onOffEvent.Index, onOffEvent.Value));
                     break;
                 case OnOffEventType.OnOff:
-                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
-                    visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, onOffEvent.Index, onOffEvent.Value));
+                    VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
+                    VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, onOffEvent.Index, onOffEvent.Value));
                     break;
             }
 
@@ -59,11 +58,10 @@ public class TrackVisualsEventPlayback {
     }
 
     public void Jump(long time) {
-        var visualsEventManager = VisualsEventManager.Instance;
         var onOffEvents = sequence.OnOffEvents;
         int newIndex = -1;
         
-        visualsEventManager.ResetAll();
+        VisualsEventManager.ResetAll();
 
         for (int i = 0; i < onOffEvents.Count; i++) {
             var onOffEvent = onOffEvents[i];
@@ -85,7 +83,7 @@ public class TrackVisualsEventPlayback {
             if (onOffEvent == null)
                 continue;
             
-            visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
+            VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
             onOffEventsToSend[i] = null;
         }
         
@@ -98,8 +96,6 @@ public class TrackVisualsEventPlayback {
     }
 
     private void ProcessControlCurves(long time) {
-        var visualsEventManager = VisualsEventManager.Instance;
-
         for (int i = 0; i < sequence.ColumnCount; i++) {
             var keyframes = sequence.GetKeyframes(i);
             
@@ -126,7 +122,7 @@ public class TrackVisualsEventPlayback {
             else
                 value = ControlKeyframe.Interpolate(keyframes[index], keyframes[index + 1], time);
 
-            visualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.ControlChange, i, value));
+            VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.ControlChange, i, value));
             lastControlKeyframeIndex[i] = index;
         }
     }

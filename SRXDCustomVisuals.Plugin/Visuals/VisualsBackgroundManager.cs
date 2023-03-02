@@ -71,14 +71,7 @@ public class VisualsBackgroundManager {
             Shader.SetGlobalBuffer(SPECTRUM_BANDS_CUSTOM, emptyBuffer);
     }
 
-    public BackgroundAssetReference GetBaseBackground(BackgroundAssetReference defaultBaseBackground, string visualsBackgroundName) {
-        if (TryGetBackground(visualsBackgroundName, out var visualsBackground) && visualsBackground.DisableBaseBackground)
-            return BackgroundSystem.DefaultBackground;
-        
-        return defaultBaseBackground;
-    }
-
-    private bool TryGetBackground(string name, out VisualsBackground background) {
+    public bool TryGetBackground(string name, out VisualsBackground background) {
         if (string.IsNullOrWhiteSpace(name)) {
             background = null;
 

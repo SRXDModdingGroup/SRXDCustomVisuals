@@ -3,31 +3,24 @@ using UnityEngine;
 
 namespace SRXDCustomVisuals.Core; 
 
-public class VisualsEventManager : MonoBehaviour {
-    public static VisualsEventManager Instance { get; private set; }
+public static class VisualsEventManager {
+    private static List<VisualsEventReceiver> receivers = new();
 
-    private List<VisualsEventReceiver> receivers;
-
-    private void Awake() {
-        Instance = this;
-        receivers = new List<VisualsEventReceiver>();
-    }
-    
-    public void SendEvent(VisualsEvent visualsEvent) {
+    public static void SendEvent(VisualsEvent visualsEvent) {
         foreach (var receiver in receivers) {
             if (receiver != null)
                 receiver.ReceiveEvent(visualsEvent);
         }
     }
 
-    public void ResetAll() {
+    public static void ResetAll() {
         foreach (var receiver in receivers) {
             if (receiver != null)
                 receiver.DoReset();
         }
     }
 
-    internal void AddReceiver(VisualsEventReceiver receiver) => receivers.Add(receiver);
+    internal static void AddReceiver(VisualsEventReceiver receiver) => receivers.Add(receiver);
 
-    internal void RemoveReceiver(VisualsEventReceiver receiver) => receivers.Remove(receiver);
+    internal static void RemoveReceiver(VisualsEventReceiver receiver) => receivers.Remove(receiver);
 }
