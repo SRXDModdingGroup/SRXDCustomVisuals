@@ -32,5 +32,5 @@ using SRXDCustomVisuals.Plugin;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion($"{PluginInfo.Version}.*")]
+[assembly: AssemblyVersion($"{PluginInfo.Version}.0")]
 [assembly: AssemblyFileVersion(PluginInfo.Version)]

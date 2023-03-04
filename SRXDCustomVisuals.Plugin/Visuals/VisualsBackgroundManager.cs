@@ -36,6 +36,7 @@ public class VisualsBackgroundManager {
         if (!backgroundExists) {
             mainCamera.clearFlags = CameraClearFlags.Skybox;
             mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = false;
+            mainCamera.farClipPlane = 100f;
             
             return;
         }
@@ -48,6 +49,7 @@ public class VisualsBackgroundManager {
             mainCamera.clearFlags = CameraClearFlags.Skybox;
 
         mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = true;
+        mainCamera.farClipPlane = background.FarClip;
         background.Load(new[] { null, mainCamera.transform });
         currentBackground = background;
     }

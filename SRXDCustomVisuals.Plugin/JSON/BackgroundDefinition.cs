@@ -10,6 +10,9 @@ public class BackgroundDefinition {
     [JsonProperty(PropertyName = "useAudioSpectrum")]
     public bool UseAudioSpectrum { get; set; }
 
+    [JsonProperty(PropertyName = "farClip")]
+    public float FarClip { get; } = 100f;
+
     [JsonProperty(PropertyName = "assetBundles")]
     public string[] AssetBundles { get; set; } = Array.Empty<string>();
 

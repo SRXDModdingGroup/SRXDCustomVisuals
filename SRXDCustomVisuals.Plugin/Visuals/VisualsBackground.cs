@@ -9,6 +9,8 @@ public class VisualsBackground {
     public bool DisableBaseBackground { get; }
     
     public bool UseAudioSpectrum { get; }
+    
+    public float FarClip { get; }
 
     private string[] assetBundleNames;
     private string[] assemblyNames;
@@ -20,6 +22,7 @@ public class VisualsBackground {
     public VisualsBackground(BackgroundDefinition definition) {
         DisableBaseBackground = definition.DisableBaseBackground;
         UseAudioSpectrum = definition.UseAudioSpectrum;
+        FarClip = definition.FarClip;
         assetBundleNames = definition.AssetBundles.Copy();
         assemblyNames = definition.Assemblies.Copy();
 

@@ -4,36 +4,39 @@ using SpinCore.Utility;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class VisualsInfoAccessor {
-    private Dictionary<string, CustomVisualsInfo> cachedVisualsInfo = new();
+    private Dictionary<AssetReferenceKey, CustomVisualsInfo> cachedVisualsInfo = new();
 
     public void SaveCustomVisualsInfo(TrackInfoAssetReference trackInfoRef, CustomVisualsInfo customVisualsInfo) {
-        if (!trackInfoRef.IsCustomFile)
+        if (!trackInfoRef.IsCustomFile || trackInfoRef.customFile is not CustomTrackBundleSaveFile customFile)
             return;
 
+        var key = trackInfoRef.GetReferenceKey();
+
         if (customVisualsInfo.IsEmpty()) {
-            CustomChartUtility.RemoveCustomData(trackInfoRef.customFile, "CustomVisualsInfo");
-            cachedVisualsInfo.Remove(trackInfoRef.UniqueName);
+            CustomChartUtility.RemoveCustomData(customFile, "CustomVisualsInfo");
+            cachedVisualsInfo.Remove(key);
             
             return;
         }
         
-        CustomChartUtility.SetCustomData(trackInfoRef.customFile, "CustomVisualsInfo", customVisualsInfo);
-        cachedVisualsInfo[trackInfoRef.UniqueName] = customVisualsInfo;
+        CustomChartUtility.SetCustomData(customFile, "CustomVisualsInfo", customVisualsInfo);
+        cachedVisualsInfo[key] = customVisualsInfo;
     }
     
     public CustomVisualsInfo GetCustomVisualsInfo(TrackInfoAssetReference trackInfoRef) {
         if (trackInfoRef == null || !trackInfoRef.IsCustomFile)
             return new CustomVisualsInfo();
 
-        string uniqueName = trackInfoRef.UniqueName;
+        var key = trackInfoRef.GetReferenceKey();
 
-        if (cachedVisualsInfo.TryGetValue(uniqueName, out var customVisualsInfo))
+        if (cachedVisualsInfo.TryGetValue(key, out var customVisualsInfo))
             return customVisualsInfo;
 
-        if (!CustomChartUtility.TryGetCustomData(trackInfoRef.customFile, "CustomVisualsInfo", out customVisualsInfo))
+        if (trackInfoRef.customFile is not CustomTrackBundleSaveFile customFile
+            || !CustomChartUtility.TryGetCustomData(customFile, "CustomVisualsInfo", out customVisualsInfo))
             return new CustomVisualsInfo();
 
-        cachedVisualsInfo.Add(uniqueName, customVisualsInfo);
+        cachedVisualsInfo.Add(key, customVisualsInfo);
 
         return customVisualsInfo;
     }

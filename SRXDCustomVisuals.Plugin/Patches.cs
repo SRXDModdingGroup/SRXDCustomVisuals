@@ -19,7 +19,7 @@ public class Patches {
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
-    private static void Track_PlayTrack_Postfix(Track __instance) {
+    private static void Track_PlayTrack_Postfix() {
         noteEventController.Reset();
 
         var playState = PlayState.Active;
