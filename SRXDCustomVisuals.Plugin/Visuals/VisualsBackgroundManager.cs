@@ -7,8 +7,6 @@ using UnityEngine.Rendering.Universal;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class VisualsBackgroundManager {
-    private static readonly int SPECTRUM_BANDS_CUSTOM = Shader.PropertyToID("_SpectrumBandsCustom");
-
     public static void CreateDirectories() {
         if (!Directory.Exists(Util.AssetBundlesPath))
             Directory.CreateDirectory(Util.AssetBundlesPath);
@@ -17,18 +15,19 @@ public class VisualsBackgroundManager {
             Directory.CreateDirectory(Util.BackgroundsPath);
     }
     
-    private VisualsBackground currentBackground;
+    public VisualsBackground CurrentBackground { get; private set; }
+    
     private Dictionary<string, VisualsBackground> backgrounds = new();
 
     public void LoadBackground(string backgroundName) {
         bool backgroundExists = TryGetBackground(backgroundName, out var background);
 
-        if (backgroundExists && background == currentBackground)
+        if (backgroundExists && background == CurrentBackground)
             return;
 
-        if (currentBackground != null) {
-            currentBackground.Unload();
-            currentBackground = null;
+        if (CurrentBackground != null) {
+            CurrentBackground.Unload();
+            CurrentBackground = null;
         }
         
         var mainCamera = MainCamera.Instance.GetComponent<Camera>();
@@ -51,26 +50,19 @@ public class VisualsBackgroundManager {
         mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = true;
         mainCamera.farClipPlane = background.FarClip;
         background.Load(new[] { null, mainCamera.transform });
-        currentBackground = background;
+        CurrentBackground = background;
     }
 
     public void UnloadBackground() {
-        if (currentBackground == null)
+        if (CurrentBackground == null)
             return;
         
         var mainCamera = MainCamera.Instance.GetComponent<Camera>();
         
         mainCamera.clearFlags = CameraClearFlags.Skybox;
         mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = false;
-        currentBackground.Unload();
-        currentBackground = null;
-    }
-
-    public void UpdateSpectrumBuffer(ComputeBuffer buffer, ComputeBuffer emptyBuffer) {
-        if (currentBackground != null && currentBackground.UseAudioSpectrum)
-            Shader.SetGlobalBuffer(SPECTRUM_BANDS_CUSTOM, buffer);
-        else
-            Shader.SetGlobalBuffer(SPECTRUM_BANDS_CUSTOM, emptyBuffer);
+        CurrentBackground.Unload();
+        CurrentBackground = null;
     }
 
     public bool TryGetBackground(string name, out VisualsBackground background) {

@@ -1,15 +1,35 @@
-﻿using HarmonyLib;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using HarmonyLib;
+using SMU.Utilities;
 using SRXDCustomVisuals.Core;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
 
 public class Patches {
+    private static readonly int SPECTRUM_BANDS_CUSTOM = Shader.PropertyToID("_SpectrumBandsCustom");
+    
     private static VisualsInfoAccessor visualsInfoAccessor = new();
     private static VisualsBackgroundManager visualsBackgroundManager = new();
     private static TrackVisualsEventPlayback eventPlayback = new();
     private static SequenceEditor sequenceEditor;
     private static NoteEventController noteEventController = new(11);
+
+    private static ComputeBuffer GetOrReplaceComputeBuffer(ComputeBuffer buffer, SpectrumProcessor spectrumProcessor) {
+        var emptyBuffer = spectrumProcessor.EmptySpectrumBuffer;
+        var background = visualsBackgroundManager.CurrentBackground;
+        
+        if (background != null && background.UseAudioSpectrum)
+            Shader.SetGlobalBuffer(SPECTRUM_BANDS_CUSTOM, buffer);
+        else
+            Shader.SetGlobalBuffer(SPECTRUM_BANDS_CUSTOM, emptyBuffer);
+        
+        return PlayerSettingsData.Instance.DisableEQ.GetBoolValue() ? emptyBuffer : buffer;
+    }
 
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
     private static void Track_Awake_Postfix(Track __instance) {
@@ -205,12 +225,35 @@ public class Patches {
     [HarmonyPatch(typeof(TrackEditorGUI), nameof(TrackEditorGUI.SetCurrentTrackTime)), HarmonyPostfix]
     private static void TrackEditorGUI_SetCurrentTrackTime_Postfix() => eventPlayback.Jump(PlayState.Active.currentTrackTick);
 
-    [HarmonyPatch(typeof(SpectrumProcessor), "UpdateComputeBuffer"), HarmonyPostfix]
-    private static void SpectrumProcessor_UpdateComputeBuffer_Postfix(SpectrumProcessor __instance, SpectrumProcessor.Bands ___bandsLeft, ComputeBuffer ____computeBuffer) {
-        if (___bandsLeft.smoothedBands.Length > 0)
-            visualsBackgroundManager.UpdateSpectrumBuffer(____computeBuffer, __instance.EmptySpectrumBuffer);
-        else
-            visualsBackgroundManager.UpdateSpectrumBuffer(__instance.EmptySpectrumBuffer, __instance.EmptySpectrumBuffer);
+    [HarmonyPatch(typeof(SpectrumProcessor), nameof(SpectrumProcessor.Disable), MethodType.Getter), HarmonyPrefix]
+    private static bool SpectrumProcessor_Disable_Prefix(ref bool __result) {
+        var background = visualsBackgroundManager.CurrentBackground;
+        
+        if (background == null || !background.UseAudioSpectrum)
+            return true;
+
+        __result = false;
+
+        return false;
+    }
+
+    [HarmonyPatch(typeof(SpectrumProcessor), nameof(SpectrumProcessor.CompleteTrackAnalasis)), HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> SpectrumProcessor_CompleteTrackAnalasis_Transpiler(IEnumerable<CodeInstruction> instructions) {
+        var instructionList = new List<CodeInstruction>(instructions);
+        var operations = new EnumerableOperation<CodeInstruction>();
+        var Shader_SetGlobalBuffer = typeof(Shader).GetMethod(nameof(Shader.SetGlobalBuffer), new [] { typeof(int), typeof(ComputeBuffer) });
+        var Patches_GetOrReplaceComputeBuffer = typeof(Patches).GetMethod(nameof(GetOrReplaceComputeBuffer), BindingFlags.NonPublic | BindingFlags.Static);
+
+        var match = PatternMatching.Match(instructionList, new Func<CodeInstruction, bool>[] {
+            instr => instr.Calls(Shader_SetGlobalBuffer)
+        }).First()[0];
+        
+        operations.Insert(match.Start, new CodeInstruction[] {
+            new(OpCodes.Ldarg_0),
+            new(OpCodes.Call, Patches_GetOrReplaceComputeBuffer)
+        });
+
+        return operations.Enumerate(instructionList);
     }
 
     [HarmonyPatch(typeof(PlayableTrackDataHandle), nameof(PlayableTrackDataHandle.ReplaceSetup)), HarmonyPrefix]
