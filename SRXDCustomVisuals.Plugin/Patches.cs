@@ -7,6 +7,7 @@ using GameSystems.TrackPlayback;
 using HarmonyLib;
 using SMU.Utilities;
 using SRXDCustomVisuals.Core;
+using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
@@ -15,8 +16,9 @@ namespace SRXDCustomVisuals.Plugin;
 
 public class Patches {
     private const int WAVEFORM_BUFFER_SIZE = 256;
-    private const int WAVEFORM_BUFFER_SAMPLES_PER_INDEX = 8;
+    private const int WAVEFORM_BUFFER_SAMPLES_PER_INDEX = 16;
     private const long CHUNK_SIZE = 8192L;
+    private const float WAVEFORM_APPROACH_RATE = 128f;
     
     private static readonly int SPECTRUM_BANDS_CUSTOM = Shader.PropertyToID("_SpectrumBandsCustom");
     private static readonly int WAVEFORM_CUSTOM = Shader.PropertyToID("_WaveformCustom");
@@ -26,8 +28,8 @@ public class Patches {
     private static TrackVisualsEventPlayback eventPlayback = new();
     private static SequenceEditor sequenceEditor;
     private static NoteEventController noteEventController = new(11);
-    private static ComputeBuffer waveformBuffer = new(WAVEFORM_BUFFER_SIZE, UnsafeUtility.SizeOf<float2>(),
-        ComputeBufferType.Structured, ComputeBufferMode.SubUpdates);
+    private static ComputeBuffer waveformBuffer = new(WAVEFORM_BUFFER_SIZE, UnsafeUtility.SizeOf<float2>());
+    private static float2[] waveformArray = new float2[WAVEFORM_BUFFER_SIZE];
 
     private static void UpdateComputeBuffers(SpectrumProcessor spectrumProcessor, ComputeBuffer buffer) {
         var background = visualsBackgroundManager.CurrentBackground;
@@ -261,23 +263,29 @@ public class Patches {
         long chunkIndex = sampleAtTime / CHUNK_SIZE;
         int firstSampleInChunk = (int) (sampleAtTime % CHUNK_SIZE / waveformBufferSamples * waveformBufferSamples);
         var chunk = audioSources.OutputStream.GetLoadedFloatsForChunk(chunkIndex);
-        var waveformArray = waveformBuffer.BeginWrite<float2>(0, WAVEFORM_BUFFER_SIZE);
+        float interp = 1f - Mathf.Exp(-WAVEFORM_APPROACH_RATE * Time.deltaTime);
 
-        for (int i = 0; i < WAVEFORM_BUFFER_SIZE; i++) {
-            var sum = float2.zero;
-            int startIndex = firstSampleInChunk + WAVEFORM_BUFFER_SAMPLES_PER_INDEX * i;
-            int endIndex = firstSampleInChunk + WAVEFORM_BUFFER_SAMPLES_PER_INDEX * (i + 1);
-
-            if (endIndex > chunk.Length)
-                endIndex = chunk.Length;
-
-            for (int j = startIndex; j < endIndex; j += 2)
-                sum += new float2(chunk[j], chunk[j + 1]);
-
-            waveformArray[i] = scale * sum;
+        if (sampleAtTime < 0 || chunk.Length == 0) {
+            for (int i = 0; i < WAVEFORM_BUFFER_SIZE; i++)
+                waveformArray[i] = float2.zero;
         }
-        
-        waveformBuffer.EndWrite<float2>(WAVEFORM_BUFFER_SIZE);
+        else {
+            for (int i = 0; i < WAVEFORM_BUFFER_SIZE; i++) {
+                var sum = float2.zero;
+                int startIndex = firstSampleInChunk + WAVEFORM_BUFFER_SAMPLES_PER_INDEX * i;
+                int endIndex = firstSampleInChunk + WAVEFORM_BUFFER_SAMPLES_PER_INDEX * (i + 1);
+
+                if (endIndex > chunk.Length)
+                    endIndex = chunk.Length;
+
+                for (int j = startIndex; j < endIndex; j += 2)
+                    sum += new float2(Mathf.Clamp(chunk[j], -1f, 1f), Mathf.Clamp(chunk[j + 1], -1f, 1f));
+
+                waveformArray[i] += interp * (scale * sum - waveformArray[i]);
+            }
+        }
+
+        waveformBuffer.SetData(waveformArray);
         Shader.SetGlobalBuffer(WAVEFORM_CUSTOM, waveformBuffer);
     }
 

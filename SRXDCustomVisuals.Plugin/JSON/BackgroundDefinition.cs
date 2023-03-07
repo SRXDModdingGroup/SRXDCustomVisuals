@@ -17,7 +17,7 @@ public class BackgroundDefinition {
     public bool UseDepthTexture { get; set; }
 
     [JsonProperty(PropertyName = "farClip")]
-    public float FarClip { get; } = 100f;
+    public float FarClip { get; set; } = 100f;
 
     [JsonProperty(PropertyName = "assetBundles")]
     public string[] AssetBundles { get; set; } = Array.Empty<string>();

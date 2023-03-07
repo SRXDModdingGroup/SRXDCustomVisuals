@@ -27,6 +27,7 @@ public class VisualsBackground {
         DisableBaseBackground = definition.DisableBaseBackground;
         UseAudioSpectrum = definition.UseAudioSpectrum;
         UseAudioWaveform = definition.UseAudioWaveform;
+        UseDepthTexture = definition.UseDepthTexture;
         FarClip = definition.FarClip;
         assetBundleNames = definition.AssetBundles.Copy();
         assemblyNames = definition.Assemblies.Copy();
