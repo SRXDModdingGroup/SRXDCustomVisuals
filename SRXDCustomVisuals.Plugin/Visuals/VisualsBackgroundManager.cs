@@ -33,10 +33,8 @@ public class VisualsBackgroundManager {
         var mainCamera = MainCamera.Instance.GetComponent<Camera>();
         
         if (!backgroundExists) {
-            mainCamera.clearFlags = CameraClearFlags.Skybox;
-            mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = false;
-            mainCamera.farClipPlane = 100f;
-            
+            ResetCameraSettings();
+
             return;
         }
 
@@ -44,23 +42,31 @@ public class VisualsBackgroundManager {
             mainCamera.clearFlags = CameraClearFlags.SolidColor;
             mainCamera.backgroundColor = Color.black;
         }
-        else
+        else {
             mainCamera.clearFlags = CameraClearFlags.Skybox;
+            mainCamera.backgroundColor = Color.white;
+        }
 
-        mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = true;
+        mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = background.UseDepthTexture;
         mainCamera.farClipPlane = background.FarClip;
         background.Load(new[] { null, mainCamera.transform });
         CurrentBackground = background;
+    }
+
+    private static void ResetCameraSettings() {
+        var mainCamera = MainCamera.Instance.GetComponent<Camera>();;
+        
+        mainCamera.clearFlags = CameraClearFlags.Skybox;
+        mainCamera.backgroundColor = Color.white;
+        mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = false;
+        mainCamera.farClipPlane = 100f;
     }
 
     public void UnloadBackground() {
         if (CurrentBackground == null)
             return;
         
-        var mainCamera = MainCamera.Instance.GetComponent<Camera>();
-        
-        mainCamera.clearFlags = CameraClearFlags.Skybox;
-        mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = false;
+        ResetCameraSettings();
         CurrentBackground.Unload();
         CurrentBackground = null;
     }

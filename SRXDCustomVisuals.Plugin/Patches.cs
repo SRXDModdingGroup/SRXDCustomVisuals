@@ -3,32 +3,42 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using GameSystems.TrackPlayback;
 using HarmonyLib;
 using SMU.Utilities;
 using SRXDCustomVisuals.Core;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
 
 public class Patches {
+    private const int WAVEFORM_BUFFER_SIZE = 256;
+    private const int WAVEFORM_BUFFER_SAMPLES_PER_INDEX = 8;
+    private const long CHUNK_SIZE = 8192L;
+    
     private static readonly int SPECTRUM_BANDS_CUSTOM = Shader.PropertyToID("_SpectrumBandsCustom");
+    private static readonly int WAVEFORM_CUSTOM = Shader.PropertyToID("_WaveformCustom");
     
     private static VisualsInfoAccessor visualsInfoAccessor = new();
     private static VisualsBackgroundManager visualsBackgroundManager = new();
     private static TrackVisualsEventPlayback eventPlayback = new();
     private static SequenceEditor sequenceEditor;
     private static NoteEventController noteEventController = new(11);
+    private static ComputeBuffer waveformBuffer = new(WAVEFORM_BUFFER_SIZE, UnsafeUtility.SizeOf<float2>(),
+        ComputeBufferType.Structured, ComputeBufferMode.SubUpdates);
 
-    private static ComputeBuffer GetOrReplaceComputeBuffer(ComputeBuffer buffer, SpectrumProcessor spectrumProcessor) {
-        var emptyBuffer = spectrumProcessor.EmptySpectrumBuffer;
+    private static void UpdateComputeBuffers(SpectrumProcessor spectrumProcessor, ComputeBuffer buffer) {
         var background = visualsBackgroundManager.CurrentBackground;
-        
+
         if (background != null && background.UseAudioSpectrum)
             Shader.SetGlobalBuffer(SPECTRUM_BANDS_CUSTOM, buffer);
-        else
-            Shader.SetGlobalBuffer(SPECTRUM_BANDS_CUSTOM, emptyBuffer);
         
-        return PlayerSettingsData.Instance.DisableEQ.GetBoolValue() ? emptyBuffer : buffer;
+        if (PlayerSettingsData.Instance.DisableEQ.GetBoolValue())
+            Shader.SetGlobalBuffer(SpectrumProcessor.SpectrumBands, spectrumProcessor.EmptySpectrumBuffer);
+        else
+            Shader.SetGlobalBuffer(SpectrumProcessor.SpectrumBands, buffer);
     }
 
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
@@ -237,20 +247,61 @@ public class Patches {
         return false;
     }
 
+    [HarmonyPatch(typeof(SpectrumProcessor), nameof(SpectrumProcessor.ProcessFromAudioSource)), HarmonyPostfix]
+    private static void SpectrumProcessor_ProcessFromAudioSource_Postfix(TrackPlaybackHandle audioSources) {
+        var background = visualsBackgroundManager.CurrentBackground;
+        
+        if (background == null || !background.UseAudioWaveform)
+            return;
+        
+        const int waveformBufferSamples = WAVEFORM_BUFFER_SIZE * WAVEFORM_BUFFER_SAMPLES_PER_INDEX;
+        const float scale = 2f / WAVEFORM_BUFFER_SAMPLES_PER_INDEX;
+        
+        long sampleAtTime = 2L * (long) (48000 * audioSources.GetCurrentTime());
+        long chunkIndex = sampleAtTime / CHUNK_SIZE;
+        int firstSampleInChunk = (int) (sampleAtTime % CHUNK_SIZE / waveformBufferSamples * waveformBufferSamples);
+        var chunk = audioSources.OutputStream.GetLoadedFloatsForChunk(chunkIndex);
+        var waveformArray = waveformBuffer.BeginWrite<float2>(0, WAVEFORM_BUFFER_SIZE);
+
+        for (int i = 0; i < WAVEFORM_BUFFER_SIZE; i++) {
+            var sum = float2.zero;
+            int startIndex = firstSampleInChunk + WAVEFORM_BUFFER_SAMPLES_PER_INDEX * i;
+            int endIndex = firstSampleInChunk + WAVEFORM_BUFFER_SAMPLES_PER_INDEX * (i + 1);
+
+            if (endIndex > chunk.Length)
+                endIndex = chunk.Length;
+
+            for (int j = startIndex; j < endIndex; j += 2)
+                sum += new float2(chunk[j], chunk[j + 1]);
+
+            waveformArray[i] = scale * sum;
+        }
+        
+        waveformBuffer.EndWrite<float2>(WAVEFORM_BUFFER_SIZE);
+        Shader.SetGlobalBuffer(WAVEFORM_CUSTOM, waveformBuffer);
+    }
+
     [HarmonyPatch(typeof(SpectrumProcessor), nameof(SpectrumProcessor.CompleteTrackAnalasis)), HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> SpectrumProcessor_CompleteTrackAnalasis_Transpiler(IEnumerable<CodeInstruction> instructions) {
         var instructionList = new List<CodeInstruction>(instructions);
         var operations = new EnumerableOperation<CodeInstruction>();
+        var SpectrumProcessor_SpectrumBands = typeof(SpectrumProcessor).GetField(nameof(SpectrumProcessor.SpectrumBands));
+        var SpectrumProcessor_computeBuffer = typeof(SpectrumProcessor).GetField("_computeBuffer", BindingFlags.NonPublic | BindingFlags.Instance);
         var Shader_SetGlobalBuffer = typeof(Shader).GetMethod(nameof(Shader.SetGlobalBuffer), new [] { typeof(int), typeof(ComputeBuffer) });
-        var Patches_GetOrReplaceComputeBuffer = typeof(Patches).GetMethod(nameof(GetOrReplaceComputeBuffer), BindingFlags.NonPublic | BindingFlags.Static);
+        var Patches_UpdateComputeBuffers = typeof(Patches).GetMethod(nameof(UpdateComputeBuffers), BindingFlags.NonPublic | BindingFlags.Static);
 
         var match = PatternMatching.Match(instructionList, new Func<CodeInstruction, bool>[] {
+            instr => instr.LoadsField(SpectrumProcessor_SpectrumBands),
+            instr => instr.opcode == OpCodes.Ldarg_0, // this
+            instr => instr.LoadsField(SpectrumProcessor_computeBuffer),
             instr => instr.Calls(Shader_SetGlobalBuffer)
         }).First()[0];
         
-        operations.Insert(match.Start, new CodeInstruction[] {
-            new(OpCodes.Ldarg_0),
-            new(OpCodes.Call, Patches_GetOrReplaceComputeBuffer)
+        operations.Replace(match.Start, match.Length, new CodeInstruction[] {
+            new(OpCodes.Ldarg_0), // this
+            new(OpCodes.Ldarg_0), // this
+            new(OpCodes.Ldfld, SpectrumProcessor_computeBuffer),
+            new(OpCodes.Call, Patches_UpdateComputeBuffers)
         });
 
         return operations.Enumerate(instructionList);

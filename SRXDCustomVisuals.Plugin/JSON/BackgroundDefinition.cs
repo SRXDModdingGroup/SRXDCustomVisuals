@@ -5,10 +5,16 @@ namespace SRXDCustomVisuals.Plugin;
 
 public class BackgroundDefinition {
     [JsonProperty(PropertyName = "disableBaseBackground")]
-    public bool DisableBaseBackground { get; set; }
+    public bool DisableBaseBackground { get; set; } = true;
     
     [JsonProperty(PropertyName = "useAudioSpectrum")]
     public bool UseAudioSpectrum { get; set; }
+    
+    [JsonProperty(PropertyName = "useAudioWaveform")]
+    public bool UseAudioWaveform { get; set; }
+
+    [JsonProperty(PropertyName = "useDepthTexture")]
+    public bool UseDepthTexture { get; set; }
 
     [JsonProperty(PropertyName = "farClip")]
     public float FarClip { get; } = 100f;

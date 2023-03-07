@@ -10,6 +10,10 @@ public class VisualsBackground {
     
     public bool UseAudioSpectrum { get; }
     
+    public bool UseAudioWaveform { get; }
+    
+    public bool UseDepthTexture { get; }
+    
     public float FarClip { get; }
 
     private string[] assetBundleNames;
@@ -22,6 +26,7 @@ public class VisualsBackground {
     public VisualsBackground(BackgroundDefinition definition) {
         DisableBaseBackground = definition.DisableBaseBackground;
         UseAudioSpectrum = definition.UseAudioSpectrum;
+        UseAudioWaveform = definition.UseAudioWaveform;
         FarClip = definition.FarClip;
         assetBundleNames = definition.AssetBundles.Copy();
         assemblyNames = definition.Assemblies.Copy();
