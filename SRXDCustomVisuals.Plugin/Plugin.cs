@@ -8,7 +8,7 @@ using SpinCore.UI;
 namespace SRXDCustomVisuals.Plugin;
 
 [BepInDependency("com.pink.spinrhythm.moddingutils", "1.0.7")]
-[BepInDependency("com.pink.spinrhythm.spincore", "1.0.0")]
+[BepInDependency("com.pink.spinrhythm.spincore", "1.0.1")]
 [BepInPlugin(PluginInfo.Guid, PluginInfo.Name, PluginInfo.Version)]
 public class Plugin : SpinPlugin {
     public static Bindable<bool> EnableCustomVisuals { get; private set; }
