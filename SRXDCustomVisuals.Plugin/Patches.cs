@@ -15,21 +15,14 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class Patches {
-    private const int WAVEFORM_BUFFER_SIZE = 256;
-    private const int WAVEFORM_BUFFER_SAMPLES_PER_INDEX = 16;
-    private const long CHUNK_SIZE = 8192L;
-    private const float WAVEFORM_APPROACH_RATE = 128f;
-    
     private static readonly int SPECTRUM_BANDS_CUSTOM = Shader.PropertyToID("_SpectrumBandsCustom");
-    private static readonly int WAVEFORM_CUSTOM = Shader.PropertyToID("_WaveformCustom");
     
     private static VisualsInfoAccessor visualsInfoAccessor = new();
     private static VisualsBackgroundManager visualsBackgroundManager = new();
     private static TrackVisualsEventPlayback eventPlayback = new();
     private static SequenceEditor sequenceEditor;
     private static NoteEventController noteEventController = new(11);
-    private static ComputeBuffer waveformBuffer = new(WAVEFORM_BUFFER_SIZE, UnsafeUtility.SizeOf<float2>());
-    private static float2[] waveformArray = new float2[WAVEFORM_BUFFER_SIZE];
+    private static WaveformProcessor waveformProcessor = new();
 
     private static void UpdateComputeBuffers(SpectrumProcessor spectrumProcessor, ComputeBuffer buffer) {
         var background = visualsBackgroundManager.CurrentBackground;
@@ -252,41 +245,9 @@ public class Patches {
     [HarmonyPatch(typeof(SpectrumProcessor), nameof(SpectrumProcessor.ProcessFromAudioSource)), HarmonyPostfix]
     private static void SpectrumProcessor_ProcessFromAudioSource_Postfix(TrackPlaybackHandle audioSources) {
         var background = visualsBackgroundManager.CurrentBackground;
-        
-        if (background == null || !background.UseAudioWaveform)
-            return;
-        
-        const int waveformBufferSamples = WAVEFORM_BUFFER_SIZE * WAVEFORM_BUFFER_SAMPLES_PER_INDEX;
-        const float scale = 2f / WAVEFORM_BUFFER_SAMPLES_PER_INDEX;
-        
-        long sampleAtTime = 2L * (long) (48000 * audioSources.GetCurrentTime());
-        long chunkIndex = sampleAtTime / CHUNK_SIZE;
-        int firstSampleInChunk = (int) (sampleAtTime % CHUNK_SIZE / waveformBufferSamples * waveformBufferSamples);
-        var chunk = audioSources.OutputStream.GetLoadedFloatsForChunk(chunkIndex);
-        float interp = 1f - Mathf.Exp(-WAVEFORM_APPROACH_RATE * Time.deltaTime);
 
-        if (sampleAtTime < 0 || chunk.Length == 0) {
-            for (int i = 0; i < WAVEFORM_BUFFER_SIZE; i++)
-                waveformArray[i] = float2.zero;
-        }
-        else {
-            for (int i = 0; i < WAVEFORM_BUFFER_SIZE; i++) {
-                var sum = float2.zero;
-                int startIndex = firstSampleInChunk + WAVEFORM_BUFFER_SAMPLES_PER_INDEX * i;
-                int endIndex = firstSampleInChunk + WAVEFORM_BUFFER_SAMPLES_PER_INDEX * (i + 1);
-
-                if (endIndex > chunk.Length)
-                    endIndex = chunk.Length;
-
-                for (int j = startIndex; j < endIndex; j += 2)
-                    sum += new float2(Mathf.Clamp(chunk[j], -1f, 1f), Mathf.Clamp(chunk[j + 1], -1f, 1f));
-
-                waveformArray[i] += interp * (scale * sum - waveformArray[i]);
-            }
-        }
-
-        waveformBuffer.SetData(waveformArray);
-        Shader.SetGlobalBuffer(WAVEFORM_CUSTOM, waveformBuffer);
+        if (background != null && background.UseAudioWaveform)
+            waveformProcessor.AnalyzeWaveform(audioSources);
     }
 
     [HarmonyPatch(typeof(SpectrumProcessor), nameof(SpectrumProcessor.CompleteTrackAnalasis)), HarmonyTranspiler]

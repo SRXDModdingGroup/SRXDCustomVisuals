@@ -134,6 +134,7 @@
         <Compile Include="Visuals\VisualsInfoAccessor.cs" />
         <Compile Include="Visuals\VisualsBackground.cs" />
         <Compile Include="Visuals\VisualsBackgroundManager.cs" />
+        <Compile Include="Visuals\WaveformProcessor.cs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\SRXDCustomVisuals.Core\SRXDCustomVisuals.Core.csproj">

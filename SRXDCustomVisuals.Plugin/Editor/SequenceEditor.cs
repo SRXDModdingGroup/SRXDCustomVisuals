@@ -253,9 +253,11 @@ public class SequenceEditor : MonoBehaviour {
         }
     }
 
-    private void ChangeValue(int direction, bool largeAmount) {
+    private void ChangeValue(int direction, bool largeAmount, bool smallAmount) {
         if (largeAmount)
-            direction *= 16;
+            direction *= 64;
+        else if (!smallAmount)
+            direction *= 8;
         
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
 
@@ -938,8 +940,7 @@ public class SequenceEditor : MonoBehaviour {
             direction--;
 
         if (direction != 0) {
-            MoveTime(
-                direction,
+            MoveTime(direction,
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
                 Input.GetKey(KeyCode.F),
                 Input.GetKey(KeyCode.D),
@@ -956,8 +957,7 @@ public class SequenceEditor : MonoBehaviour {
             direction--;
         
         if (direction != 0) {
-            MoveColumn(
-                direction,
+            MoveColumn(direction,
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
                 state.Selecting,
                 Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
@@ -975,9 +975,9 @@ public class SequenceEditor : MonoBehaviour {
             if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
                 ChangeType(direction);
             else {
-                ChangeValue(
-                    direction,
-                    Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt));
+                ChangeValue(direction,
+                    Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
+                    Input.GetKey(KeyCode.F));
             }
             
             return true;

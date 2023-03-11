@@ -29,15 +29,15 @@ public class VisualsBackgroundManager {
             CurrentBackground.Unload();
             CurrentBackground = null;
         }
-        
-        var mainCamera = MainCamera.Instance.GetComponent<Camera>();
-        
+
         if (!backgroundExists) {
             ResetCameraSettings();
 
             return;
         }
 
+        var mainCamera = MainCamera.Instance.GetComponent<Camera>();
+        
         if (background.DisableBaseBackground) {
             mainCamera.clearFlags = CameraClearFlags.SolidColor;
             mainCamera.backgroundColor = Color.black;
