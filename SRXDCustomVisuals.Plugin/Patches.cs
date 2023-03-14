@@ -7,9 +7,6 @@ using GameSystems.TrackPlayback;
 using HarmonyLib;
 using SMU.Utilities;
 using SRXDCustomVisuals.Core;
-using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
@@ -24,14 +21,14 @@ public class Patches {
     private static NoteEventController noteEventController = new(11);
     private static WaveformProcessor waveformProcessor = new();
 
-    private static void UpdateComputeBuffers(SpectrumProcessor spectrumProcessor, ComputeBuffer buffer) {
+    private static void UpdateComputeBuffers(ComputeBuffer buffer) {
         var background = visualsBackgroundManager.CurrentBackground;
 
         if (background != null && background.UseAudioSpectrum)
             Shader.SetGlobalBuffer(SPECTRUM_BANDS_CUSTOM, buffer);
         
         if (PlayerSettingsData.Instance.DisableEQ.GetBoolValue())
-            Shader.SetGlobalBuffer(SpectrumProcessor.SpectrumBands, spectrumProcessor.EmptySpectrumBuffer);
+            Shader.SetGlobalBuffer(SpectrumProcessor.SpectrumBands, GraphicsSystem.Instance.EmptySpectrumBuffer);
         else
             Shader.SetGlobalBuffer(SpectrumProcessor.SpectrumBands, buffer);
     }
@@ -267,7 +264,6 @@ public class Patches {
         }).First()[0];
         
         operations.Replace(match.Start, match.Length, new CodeInstruction[] {
-            new(OpCodes.Ldarg_0), // this
             new(OpCodes.Ldarg_0), // this
             new(OpCodes.Ldfld, SpectrumProcessor_computeBuffer),
             new(OpCodes.Call, Patches_UpdateComputeBuffers)
