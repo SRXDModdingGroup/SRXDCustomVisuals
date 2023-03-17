@@ -16,14 +16,16 @@ public class SequenceEditor : MonoBehaviour {
 
     private SequenceEditorState state;
     private SequenceRenderer renderer;
-    private PlayState playState;
     private TrackVisualsEventSequence sequence;
+    private VisualsBackground background;
+    private PlayState playState;
     private List<OnOffEvent> onOffEventClipboard;
     private List<ControlKeyframe>[] controlKeyframeClipboard;
 
     private void Awake() {
         state = new SequenceEditorState();
         renderer = new SequenceRenderer(WINDOW_WIDTH, WINDOW_HEIGHT, COLUMN_COUNT);
+        background = VisualsBackground.Empty;
         sequence = new TrackVisualsEventSequence();
         onOffEventClipboard = new List<OnOffEvent>();
         controlKeyframeClipboard = new List<ControlKeyframe>[Constants.IndexCount];
@@ -34,11 +36,12 @@ public class SequenceEditor : MonoBehaviour {
 
     private void OnGUI() {
         if (Visible)
-            renderer.Render(new SequenceRenderInput(playState, state, sequence));
+            renderer.Render(new SequenceRenderInput(sequence, background, playState, state));
     }
 
-    public void Init(TrackVisualsEventSequence sequence, PlayState playState) {
+    public void Init(TrackVisualsEventSequence sequence, VisualsBackground background, PlayState playState) {
         this.sequence = sequence;
+        this.background = background;
         this.playState = playState;
         state = new SequenceEditorState();
         

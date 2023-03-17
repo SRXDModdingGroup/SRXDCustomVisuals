@@ -3,13 +3,13 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class PaletteColor {
-    [JsonProperty(PropertyName = "red")]
+    [JsonProperty("red")]
     public int Red { get; set; }
     
-    [JsonProperty(PropertyName = "green")]
+    [JsonProperty("green")]
     public int Green { get; set; }
     
-    [JsonProperty(PropertyName = "blue")]
+    [JsonProperty("blue")]
     public int Blue { get; set; }
 
     public PaletteColor() { }

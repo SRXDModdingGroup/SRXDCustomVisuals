@@ -3,12 +3,12 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class ElementReference {
-    [JsonProperty(PropertyName = "bundle")]
+    [JsonProperty("bundle")]
     public string Bundle { get; set; } = string.Empty;
     
-    [JsonProperty(PropertyName = "asset")]
+    [JsonProperty("asset")]
     public string Asset { get; set; } = string.Empty;
     
-    [JsonProperty(PropertyName = "root")]
+    [JsonProperty("root")]
     public int Root { get; set; }
 }

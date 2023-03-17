@@ -15,7 +15,7 @@ public class VisualsBackgroundManager {
             Directory.CreateDirectory(Util.BackgroundsPath);
     }
     
-    public VisualsBackground CurrentBackground { get; private set; }
+    public VisualsBackground CurrentBackground { get; private set; } = VisualsBackground.Empty;
     
     private Dictionary<string, VisualsBackground> backgrounds = new();
 
@@ -25,9 +25,9 @@ public class VisualsBackgroundManager {
         if (backgroundExists && background == CurrentBackground)
             return;
 
-        if (CurrentBackground != null) {
+        if (CurrentBackground != VisualsBackground.Empty) {
             CurrentBackground.Unload();
-            CurrentBackground = null;
+            CurrentBackground = VisualsBackground.Empty;
         }
 
         if (!backgroundExists) {
@@ -63,12 +63,12 @@ public class VisualsBackgroundManager {
     }
 
     public void UnloadBackground() {
-        if (CurrentBackground == null)
+        if (CurrentBackground != VisualsBackground.Empty)
             return;
         
         ResetCameraSettings();
         CurrentBackground.Unload();
-        CurrentBackground = null;
+        CurrentBackground = VisualsBackground.Empty;
     }
 
     public bool TryGetBackground(string name, out VisualsBackground background) {

@@ -4,27 +4,33 @@ using Newtonsoft.Json;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class BackgroundDefinition {
-    [JsonProperty(PropertyName = "disableBaseBackground")]
+    [JsonProperty("disableBaseBackground")]
     public bool DisableBaseBackground { get; set; } = true;
     
-    [JsonProperty(PropertyName = "useAudioSpectrum")]
+    [JsonProperty("useAudioSpectrum")]
     public bool UseAudioSpectrum { get; set; }
     
-    [JsonProperty(PropertyName = "useAudioWaveform")]
+    [JsonProperty("useAudioWaveform")]
     public bool UseAudioWaveform { get; set; }
 
-    [JsonProperty(PropertyName = "useDepthTexture")]
+    [JsonProperty("useDepthTexture")]
     public bool UseDepthTexture { get; set; }
 
-    [JsonProperty(PropertyName = "farClip")]
+    [JsonProperty("farClip")]
     public float FarClip { get; set; } = 100f;
 
-    [JsonProperty(PropertyName = "assetBundles")]
+    [JsonProperty("eventLabels")]
+    public string[] EventLabels { get; set; } = Array.Empty<string>();
+    
+    [JsonProperty("curveLabels")]
+    public string[] CurveLabels { get; set; } = Array.Empty<string>();
+
+    [JsonProperty("assetBundles")]
     public string[] AssetBundles { get; set; } = Array.Empty<string>();
 
-    [JsonProperty(PropertyName = "assemblies")]
+    [JsonProperty("assemblies")]
     public string[] Assemblies { get; set; } = Array.Empty<string>();
 
-    [JsonProperty(PropertyName = "elements")]
+    [JsonProperty("elements")]
     public ElementReference[] Elements { get; set; } = Array.Empty<ElementReference>();
 }

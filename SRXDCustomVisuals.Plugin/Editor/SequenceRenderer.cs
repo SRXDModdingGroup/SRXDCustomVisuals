@@ -24,17 +24,23 @@ public class SequenceRenderer {
     private const int FIELD_LABEL_WIDTH = 100;
     private const int FIELD_PADDING = 10;
     private const int DETAILS_START_Y = 40;
+    private const int COLUMN_LABEL_SPACING = 20;
     private static readonly Color BACKING_COLOR = new(0f, 0f, 0f, 0.75f);
     private static readonly Color BEAT_BAR_COLOR = new(0.5f, 0.5f, 0.5f);
-    private static readonly Color NOW_BAR_COLOR = Color.white;
-    private static readonly Color COLUMN_BOX_COLOR = new(0.5f, 0.5f, 0.5f, 0.05f);
+    private static readonly Color COLUMN_BOX_COLOR = new(0.25f, 0.25f, 0.25f, 0.1f);
     private static readonly Color COLUMN_BOX_COLOR_SELECTED = new(0.5f, 1f, 1f, 0.1f);
+    private static readonly Color CURSOR_BAR_COLOR = Color.white;
     private static readonly Color ON_EVENT_COLOR = new(0f, 0.4f, 0.8f);
     private static readonly Color OFF_EVENT_COLOR = Color.white;
     private static readonly Color ON_EVENT_COLOR_SELECTED = new(0.75f, 0.875f, 1f);
     private static readonly Color VALUE_BAR_COLOR = new(1f, 0.5f, 0f);
     private static readonly Color CONTROL_KEYFRAME_COLOR = Color.white;
     private static readonly Color CONTROL_CURVE_COLOR = new(1f, 0.5f, 0f);
+    private static readonly GUIStyle COLUMN_LABEL_STYLE = new() {
+        normal = new GUIStyleState { textColor = new Color(1f, 1f, 1f, 0.15f) },
+        fontSize = 20,
+        alignment = TextAnchor.MiddleLeft
+    };
 
     private Rect windowRect;
     private int columnCount;
@@ -45,6 +51,7 @@ public class SequenceRenderer {
     private int canvasWidth;
     private int canvasHeight;
     private int columnWidth;
+    private int cursorY;
     private float secondsPerPixel;
     private float pixelsPerSecond;
     private Texture2D whiteTexture;
@@ -64,6 +71,7 @@ public class SequenceRenderer {
         columnWidth = canvasWidth / columnCount;
         secondsPerPixel = TIMESPAN / canvasHeight;
         pixelsPerSecond = canvasHeight / TIMESPAN;
+        cursorY = RelativeTimeToY(CURSOR_TIME);
 
         whiteTexture = new Texture2D(2, 2, TextureFormat.RGB24, false);
         whiteTexture.SetPixel(0, 0, Color.white);
@@ -91,6 +99,7 @@ public class SequenceRenderer {
         var playState = input.PlayState;
         var editorState = input.EditorState;
         var sequence = input.Sequence;
+        var background = input.Background;
         var mode = editorState.Mode;
         int cursorIndex = editorState.Column;
         int columnPan = editorState.ColumnPan;
@@ -106,10 +115,10 @@ public class SequenceRenderer {
                 DrawDetails(editorState, sequence.Palette);
                 break;
             case SequenceEditorMode.OnOffEvents when Event.current.type == EventType.Repaint:
-                DrawOnOffEvents(time, timeAsFloat, beatArray, sequence, editorState.SelectedIndicesPerColumn[0], cursorIndex, columnPan, editorState.ShowValues);
+                DrawOnOffEvents(time, timeAsFloat, beatArray, sequence.OnOffEvents, background.EventLabels, editorState.SelectedIndicesPerColumn[0], cursorIndex, columnPan, editorState.ShowValues);
                 break;
             case SequenceEditorMode.ControlCurves when Event.current.type == EventType.Repaint:
-                DrawControlCurves(time, timeAsFloat, beatArray, sequence, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
+                DrawControlCurves(time, timeAsFloat, beatArray, sequence, background.CurveLabels, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
                 break;
         }
         
@@ -126,13 +135,14 @@ public class SequenceRenderer {
             DrawPaletteField(paletteFields[i], $"palette_{i}", $"Color {i + 1}:", i + 2, palette[i].ToColor());
     }
 
-    private void DrawOnOffEvents(long time, float timeAsFloat, float[] beatArray, TrackVisualsEventSequence sequence, List<int> selectedIndices, int cursorIndex, int columnPan, bool showValues) {
+    private void DrawOnOffEvents(long time, float timeAsFloat, float[] beatArray, IReadOnlyList<OnOffEvent> onOffEvents, IReadOnlyList<string> labels, List<int> selectedIndices, int cursorIndex, int columnPan, bool showValues) {
         DrawGrid(timeAsFloat, beatArray, cursorIndex, columnPan);
-        
+
+        for (int i = 0, j = columnPan; i < columnCount && j < labels.Count; i++, j++)
+            DrawColumnLabel(i, labels[j]);
+
         for (int i = 0; i < columnCount; i++)
             lastEventOnTimeInColumn[i] = long.MinValue;
-
-        var onOffEvents = sequence.OnOffEvents;
 
         for (int i = 0; i < onOffEvents.Count; i++) {
             var onOffEvent = onOffEvents[i];
@@ -178,8 +188,11 @@ public class SequenceRenderer {
         DrawModeLabel($"Mode: Events    Index: {cursorIndex:X2}");
     }
 
-    private void DrawControlCurves(long time, float timeAsFloat, float[] beatArray, TrackVisualsEventSequence sequence, List<int>[] selectedIndicesPerColumn, int cursorIndex, int columnPan, bool showValues) {
+    private void DrawControlCurves(long time, float timeAsFloat, float[] beatArray, TrackVisualsEventSequence sequence, IReadOnlyList<string> labels, List<int>[] selectedIndicesPerColumn, int cursorIndex, int columnPan, bool showValues) {
         DrawGrid(timeAsFloat, beatArray, cursorIndex, columnPan);
+        
+        for (int i = 0, j = columnPan; i < columnCount && j < labels.Count; i++, j++)
+            DrawColumnLabel(i, labels[j]);
         
         for (int i = 0, j = columnPan; i < columnCount; i++, j++) {
             var keyframes = sequence.GetKeyframes(j);
@@ -240,12 +253,21 @@ public class SequenceRenderer {
                 DrawHorizontalLine(RelativeTimeToY(relativeBeatTime), BEAT_BAR_COLOR);
         }
 
-        DrawHorizontalLine(RelativeTimeToY(CURSOR_TIME), NOW_BAR_COLOR);
+        DrawHorizontalLine(cursorY, CURSOR_BAR_COLOR);
     }
 
     private void DrawHorizontalLine(int y, Color color) => DrawRect(canvasLeft, y, canvasWidth, 1, color, false);
 
-    private void DrawColumnBox(int column, Color color) => DrawRect(ColumnToX(column), canvasTop, columnWidth, canvasHeight, color, true);
+    private void DrawColumnBox(int column, Color color) => DrawRect(ColumnToX(column), canvasTop, columnWidth, canvasHeight, color, false);
+
+    private void DrawColumnLabel(int column, string text) {
+        int y = cursorY - COLUMN_LABEL_SPACING;
+
+        GUIUtility.RotateAroundPivot(-90f, Vector2.zero);
+        GUI.matrix = Matrix4x4.Translate(new Vector3(ColumnToX(column), y)) * GUI.matrix;
+        GUI.Label(new Rect(0f, 0f, y, columnWidth), text, COLUMN_LABEL_STYLE);
+        GUI.matrix = Matrix4x4.identity;
+    }
 
     private void DrawOnOffEvent(float relativeTime, OnOffEventType type, int value, int column, bool selected, bool showValue) {
         int height;
@@ -352,7 +374,7 @@ public class SequenceRenderer {
     private void DrawRect(int x, int y, int width, int height, Color color, bool alphaBlend)
         => GUI.DrawTexture(new Rect(x, y, width, height), whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0, color, 0, 0);
 
-    private int ColumnToX(int index) => columnWidth * index + canvasLeft;
+    private int ColumnToX(int column) => columnWidth * column + canvasLeft;
 
     private int RelativeTimeToY(float relativeTime) => canvasBottom - Mathf.RoundToInt(pixelsPerSecond * relativeTime);
 

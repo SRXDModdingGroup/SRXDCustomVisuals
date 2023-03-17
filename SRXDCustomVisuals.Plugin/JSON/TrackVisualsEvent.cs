@@ -4,19 +4,19 @@ using Newtonsoft.Json;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEvent : IComparable<TrackVisualsEvent> {
-    [JsonProperty(PropertyName = "time")]
+    [JsonProperty("time")]
     public long Time { get; }
     
-    [JsonProperty(PropertyName = "type")]
+    [JsonProperty("type")]
     public TrackVisualsEventType Type { get; }
     
-    [JsonProperty(PropertyName = "keyframeType")]
+    [JsonProperty("keyframeType")]
     public ControlKeyframeType KeyframeType { get; }
     
-    [JsonProperty(PropertyName = "index")]
+    [JsonProperty("index")]
     public int Index { get; }
     
-    [JsonProperty(PropertyName = "value")]
+    [JsonProperty("value")]
     public int Value { get; }
 
     public TrackVisualsEvent(long time, TrackVisualsEventType type, ControlKeyframeType keyframeType, int index, int value) {

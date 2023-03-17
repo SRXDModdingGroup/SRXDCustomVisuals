@@ -4,13 +4,13 @@ using Newtonsoft.Json;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class CustomVisualsInfo {
-    [JsonProperty(PropertyName = "background")]
+    [JsonProperty("background")]
     public string Background { get; set; }
     
-    [JsonProperty(PropertyName = "palette")]
+    [JsonProperty("palette")]
     public List<PaletteColor> Palette { get; set; }
 
-    [JsonProperty(PropertyName = "events")]
+    [JsonProperty("events")]
     public List<TrackVisualsEvent> Events { get; set; }
 
     public bool IsEmpty() => string.IsNullOrWhiteSpace(Background) && (Events == null || Events.Count == 0);

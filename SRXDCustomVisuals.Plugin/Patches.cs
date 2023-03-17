@@ -53,7 +53,7 @@ public class Patches {
 
         VisualsEventManager.ResetAll();
         eventPlayback.SetSequence(sequence);
-        sequenceEditor.Init(sequence, playState);
+        sequenceEditor.Init(sequence, visualsBackgroundManager.CurrentBackground, playState);
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]

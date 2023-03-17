@@ -6,6 +6,8 @@ using Object = UnityEngine.Object;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class VisualsBackground {
+    public static VisualsBackground Empty { get; } = new(new BackgroundDefinition());
+    
     public bool DisableBaseBackground { get; }
     
     public bool UseAudioSpectrum { get; }
@@ -15,6 +17,10 @@ public class VisualsBackground {
     public bool UseDepthTexture { get; }
     
     public float FarClip { get; }
+
+    public IReadOnlyList<string> EventLabels { get; }
+
+    public IReadOnlyList<string> CurveLabels { get; }
 
     private string[] assetBundleNames;
     private string[] assemblyNames;
@@ -31,6 +37,8 @@ public class VisualsBackground {
         FarClip = definition.FarClip;
         assetBundleNames = definition.AssetBundles.Copy();
         assemblyNames = definition.Assemblies.Copy();
+        EventLabels = definition.EventLabels.Copy();
+        CurveLabels = definition.CurveLabels.Copy();
 
         var elementReferences = definition.Elements;
         
