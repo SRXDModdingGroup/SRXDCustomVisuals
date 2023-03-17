@@ -204,7 +204,7 @@ public class SequenceEditor : MonoBehaviour {
         if (largeMovement)
             direction *= 8;
         
-        state.Column = Util.Mod(state.Column + direction, sequence.ColumnCount);
+        state.Column = Mathf.Clamp(state.Column + direction, 0, sequence.ColumnCount - 1);
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, state.Column - (COLUMN_COUNT - 2), state.Column - 1);
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, 0, 240);
 
@@ -589,10 +589,10 @@ public class SequenceEditor : MonoBehaviour {
                 foreach (var onOffEvent in onOffEventClipboard) {
                     var newEvent = new OnOffEvent(
                         onOffEvent.Time + time,
-                        onOffEvent.Type, Util.Mod(onOffEvent.Index + cursorIndex, sequence.ColumnCount),
+                        onOffEvent.Type, onOffEvent.Index + cursorIndex,
                         onOffEvent.Value);
 
-                    if (TimeInBounds(newEvent.Time))
+                    if (TimeInBounds(newEvent.Time) && newEvent.Index < sequence.ColumnCount)
                         toAdd.Add(newEvent);
                 }
 
@@ -601,8 +601,12 @@ public class SequenceEditor : MonoBehaviour {
                 break;
             }
             case SequenceEditorMode.ControlCurves: {
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    int newColumn = Util.Mod(i + cursorIndex, sequence.ColumnCount);
+                for (int i = 0; i < controlKeyframeClipboard.Length; i++) {
+                    int newColumn = i + cursorIndex;
+
+                    if (newColumn >= sequence.ColumnCount)
+                        break;
+                    
                     var selectedIndices = selectedIndicesPerColumn[newColumn];
                     var toAdd = new List<ControlKeyframe>(selectedIndices.Count);
 
@@ -692,11 +696,25 @@ public class SequenceEditor : MonoBehaviour {
                 var selectedIndices = selectedIndicesPerColumn[0];
                 var onOffEvents = sequence.OnOffEvents;
                 var toAdd = new List<OnOffEvent>();
+                int leftmost = sequence.ColumnCount - 1;
+                int rightmost = 0;
+
+                foreach (int index in selectedIndices) {
+                    var onOffEvent = onOffEvents[index];
+
+                    if (onOffEvent.Index < leftmost)
+                        leftmost = onOffEvent.Index;
+                    
+                    if (onOffEvent.Index > rightmost)
+                        rightmost = onOffEvent.Index;
+                }
+
+                amount = Mathf.Clamp(amount, -leftmost, sequence.ColumnCount - 1 - rightmost);
 
                 foreach (int index in selectedIndices) {
                     var onOffEvent = onOffEvents[index];
                     
-                    toAdd.Add(onOffEvent.WithIndex(Util.Mod(onOffEvent.Index + amount, sequence.ColumnCount)));
+                    toAdd.Add(onOffEvent.WithIndex(onOffEvent.Index + amount));
                 }
 
                 sequence.RemoveOnOffEvents(selectedIndices);
@@ -706,6 +724,22 @@ public class SequenceEditor : MonoBehaviour {
             }
             case SequenceEditorMode.ControlCurves: {
                 var toAddPerColumn = new List<ControlKeyframe>[sequence.ColumnCount];
+                
+                int leftmost = sequence.ColumnCount - 1;
+                int rightmost = 0;
+                
+                for (int i = 0; i < sequence.ColumnCount; i++) {
+                    if (selectedIndicesPerColumn[i].Count == 0)
+                        continue;
+
+                    if (i < leftmost)
+                        leftmost = i;
+
+                    if (i > rightmost)
+                        rightmost = i;
+                }
+
+                amount = Mathf.Clamp(amount, -leftmost, sequence.ColumnCount - 1 - rightmost);
 
                 for (int i = 0; i < sequence.ColumnCount; i++) {
                     var selectedIndices = selectedIndicesPerColumn[i];
@@ -730,7 +764,7 @@ public class SequenceEditor : MonoBehaviour {
                     if (toAdd == null)
                         continue;
                     
-                    int newColumn = Util.Mod(i + amount, sequence.ColumnCount);
+                    int newColumn = i + amount;
                     
                     sequence.AddKeyframes(newColumn, toAdd, selectedIndicesPerColumn[newColumn]);
                 }
