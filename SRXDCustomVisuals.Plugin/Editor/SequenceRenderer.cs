@@ -6,24 +6,24 @@ namespace SRXDCustomVisuals.Plugin;
 public class SequenceRenderer {
     private const float TIME_TO_TICK = 100000f;
     private const float TICK_TO_TIME = 0.00001f;
-    private const float BOTTOM_TIME_OFFSET = -0.25f;
-    private const float TOP_TIME_OFFSET = 1f;
-    private const float SIDE_PADDING = 8f;
-    private const float TOP_PADDING = 20f;
-    private const float ON_EVENT_HEIGHT = 6f;
-    private const float OFF_EVENT_HEIGHT = 2f;
-    private const float OFF_EVENT_HEIGHT_SELECTED = 4f;
-    private const float ON_OFF_EVENT_PADDING = 4f;
-    private const float CONTROL_KEYFRAME_SIZE = 5f;
-    private const float CONTROL_KEYFRAME_SIZE_SELECTED = 9f;
-    private const float CONTROL_CURVE_PADDING = 4f;
-    private const float VALUE_BAR_HEIGHT = 2f;
-    private const float INFO_LABEL_HEIGHT = 20f;
-    private const float VALUE_LABEL_HEIGHT = 20f;
-    private const float FIELD_HEIGHT = 20f;
-    private const float FIELD_LABEL_WIDTH = 100f;
-    private const float FIELD_PADDING = 10f;
-    private const float DETAILS_START_Y = 40f;
+    private const float TIMESPAN = 1.25f;
+    private const float CURSOR_TIME = 0.25f;
+    private const int SIDE_PADDING = 8;
+    private const int TOP_PADDING = 20;
+    private const int ON_EVENT_HEIGHT = 6;
+    private const int OFF_EVENT_HEIGHT = 2;
+    private const int OFF_EVENT_HEIGHT_SELECTED = 4;
+    private const int ON_OFF_EVENT_PADDING = 4;
+    private const int CONTROL_KEYFRAME_SIZE = 5;
+    private const int CONTROL_KEYFRAME_SIZE_SELECTED = 9;
+    private const int CONTROL_CURVE_PADDING = 4;
+    private const int VALUE_BAR_HEIGHT = 2;
+    private const int INFO_LABEL_HEIGHT = 20;
+    private const int VALUE_LABEL_HEIGHT = 20;
+    private const int FIELD_HEIGHT = 20;
+    private const int FIELD_LABEL_WIDTH = 100;
+    private const int FIELD_PADDING = 10;
+    private const int DETAILS_START_Y = 40;
     private static readonly Color BACKING_COLOR = new(0f, 0f, 0f, 0.75f);
     private static readonly Color BEAT_BAR_COLOR = new(0.5f, 0.5f, 0.5f);
     private static readonly Color NOW_BAR_COLOR = Color.white;
@@ -38,32 +38,32 @@ public class SequenceRenderer {
 
     private Rect windowRect;
     private int columnCount;
-    private float leftX;
-    private float rightX;
-    private float topY;
-    private float bottomY;
-    private float paddedWidth;
-    private float paddedHeight;
-    private float columnWidth;
-    private float yMapScale;
-    private float yMapOffset;
-    private float controlCurveXScale;
+    private int canvasLeft;
+    private int canvasRight;
+    private int canvasTop;
+    private int canvasBottom;
+    private int canvasWidth;
+    private int canvasHeight;
+    private int columnWidth;
+    private float secondsPerPixel;
+    private float pixelsPerSecond;
     private Texture2D whiteTexture;
-    private long[] lastNoteOnTimeInColumn;
+    private Texture2D controlCurveTexture;
+    private int[] controlCurveActivePixels;
+    private long[] lastEventOnTimeInColumn;
 
-    public SequenceRenderer(float windowWidth, float windowHeight, int columnCount) {
+    public SequenceRenderer(int windowWidth, int windowHeight, int columnCount) {
         windowRect = new Rect(0f, 0f, windowWidth, windowHeight);
         this.columnCount = columnCount;
-        leftX = SIDE_PADDING;
-        rightX = windowWidth - SIDE_PADDING;
-        topY = TOP_PADDING;
-        bottomY = windowHeight - SIDE_PADDING;
-        paddedWidth = rightX - leftX;
-        paddedHeight = bottomY - topY;
-        columnWidth = paddedWidth / columnCount;
-        yMapScale = (topY - bottomY) / (TOP_TIME_OFFSET - BOTTOM_TIME_OFFSET);
-        yMapOffset = bottomY - yMapScale * BOTTOM_TIME_OFFSET;
-        controlCurveXScale = (columnWidth - 2f * CONTROL_CURVE_PADDING) / Constants.MaxEventValue;
+        canvasLeft = SIDE_PADDING;
+        canvasRight = windowWidth - SIDE_PADDING;
+        canvasTop = TOP_PADDING;
+        canvasBottom = windowHeight - SIDE_PADDING;
+        canvasWidth = canvasRight - canvasLeft;
+        canvasHeight = canvasBottom - canvasTop;
+        columnWidth = canvasWidth / columnCount;
+        secondsPerPixel = TIMESPAN / canvasHeight;
+        pixelsPerSecond = canvasHeight / TIMESPAN;
 
         whiteTexture = new Texture2D(2, 2, TextureFormat.RGB24, false);
         whiteTexture.SetPixel(0, 0, Color.white);
@@ -71,7 +71,16 @@ public class SequenceRenderer {
         whiteTexture.SetPixel(0, 1, Color.white);
         whiteTexture.SetPixel(1, 1, Color.white);
 
-        lastNoteOnTimeInColumn = new long[columnCount];
+        controlCurveTexture = new Texture2D(columnWidth - 2 * CONTROL_CURVE_PADDING, canvasHeight, TextureFormat.RGBA32, false);
+
+        var pixelData = controlCurveTexture.GetPixelData<Color32>(0);
+
+        for (int i = 0; i < pixelData.Length; i++)
+            pixelData[i] = new Color32(0, 0, 0, 0);
+        
+        controlCurveTexture.Apply();
+        controlCurveActivePixels = new int[controlCurveTexture.height];
+        lastEventOnTimeInColumn = new long[columnCount];
     }
 
     public void Render(SequenceRenderInput input) {
@@ -86,20 +95,20 @@ public class SequenceRenderer {
         int cursorIndex = editorState.Column;
         int columnPan = editorState.ColumnPan;
 
-        long time = playState.currentTrackTick;
-        float timeAsFloat = playState.currentTrackTick.ToSecondsFloat();
+        long time = (long) playState.currentTrackTick - (long) (TIME_TO_TICK * CURSOR_TIME);
+        float timeAsFloat = playState.currentTrackTick.ToSecondsFloat() - CURSOR_TIME;
         float[] beatArray = playState.trackData.BeatArray;
         
-        DrawRect(leftX, topY, paddedWidth, paddedHeight, BACKING_COLOR, true);
+        DrawRect(canvasLeft, canvasTop, canvasWidth, canvasHeight, BACKING_COLOR, true);
         
         switch (mode) {
             case SequenceEditorMode.Details:
                 DrawDetails(editorState, sequence.Palette);
                 break;
-            case SequenceEditorMode.OnOffEvents:
+            case SequenceEditorMode.OnOffEvents when Event.current.type == EventType.Repaint:
                 DrawOnOffEvents(time, timeAsFloat, beatArray, sequence, editorState.SelectedIndicesPerColumn[0], cursorIndex, columnPan, editorState.ShowValues);
                 break;
-            case SequenceEditorMode.ControlCurves:
+            case SequenceEditorMode.ControlCurves when Event.current.type == EventType.Repaint:
                 DrawControlCurves(time, timeAsFloat, beatArray, sequence, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
                 break;
         }
@@ -121,7 +130,7 @@ public class SequenceRenderer {
         DrawGrid(timeAsFloat, beatArray, cursorIndex, columnPan);
         
         for (int i = 0; i < columnCount; i++)
-            lastNoteOnTimeInColumn[i] = long.MinValue;
+            lastEventOnTimeInColumn[i] = long.MinValue;
 
         var onOffEvents = sequence.OnOffEvents;
 
@@ -136,34 +145,34 @@ public class SequenceRenderer {
             long eventTime = onOffEvent.Time;
             var eventType = onOffEvent.Type;
             float relativeTime = TICK_TO_TIME * (eventTime - time);
-            long lastNoteOnTime = lastNoteOnTimeInColumn[column];
+            long lastNoteOnTime = lastEventOnTimeInColumn[column];
 
             if (lastNoteOnTime != long.MinValue) {
                 float relativeLastNoteOnTime = TICK_TO_TIME * (lastNoteOnTime - time);
 
-                if (relativeLastNoteOnTime <= TOP_TIME_OFFSET && relativeTime >= BOTTOM_TIME_OFFSET)
+                if (relativeLastNoteOnTime <= TIMESPAN && relativeTime >= 0f)
                     DrawSustainLine(relativeLastNoteOnTime, relativeTime, column);
             }
 
             if (eventType == OnOffEventType.On)
-                lastNoteOnTimeInColumn[column] = eventTime;
+                lastEventOnTimeInColumn[column] = eventTime;
             else
-                lastNoteOnTimeInColumn[column] = long.MinValue;
+                lastEventOnTimeInColumn[column] = long.MinValue;
 
-            if (relativeTime >= BOTTOM_TIME_OFFSET && relativeTime <= TOP_TIME_OFFSET)
+            if (relativeTime >= 0f && relativeTime <= TIMESPAN)
                 DrawOnOffEvent(relativeTime, eventType, onOffEvent.Value, column, selectedIndices.Contains(i), showValues);
         }
 
         for (int i = 0; i < columnCount; i++) {
-            long lastNoteOnTime = lastNoteOnTimeInColumn[i];
+            long lastNoteOnTime = lastEventOnTimeInColumn[i];
 
             if (lastNoteOnTime == long.MinValue)
                 continue;
 
             float relativeLastNoteOnTime = TICK_TO_TIME * (lastNoteOnTime - time);
 
-            if (relativeLastNoteOnTime <= TOP_TIME_OFFSET)
-                DrawSustainLine(relativeLastNoteOnTime, TOP_TIME_OFFSET, i);
+            if (relativeLastNoteOnTime <= TIMESPAN)
+                DrawSustainLine(relativeLastNoteOnTime, TIMESPAN, i);
         }
         
         DrawModeLabel($"Mode: Events    Index: {cursorIndex:X2}");
@@ -175,66 +184,30 @@ public class SequenceRenderer {
         for (int i = 0, j = columnPan; i < columnCount; i++, j++) {
             var keyframes = sequence.GetKeyframes(j);
             
-            for (int k = 0; k < keyframes.Count - 1; k++) {
-                var startKeyframe = keyframes[k];
-                var endKeyframe = keyframes[k + 1];
-                float relativeStartTime = TICK_TO_TIME * (startKeyframe.Time - time);
-                float relativeEndTime = TICK_TO_TIME * (endKeyframe.Time - time);
-
-                if (relativeStartTime <= TOP_TIME_OFFSET && relativeEndTime >= BOTTOM_TIME_OFFSET)
-                    DrawCurveSegment(startKeyframe, endKeyframe, time, relativeStartTime, relativeEndTime, i);
-            }
-
-            if (keyframes.Count > 0) {
-                var keyframe = keyframes[0];
-                float relativeTime = TICK_TO_TIME * (keyframe.Time - time);
-
-                if (relativeTime >= BOTTOM_TIME_OFFSET)
-                    DrawStraightCurveSegment(BOTTOM_TIME_OFFSET, relativeTime, keyframe.Value, i);
-
-                keyframe = keyframes[keyframes.Count - 1];
-                relativeTime = TICK_TO_TIME * (keyframe.Time - time);
-                
-                if (relativeTime <= TOP_TIME_OFFSET)
-                    DrawStraightCurveSegment(relativeTime, TOP_TIME_OFFSET, keyframe.Value, i);
-            }
-            
-            var selectedIndices = selectedIndicesPerColumn[j];
-
-            for (int k = 0; k < keyframes.Count; k++) {
-                var keyframe = keyframes[k];
-                float relativeTime = TICK_TO_TIME * (keyframe.Time - time);
-
-                if (relativeTime < BOTTOM_TIME_OFFSET)
-                    continue;
-
-                if (relativeTime > TOP_TIME_OFFSET)
-                    break;
-
-                DrawKeyframe(relativeTime, keyframe.Value, i, selectedIndices.Contains(k), showValues);
-            }
+            if (keyframes.Count > 0)
+                DrawControlCurve(keyframes, selectedIndicesPerColumn[j], time, i, showValues);
         }
         
         DrawModeLabel($"Mode: Curves    Index: {cursorIndex:X2}");
     }
 
-    private void DrawModeLabel(string text) => GUI.Label(new Rect(SIDE_PADDING + FIELD_PADDING, TOP_PADDING, paddedWidth, INFO_LABEL_HEIGHT), text);
+    private void DrawModeLabel(string text) => GUI.Label(new Rect(SIDE_PADDING + FIELD_PADDING, TOP_PADDING, canvasWidth, INFO_LABEL_HEIGHT), text);
 
     private void DrawSimpleField(TextFieldState field, string name, string label, int row) {
-        const float x = SIDE_PADDING + FIELD_PADDING;
-        float y = TOP_PADDING + DETAILS_START_Y + row * FIELD_HEIGHT;
+        const int x = SIDE_PADDING + FIELD_PADDING;
+        int y = TOP_PADDING + DETAILS_START_Y + row * FIELD_HEIGHT;
         
         GUI.Label(new Rect(x, y, FIELD_LABEL_WIDTH, FIELD_HEIGHT), label);
-        DrawField(field, name, x + FIELD_LABEL_WIDTH, y, paddedWidth - FIELD_LABEL_WIDTH - 2 * FIELD_PADDING, FIELD_HEIGHT);
+        DrawField(field, name, x + FIELD_LABEL_WIDTH, y, canvasWidth - FIELD_LABEL_WIDTH - 2 * FIELD_PADDING, FIELD_HEIGHT);
     }
     
     private void DrawPaletteField(TextFieldState field, string name, string label, int row, Color color) {
-        const float x = SIDE_PADDING + FIELD_PADDING;
-        float y = TOP_PADDING + DETAILS_START_Y + row * FIELD_HEIGHT;
+        const int x = SIDE_PADDING + FIELD_PADDING;
+        int y = TOP_PADDING + DETAILS_START_Y + row * FIELD_HEIGHT;
         
         GUI.Label(new Rect(x, y, FIELD_LABEL_WIDTH, FIELD_HEIGHT), label);
-        DrawField(field, name, x + FIELD_LABEL_WIDTH, y, paddedWidth - FIELD_LABEL_WIDTH - 2 * FIELD_PADDING - FIELD_HEIGHT, FIELD_HEIGHT);
-        DrawRect(rightX - FIELD_PADDING - FIELD_HEIGHT, y, FIELD_HEIGHT, FIELD_HEIGHT, color, false);
+        DrawField(field, name, x + FIELD_LABEL_WIDTH, y, canvasWidth - FIELD_LABEL_WIDTH - 2 * FIELD_PADDING - FIELD_HEIGHT, FIELD_HEIGHT);
+        DrawRect(canvasRight - FIELD_PADDING - FIELD_HEIGHT, y, FIELD_HEIGHT, FIELD_HEIGHT, color, false);
     }
 
     private void DrawGrid(float timeAsFloat, float[] beatArray, int cursorIndex, int columnPan) {
@@ -251,10 +224,10 @@ public class SequenceRenderer {
             float beatTime = beatArray[i];
             float relativeBeatTime = beatTime - timeAsFloat;
 
-            if (relativeBeatTime > TOP_TIME_OFFSET)
+            if (relativeBeatTime > TIMESPAN)
                 break;
 
-            if (relativeBeatTime >= BOTTOM_TIME_OFFSET)
+            if (relativeBeatTime >= 0f)
                 DrawHorizontalLine(RelativeTimeToY(relativeBeatTime), BEAT_BAR_COLOR);
 
             if (i >= beatArray.Length - 1)
@@ -263,19 +236,19 @@ public class SequenceRenderer {
             beatTime = 0.5f * (beatArray[i] + beatArray[i + 1]);
             relativeBeatTime = beatTime - timeAsFloat;
 
-            if (relativeBeatTime >= BOTTOM_TIME_OFFSET)
+            if (relativeBeatTime >= 0f)
                 DrawHorizontalLine(RelativeTimeToY(relativeBeatTime), BEAT_BAR_COLOR);
         }
 
-        DrawHorizontalLine(yMapOffset, NOW_BAR_COLOR);
+        DrawHorizontalLine(RelativeTimeToY(CURSOR_TIME), NOW_BAR_COLOR);
     }
 
-    private void DrawHorizontalLine(float y, Color color) => DrawRect(leftX, y, paddedWidth, 1f, color, false);
+    private void DrawHorizontalLine(int y, Color color) => DrawRect(canvasLeft, y, canvasWidth, 1, color, false);
 
-    private void DrawColumnBox(int column, Color color) => DrawRect(ColumnToX(column), topY, columnWidth, paddedHeight, color, true);
+    private void DrawColumnBox(int column, Color color) => DrawRect(ColumnToX(column), canvasTop, columnWidth, canvasHeight, color, true);
 
     private void DrawOnOffEvent(float relativeTime, OnOffEventType type, int value, int column, bool selected, bool showValue) {
-        float height;
+        int height;
         Color color;
 
         if (type == OnOffEventType.Off) {
@@ -295,56 +268,80 @@ public class SequenceRenderer {
                 color = ON_EVENT_COLOR;
         }
 
-        float x = ColumnToX(column) + ON_OFF_EVENT_PADDING;
-        float y = RelativeTimeToY(relativeTime) - height;
-        float width = columnWidth - 2f * ON_OFF_EVENT_PADDING;
+        int x = ColumnToX(column) + ON_OFF_EVENT_PADDING;
+        int y = RelativeTimeToY(relativeTime) - height;
+        int width = columnWidth - 2 * ON_OFF_EVENT_PADDING;
         
         DrawRect(x, y, width, height, color, false);
 
         if (type == OnOffEventType.Off)
             return;
         
-        DrawRect(x, y, width * value / Constants.MaxEventValue, VALUE_BAR_HEIGHT, VALUE_BAR_COLOR, false);
+        DrawRect(x, y, Mathf.RoundToInt(width * (float) value / Constants.MaxEventValue), VALUE_BAR_HEIGHT, VALUE_BAR_COLOR, false);
         
         if (selected && showValue)
             GUI.Label(new Rect(x, y - VALUE_LABEL_HEIGHT, width, VALUE_LABEL_HEIGHT), $"{value:X2}");
     }
 
     private void DrawSustainLine(float relativeStartTime, float relativeEndTime, int column) {
-        float startY = Mathf.Clamp(RelativeTimeToY(relativeStartTime) - ON_EVENT_HEIGHT, topY, bottomY);
-        float endY = Mathf.Clamp(RelativeTimeToY(relativeEndTime), topY, bottomY);
+        int startY = Mathf.Clamp(RelativeTimeToY(relativeStartTime) - ON_EVENT_HEIGHT, canvasTop, canvasBottom);
+        int endY = Mathf.Clamp(RelativeTimeToY(relativeEndTime), canvasTop, canvasBottom);
         
-        DrawRect(ColumnToX(column) + 0.5f * columnWidth, endY, 1f, startY - endY, ON_EVENT_COLOR, false);
+        DrawRect(ColumnToX(column) + columnWidth / 2, endY, 1, startY - endY, ON_EVENT_COLOR, false);
     }
 
-    private void DrawCurveSegment(ControlKeyframe startKeyframe, ControlKeyframe endKeyframe, long time, float relativeStartTime, float relativeEndTime, int column) {
-        float startY = Mathf.Clamp(Mathf.Round(RelativeTimeToY(relativeStartTime)), topY, bottomY);
-        float endY = Mathf.Clamp(Mathf.Round(RelativeTimeToY(relativeEndTime)), topY, bottomY);
-        float sideX = ColumnToX(column) + CONTROL_CURVE_PADDING;
+    private void DrawControlCurve(IReadOnlyList<ControlKeyframe> keyframes, List<int> selectedIndices, long time, int column, bool showValues) {
+        var pixelData = controlCurveTexture.GetPixelData<Color32>(0);
+        var controlCurveColor32 = (Color32) CONTROL_CURVE_COLOR;
+        int currentKeyframeIndex = -1;
+        float scale = (float) (controlCurveTexture.width - 1) / Constants.MaxEventValue;
 
-        for (float y = endY; y <= startY; y++) {
-            long timeForY = (long) (TIME_TO_TICK * YToRelativeTime(y)) + time;
-            float value = ControlKeyframe.Interpolate(startKeyframe, endKeyframe, timeForY);
-            float x = sideX + controlCurveXScale * value;
+        foreach (int index in controlCurveActivePixels)
+            pixelData[index] = new Color32(0, 0, 0, 0);
+
+        for (int row = 0, firstIndex = 0; row < controlCurveTexture.height; row++, firstIndex += controlCurveTexture.width) {
+            long timeForRow = time + (long) (TIME_TO_TICK * secondsPerPixel * row);
+
+            while (currentKeyframeIndex < keyframes.Count - 1 && keyframes[currentKeyframeIndex + 1].Time <= timeForRow)
+                currentKeyframeIndex++;
+
+            float value;
+
+            if (currentKeyframeIndex == -1)
+                value = keyframes[0].Value;
+            else if (currentKeyframeIndex == keyframes.Count - 1)
+                value = keyframes[currentKeyframeIndex].Value;
+            else
+                value = ControlKeyframe.Interpolate(keyframes[currentKeyframeIndex], keyframes[currentKeyframeIndex + 1], timeForRow);
+
+            int index = firstIndex + Mathf.RoundToInt(scale * value);
             
-            DrawRect(x, y, 1f, 1f, CONTROL_CURVE_COLOR, false);
+            pixelData[index] = controlCurveColor32;
+            controlCurveActivePixels[row] = index;
+        }
+        
+        controlCurveTexture.Apply();
+        GUI.DrawTexture(new Rect(ColumnToX(column) + CONTROL_CURVE_PADDING, canvasTop, controlCurveTexture.width, controlCurveTexture.height), controlCurveTexture, ScaleMode.StretchToFill, true);
+        
+        for (int k = 0; k < keyframes.Count; k++) {
+            var keyframe = keyframes[k];
+            float relativeTime = TICK_TO_TIME * (keyframe.Time - time);
+
+            if (relativeTime < 0f)
+                continue;
+
+            if (relativeTime > TIMESPAN)
+                break;
+
+            DrawKeyframe(relativeTime, keyframe.Value, column, selectedIndices.Contains(k), showValues);
         }
     }
 
-    private void DrawStraightCurveSegment(float relativeStartTime, float relativeEndTime, int value, int column) {
-        float x = ColumnToX(column) + CONTROL_CURVE_PADDING + controlCurveXScale * value;
-        float startY = Mathf.Clamp(RelativeTimeToY(relativeStartTime), topY, bottomY);
-        float endY = Mathf.Clamp(RelativeTimeToY(relativeEndTime), topY, bottomY);
-        
-        DrawRect(x, endY, 1f, startY - endY, CONTROL_CURVE_COLOR, false);
-    }
-
     private void DrawKeyframe(float relativeTime, int value, int column, bool selected, bool showValue) {
-        float size = selected ? CONTROL_KEYFRAME_SIZE_SELECTED : CONTROL_KEYFRAME_SIZE;
-        float offset = -0.5f * (size - 1f);
-        float sideX = ColumnToX(column) + CONTROL_CURVE_PADDING;
-        float x = sideX + controlCurveXScale * value + offset;
-        float y = RelativeTimeToY(relativeTime) + offset;
+        int size = selected ? CONTROL_KEYFRAME_SIZE_SELECTED : CONTROL_KEYFRAME_SIZE;
+        int sideX = ColumnToX(column) + CONTROL_CURVE_PADDING;
+        int x = sideX + Mathf.RoundToInt((float) (controlCurveTexture.width - 1) * value / Constants.MaxEventValue) - size / 2;
+        int y = RelativeTimeToY(relativeTime) - size / 2;
         
         DrawRect(x, y, size, size, CONTROL_KEYFRAME_COLOR, false);
 
@@ -352,16 +349,14 @@ public class SequenceRenderer {
             GUI.Label(new Rect(sideX, y - VALUE_LABEL_HEIGHT, columnWidth - 2f * CONTROL_CURVE_PADDING, VALUE_LABEL_HEIGHT), $"{value:X2}");
     }
 
-    private void DrawRect(float x, float y, float width, float height, Color color, bool alphaBlend)
+    private void DrawRect(int x, int y, int width, int height, Color color, bool alphaBlend)
         => GUI.DrawTexture(new Rect(x, y, width, height), whiteTexture, ScaleMode.StretchToFill, alphaBlend, 0, color, 0, 0);
 
-    private float ColumnToX(int index) => columnWidth * index + leftX;
+    private int ColumnToX(int index) => columnWidth * index + canvasLeft;
 
-    private float RelativeTimeToY(float time) => yMapScale * time + yMapOffset;
+    private int RelativeTimeToY(float relativeTime) => canvasBottom - Mathf.RoundToInt(pixelsPerSecond * relativeTime);
 
-    private float YToRelativeTime(float y) => (y - yMapOffset) / yMapScale;
-
-    private static void DrawField(TextFieldState field, string name, float x, float y, float width, float height) {
+    private static void DrawField(TextFieldState field, string name, int x, int y, int width, int height) {
         if (GUI.GetNameOfFocusedControl() != name)
             field.RevertDisplayValue();
         

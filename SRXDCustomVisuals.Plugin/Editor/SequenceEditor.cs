@@ -7,8 +7,8 @@ namespace SRXDCustomVisuals.Plugin;
 public class SequenceEditor : MonoBehaviour {
     private const float TIME_TO_TICK = 100000f;
     private const float TICK_TO_TIME = 0.00001f;
-    private const float WINDOW_WIDTH = 800;
-    private const float WINDOW_HEIGHT = 600;
+    private const int WINDOW_WIDTH = 800;
+    private const int WINDOW_HEIGHT = 600;
     private const int COLUMN_COUNT = 16;
     private const long TIME_EPSILON = 100L;
     
