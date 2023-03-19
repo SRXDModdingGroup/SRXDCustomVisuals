@@ -36,7 +36,7 @@
         <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     </PropertyGroup>
     <PropertyGroup>
-      <PostBuildEvent>xcopy "$(TargetDir)SRXDCustomVisuals.Core.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins" /Y</PostBuildEvent>
+      <PostBuildEvent>xcopy "$(TargetDir)SRXDCustomVisuals.Core.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins\SRXDCustomVisuals" /Y</PostBuildEvent>
     </PropertyGroup>
     <PropertyGroup>
         <SpinDir>C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm</SpinDir>
