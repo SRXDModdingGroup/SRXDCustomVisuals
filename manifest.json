@@ -1,7 +1,7 @@
 {
   "name": "SRXDCustomVisuals",
   "description": "Enables custom visual elements to be imported into charts",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "repository": "SRXDModdingGroup/SRXDCustomVisuals",
   "dependencies": [
 	{
