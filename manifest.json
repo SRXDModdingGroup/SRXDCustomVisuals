@@ -5,13 +5,13 @@
   "repository": "SRXDModdingGroup/SRXDCustomVisuals",
   "dependencies": [
 	{
-		"name": "SpinModdingUtilities"
-		"version": "1.0.7"
+		"name": "SpinModdingUtilities",
+		"version": "1.0.7",
 		"repository": "SRXDModdingGroup/SpinModdingUtilities"
 	},
 	{
-		"name": "SpinCore"
-		"version": "1.0.1"
+		"name": "SpinCore",
+		"version": "1.0.1",
 		"repository": "SRXDModdingGroup/SpinCore"
 	}
   ]
