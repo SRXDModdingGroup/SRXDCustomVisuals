@@ -41,7 +41,6 @@ public class Patches {
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
     private static void Track_PlayTrack_Postfix() {
-        Plugin.Logger.LogMessage("PlayTrack");
         noteEventController.Reset();
 
         var playState = PlayState.Active;
@@ -57,7 +56,6 @@ public class Patches {
 
     [HarmonyPatch(typeof(Track), nameof(Track.StopTrack)), HarmonyPostfix]
     private static void Track_StopTrack_Postfix() {
-        Plugin.Logger.LogMessage("StopTrack");
         noteEventController.Reset();
         visualsBackgroundManager.UnloadBackground();
         eventPlayback.SetSequence(new TrackVisualsEventSequence());
