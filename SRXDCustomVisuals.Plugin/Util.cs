@@ -9,31 +9,6 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Plugin; 
 
 public static class Util {
-    public static string AssetBundlesPath { get; } = Path.Combine(Paths.PluginPath, "AssetBundles");
-    
-    public static string BackgroundsPath { get; } = Path.Combine(Paths.PluginPath, "Backgrounds");
-    
-    public static bool TryLoadAssembly(string fileName) {
-        string path = Path.Combine(Paths.PluginPath, fileName);
-        
-        if (!File.Exists(path)) {
-            Plugin.Logger.LogWarning($"{fileName} was not found. Some visuals elements may be missing controllers as a result.");
-
-            return false;
-        }
-
-        try {
-            Assembly.LoadFrom(path);
-
-            return true;
-        }
-        catch {
-            Plugin.Logger.LogWarning($"Failed to load {fileName}. Some visuals elements may be missing controllers as a result.");
-            
-            return false;
-        }
-    }
-
     public static bool ColorEquals(Color32 a, Color32 b) => a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
 
     public static bool TryParseColor32(string hex, out Color32 color) {

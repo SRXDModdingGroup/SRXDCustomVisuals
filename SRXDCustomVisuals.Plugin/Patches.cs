@@ -36,12 +36,12 @@ public class Patches {
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
     private static void Track_Awake_Postfix(Track __instance) {
         sequenceEditor = new GameObject("Sequence Editor", typeof(SequenceEditor)).GetComponent<SequenceEditor>();
-        VisualsBackgroundManager.CreateDirectories();
         eventPlayback.SetSequence(new TrackVisualsEventSequence());
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
     private static void Track_PlayTrack_Postfix() {
+        Plugin.Logger.LogMessage("PlayTrack");
         noteEventController.Reset();
 
         var playState = PlayState.Active;
@@ -51,15 +51,14 @@ public class Patches {
         if (Plugin.EnableCustomVisuals.Value)
             visualsBackgroundManager.LoadBackground(customVisualsInfo.Background);
 
-        VisualsEventManager.ResetAll();
         eventPlayback.SetSequence(sequence);
         sequenceEditor.Init(sequence, visualsBackgroundManager.CurrentBackground, playState);
     }
 
-    [HarmonyPatch(typeof(Track), nameof(Track.ReturnToPickTrack)), HarmonyPostfix]
-    private static void Track_ReturnToPickTrack_Postfix() {
+    [HarmonyPatch(typeof(Track), nameof(Track.StopTrack)), HarmonyPostfix]
+    private static void Track_StopTrack_Postfix() {
+        Plugin.Logger.LogMessage("StopTrack");
         noteEventController.Reset();
-        VisualsEventManager.ResetAll();
         visualsBackgroundManager.UnloadBackground();
         eventPlayback.SetSequence(new TrackVisualsEventSequence());
         sequenceEditor.Exit();

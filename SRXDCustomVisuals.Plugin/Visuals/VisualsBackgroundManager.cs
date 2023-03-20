@@ -1,20 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using SMU.Utilities;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
 namespace SRXDCustomVisuals.Plugin; 
 
 public class VisualsBackgroundManager {
-    public static void CreateDirectories() {
-        if (!Directory.Exists(Util.AssetBundlesPath))
-            Directory.CreateDirectory(Util.AssetBundlesPath);
-        
-        if (!Directory.Exists(Util.BackgroundsPath))
-            Directory.CreateDirectory(Util.BackgroundsPath);
-    }
-    
     public VisualsBackground CurrentBackground { get; private set; } = VisualsBackground.Empty;
     
     private Dictionary<string, VisualsBackground> backgrounds = new();
@@ -63,7 +56,7 @@ public class VisualsBackgroundManager {
     }
 
     public void UnloadBackground() {
-        if (CurrentBackground != VisualsBackground.Empty)
+        if (CurrentBackground == VisualsBackground.Empty)
             return;
         
         ResetCameraSettings();
@@ -81,7 +74,15 @@ public class VisualsBackgroundManager {
         if (backgrounds.TryGetValue(name, out background))
             return true;
 
-        string backgroundPath = Path.ChangeExtension(Path.Combine(Util.BackgroundsPath, name), ".json");
+        string[] split = name.Split('/');
+
+        if (split.Length != 2 || string.IsNullOrWhiteSpace(split[0]) || string.IsNullOrWhiteSpace(split[1])) {
+            Plugin.Logger.LogWarning($"{name} is not a valid background reference");
+            
+            return false;
+        }
+
+        string backgroundPath = Path.ChangeExtension(Path.Combine(ModsUtility.GetModDirectory(split[0]), "backgrounds", split[1]), ".json");
 
         if (!File.Exists(backgroundPath)) {
             Plugin.Logger.LogWarning($"Could not find background definition {name}");
@@ -97,7 +98,7 @@ public class VisualsBackgroundManager {
             return false;
         }
 
-        background = new VisualsBackground(backgroundDefinition);
+        background = new VisualsBackground(backgroundDefinition, split[0]);
         backgrounds.Add(name, background);
 
         return true;

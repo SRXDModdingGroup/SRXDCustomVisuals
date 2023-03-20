@@ -33,7 +33,8 @@
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
     <PropertyGroup>
-      <PostBuildEvent>xcopy "$(TargetDir)SRXDCustomVisuals.Plugin.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins\SRXDCustomVisuals" /Y</PostBuildEvent>
+      <PostBuildEvent>xcopy "$(TargetDir)SRXDCustomVisuals.Plugin.dll" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins\SRXDCustomVisuals" /Y
+xcopy "$(SolutionDir)manifest.json" "C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\plugins\SRXDCustomVisuals" /Y</PostBuildEvent>
     </PropertyGroup>
     <PropertyGroup>
         <SpinDir>C:\Program Files (x86)\Steam\steamapps\common\Spin Rhythm</SpinDir>
@@ -55,10 +56,10 @@
           <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\Spin.Game.TrackPlaybackSystem.dll</HintPath>
         </Reference>
         <Reference Include="SpinCore">
-          <HintPath>$(SpinDir)\BepInEx\plugins\SpinCore.dll</HintPath>
+          <HintPath>$(SpinDir)\BepInEx\plugins\SpinCore\SpinCore.dll</HintPath>
         </Reference>
         <Reference Include="SpinModdingUtilities">
-          <HintPath>$(SpinDir)\BepInEx\plugins\SpinModdingUtilities.dll</HintPath>
+          <HintPath>$(SpinDir)\BepInEx\plugins\SpinModdingUtilities\SpinModdingUtilities.dll</HintPath>
         </Reference>
         <Reference Include="SSD.Game">
           <HintPath>$(SpinDir)\SpinRhythm_Data\Managed\SSD.Game.dll</HintPath>

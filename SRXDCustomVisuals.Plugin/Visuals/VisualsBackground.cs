@@ -6,7 +6,7 @@ using Object = UnityEngine.Object;
 namespace SRXDCustomVisuals.Plugin; 
 
 public class VisualsBackground {
-    public static VisualsBackground Empty { get; } = new(new BackgroundDefinition());
+    public static VisualsBackground Empty { get; } = new(new BackgroundDefinition(), string.Empty);
     
     public bool DisableBaseBackground { get; }
     
@@ -22,21 +22,23 @@ public class VisualsBackground {
 
     public IReadOnlyList<string> CurveLabels { get; }
 
+    private string modName;
     private string[] assetBundleNames;
-    private string[] assemblyNames;
+    private string[] dependencies;
     private VisualsElement[] elements;
     private Dictionary<string, AssetBundle> assetBundles;
     private List<GameObject> instances;
     private bool loaded;
 
-    public VisualsBackground(BackgroundDefinition definition) {
+    public VisualsBackground(BackgroundDefinition definition, string modName) {
+        this.modName = modName;
         DisableBaseBackground = definition.DisableBaseBackground;
         UseAudioSpectrum = definition.UseAudioSpectrum;
         UseAudioWaveform = definition.UseAudioWaveform;
         UseDepthTexture = definition.UseDepthTexture;
         FarClip = definition.FarClip;
         assetBundleNames = definition.AssetBundles.Copy();
-        assemblyNames = definition.Assemblies.Copy();
+        dependencies = definition.Dependencies.Copy();
         EventLabels = definition.EventLabels.Copy();
         CurveLabels = definition.CurveLabels.Copy();
 
@@ -58,13 +60,15 @@ public class VisualsBackground {
         if (loaded)
             return;
 
-        foreach (string assembly in assemblyNames) {
-            if (!Util.TryLoadAssembly(assembly))
-                Plugin.Logger.LogWarning($"Could not load assembly {assembly}");
+        ModsUtility.TryLoadMod(modName);
+
+        foreach (string dependency in dependencies) {
+            if (!ModsUtility.TryLoadMod(dependency))
+                Plugin.Logger.LogWarning($"Could not load dependency {dependency}");
         }
 
         foreach (string bundleName in assetBundleNames) {
-            if (AssetBundleUtility.TryGetAssetBundle(Util.AssetBundlesPath, bundleName, out var bundle))
+            if (ModsUtility.TryGetAssetBundle(modName, bundleName, out var bundle))
                 assetBundles.Add(bundleName, bundle);
             else
                 Plugin.Logger.LogWarning($"Could not load asset bundle {bundleName}");
@@ -115,7 +119,7 @@ public class VisualsBackground {
         instances.Clear();
 
         foreach (string bundleName in assetBundleNames)
-            AssetBundleUtility.UnloadAssetBundle(Util.AssetBundlesPath, bundleName);
+            ModsUtility.UnloadAssetBundle(modName, bundleName);
         
         assetBundles.Clear();
         loaded = false;
