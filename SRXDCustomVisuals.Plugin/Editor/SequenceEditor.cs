@@ -148,7 +148,7 @@ public class SequenceEditor : MonoBehaviour {
     private void MoveByColumn(int direction, bool largeMovement, bool changeSelection, bool moveSelected) {
         if (largeMovement)
             direction *= 8;
-        
+
         state.Column = Mathf.Clamp(state.Column + direction, 0, sequence.ColumnCount - 1);
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, state.Column - (COLUMN_COUNT - 2), state.Column - 1);
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, 0, 240);

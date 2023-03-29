@@ -3,106 +3,84 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEventPlayback {
-    private const long MIN_JUMP_INTERVAL = 2000L;
-    
     private TrackVisualsEventSequence sequence;
-    private int lastOnOffEventIndex;
-    private OnOffEvent[] onOffEventsToSend;
-    private int[] lastControlKeyframeIndex;
+    private int[] lastOnOffEventIndexPerColumn;
+    private int[] lastControlKeyframeIndexPerColumn;
 
     public TrackVisualsEventPlayback() {
-        onOffEventsToSend = new OnOffEvent[Constants.IndexCount];
-        lastControlKeyframeIndex = new int[Constants.IndexCount];
+        lastOnOffEventIndexPerColumn = new int[Constants.IndexCount];
+        lastControlKeyframeIndexPerColumn = new int[Constants.IndexCount];
         SetSequence(new TrackVisualsEventSequence());
     }
 
     public void SetSequence(TrackVisualsEventSequence sequence) {
         this.sequence = sequence;
-        lastOnOffEventIndex = -1;
         
-        for (int i = 0; i < onOffEventsToSend.Length; i++) {
-            onOffEventsToSend[i] = null;
-            lastControlKeyframeIndex[i] = -1;
+        for (int i = 0; i < Constants.IndexCount; i++) {
+            lastOnOffEventIndexPerColumn[i] = -1;
+            lastControlKeyframeIndexPerColumn[i] = -1;
         }
     }
 
     public void Advance(long time) {
-        var onOffEvents = sequence.OnOffEvents;
-        int startIndex = lastOnOffEventIndex;
-        int newIndex = startIndex;
-
-        for (int i = startIndex + 1; i < onOffEvents.Count; i++) {
-            var onOffEvent = onOffEvents[i];
-                
-            if (onOffEvent.Time > time)
-                break;
-        
-            switch (onOffEvent.Type) {
-                case OnOffEventType.On:
-                    VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
-                    break;
-                case OnOffEventType.Off:
-                    VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, onOffEvent.Index, onOffEvent.Value));
-                    break;
-                case OnOffEventType.OnOff:
-                    VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
-                    VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, onOffEvent.Index, onOffEvent.Value));
-                    break;
-            }
-
-            newIndex = i;
-        }
-        
-        lastOnOffEventIndex = newIndex;
-        ProcessControlCurves(time);
+        AdvanceOnOffEvents(time);
+        AdvanceControlCurves(time);
     }
 
     public void Jump(long time) {
-        var onOffEvents = sequence.OnOffEvents;
-        int newIndex = -1;
-        
         VisualsEventManager.ResetAll();
-
-        for (int i = 0; i < onOffEvents.Count; i++) {
-            var onOffEvent = onOffEvents[i];
-                
-            if (onOffEvent.Time > time)
-                break;
-
-            if (onOffEvent.Type == OnOffEventType.On)
-                onOffEventsToSend[onOffEvent.Index] = onOffEvent;
-            else
-                onOffEventsToSend[onOffEvent.Index] = null;
-            
-            newIndex = i;
-        }
-
-        for (int i = 0; i < onOffEventsToSend.Length; i++) {
-            var onOffEvent = onOffEventsToSend[i];
-            
-            if (onOffEvent == null)
-                continue;
-            
-            VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, onOffEvent.Index, onOffEvent.Value));
-            onOffEventsToSend[i] = null;
-        }
+        JumpOnOffEvents(time);
         
-        lastOnOffEventIndex = newIndex;
+        for (int i = 0; i < lastControlKeyframeIndexPerColumn.Length; i++)
+            lastControlKeyframeIndexPerColumn[i] = -1;
         
-        for (int i = 0; i < lastControlKeyframeIndex.Length; i++)
-            lastControlKeyframeIndex[i] = -1;
-        
-        ProcessControlCurves(time);
+        AdvanceControlCurves(time);
     }
 
-    private void ProcessControlCurves(long time) {
-        for (int i = 0; i < sequence.ColumnCount; i++) {
-            var keyframes = sequence.GetKeyframes(i);
+    private void AdvanceOnOffEvents(long time) {
+        var onOffEvents = sequence.OnOffEvents;
+        
+        for (int i = 0; i < onOffEvents.ColumnCount; i++) {
+            var onOffEventsInColumn = onOffEvents.GetElementsInColumn(i);
+            int startIndex = lastOnOffEventIndexPerColumn[i];
+            int newIndex = startIndex;
+            
+            for (int j = startIndex + 1; j < onOffEventsInColumn.Count; j++) {
+                var onOffEvent = onOffEventsInColumn[j];
+                
+                if (onOffEvent.Time > time)
+                    break;
+        
+                switch (onOffEvent.Type) {
+                    case OnOffEventType.On:
+                        VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, i, onOffEvent.Value));
+                        break;
+                    case OnOffEventType.Off:
+                        VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, i, onOffEvent.Value));
+                        break;
+                    case OnOffEventType.OnOff:
+                        VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, i, onOffEvent.Value));
+                        VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, i, onOffEvent.Value));
+                        break;
+                }
+
+                newIndex = j;
+            }
+
+            lastControlKeyframeIndexPerColumn[i] = newIndex;
+        }
+    }
+
+    private void AdvanceControlCurves(long time) {
+        var controlCurves = sequence.ControlCurves;
+        
+        for (int i = 0; i < controlCurves.ColumnCount; i++) {
+            var keyframes = controlCurves.GetElementsInColumn(i);
             
             if (keyframes.Count == 0)
                 continue;
             
-            int index = lastControlKeyframeIndex[i];
+            int index = lastControlKeyframeIndexPerColumn[i];
 
             for (int j = index + 1; j < keyframes.Count; j++) {
                 var keyframe = keyframes[j];
@@ -123,7 +101,34 @@ public class TrackVisualsEventPlayback {
                 value = ControlKeyframe.Interpolate(keyframes[index], keyframes[index + 1], time);
 
             VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.ControlChange, i, value));
-            lastControlKeyframeIndex[i] = index;
+            lastControlKeyframeIndexPerColumn[i] = index;
+        }
+    }
+
+    private void JumpOnOffEvents(long time) {
+        var onOffEvents = sequence.OnOffEvents;
+        
+        for (int i = 0; i < onOffEvents.ColumnCount; i++) {
+            var onOffEventsInColumn = onOffEvents.GetElementsInColumn(i);
+            int newIndex = -1;
+            OnOffEvent eventToSend = null;
+
+            foreach (var onOffEvent in onOffEventsInColumn) {
+                if (onOffEvent.Time > time)
+                    break;
+
+                if (onOffEvent.Type == OnOffEventType.On)
+                    eventToSend = onOffEvent;
+                else
+                    eventToSend = null;
+
+                newIndex = i;
+            }
+
+            lastOnOffEventIndexPerColumn[i] = newIndex;
+
+            if (eventToSend != null)
+                VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, i, eventToSend.Value));
         }
     }
 }
