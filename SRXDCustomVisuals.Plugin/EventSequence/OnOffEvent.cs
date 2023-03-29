@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SRXDCustomVisuals.Plugin; 
+﻿namespace SRXDCustomVisuals.Plugin; 
 
 public class OnOffEvent : ISequenceElement<OnOffEvent> {
     public long Time { get; }

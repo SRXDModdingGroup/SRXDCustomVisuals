@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SRXDCustomVisuals.Plugin; 
+﻿namespace SRXDCustomVisuals.Plugin; 
 
 public class ControlKeyframe : ISequenceElement<ControlKeyframe> {
     public long Time { get; }
