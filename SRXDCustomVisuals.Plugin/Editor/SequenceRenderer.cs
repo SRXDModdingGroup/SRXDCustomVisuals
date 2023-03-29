@@ -57,7 +57,6 @@ public class SequenceRenderer {
     private Texture2D whiteTexture;
     private Texture2D controlCurveTexture;
     private int[] controlCurveActivePixels;
-    private long[] lastEventOnTimeInColumn;
 
     public SequenceRenderer(int windowWidth, int windowHeight, int columnCount) {
         windowRect = new Rect(0f, 0f, windowWidth, windowHeight);
@@ -88,7 +87,6 @@ public class SequenceRenderer {
         
         controlCurveTexture.Apply();
         controlCurveActivePixels = new int[controlCurveTexture.height];
-        lastEventOnTimeInColumn = new long[columnCount];
     }
 
     public void Render(SequenceRenderInput input) {
@@ -115,10 +113,10 @@ public class SequenceRenderer {
                 DrawDetails(editorState, sequence.Palette);
                 break;
             case SequenceEditorMode.OnOffEvents when Event.current.type == EventType.Repaint:
-                DrawOnOffEvents(time, timeAsFloat, beatArray, sequence.OnOffEvents, background.EventLabels, editorState.SelectedIndicesPerColumn[0], cursorIndex, columnPan, editorState.ShowValues);
+                DrawOnOffEvents(time, timeAsFloat, beatArray, sequence.OnOffEvents, background.EventLabels, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
                 break;
             case SequenceEditorMode.ControlCurves when Event.current.type == EventType.Repaint:
-                DrawControlCurves(time, timeAsFloat, beatArray, sequence, background.CurveLabels, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
+                DrawControlCurves(time, timeAsFloat, beatArray, sequence.ControlCurves, background.CurveLabels, editorState.SelectedIndicesPerColumn, cursorIndex, columnPan, editorState.ShowValues);
                 break;
         }
         
@@ -135,72 +133,29 @@ public class SequenceRenderer {
             DrawPaletteField(paletteFields[i], $"palette_{i}", $"Color {i + 1}:", i + 2, palette[i].ToColor());
     }
 
-    private void DrawOnOffEvents(long time, float timeAsFloat, float[] beatArray, IReadOnlyList<OnOffEvent> onOffEvents, IReadOnlyList<string> labels, List<int> selectedIndices, int cursorIndex, int columnPan, bool showValues) {
-        DrawGrid(timeAsFloat, beatArray, cursorIndex, columnPan);
+    private void DrawOnOffEvents(long time, float timeAsFloat, float[] beatArray, IReadOnlySequenceElementCollection<OnOffEvent> onOffEvents,
+        IReadOnlyList<string> labels, List<int>[] selectedIndicesPerColumn, int cursorIndex, int firstColumnIndex, bool showValues) {
+        DrawGrid(timeAsFloat, beatArray, cursorIndex, firstColumnIndex);
 
-        for (int i = 0, j = columnPan; i < columnCount && j < labels.Count; i++, j++)
+        for (int i = 0, j = firstColumnIndex; i < columnCount && j < labels.Count; i++, j++)
             DrawColumnLabel(i, labels[j]);
 
-        for (int i = 0; i < columnCount; i++)
-            lastEventOnTimeInColumn[i] = long.MinValue;
-
-        for (int i = 0; i < onOffEvents.Count; i++) {
-            var onOffEvent = onOffEvents[i];
-
-            int column = onOffEvent.Index - columnPan;
-
-            if (column < 0 || column >= columnCount)
-                continue;
-
-            long eventTime = onOffEvent.Time;
-            var eventType = onOffEvent.Type;
-            float relativeTime = TICK_TO_TIME * (eventTime - time);
-            long lastNoteOnTime = lastEventOnTimeInColumn[column];
-
-            if (lastNoteOnTime != long.MinValue) {
-                float relativeLastNoteOnTime = TICK_TO_TIME * (lastNoteOnTime - time);
-
-                if (relativeLastNoteOnTime <= TIMESPAN && relativeTime >= 0f)
-                    DrawSustainLine(relativeLastNoteOnTime, relativeTime, column);
-            }
-
-            if (eventType == OnOffEventType.On)
-                lastEventOnTimeInColumn[column] = eventTime;
-            else
-                lastEventOnTimeInColumn[column] = long.MinValue;
-
-            if (relativeTime >= 0f && relativeTime <= TIMESPAN)
-                DrawOnOffEvent(relativeTime, eventType, onOffEvent.Value, column, selectedIndices.Contains(i), showValues);
-        }
-
-        for (int i = 0; i < columnCount; i++) {
-            long lastNoteOnTime = lastEventOnTimeInColumn[i];
-
-            if (lastNoteOnTime == long.MinValue)
-                continue;
-
-            float relativeLastNoteOnTime = TICK_TO_TIME * (lastNoteOnTime - time);
-
-            if (relativeLastNoteOnTime <= TIMESPAN)
-                DrawSustainLine(relativeLastNoteOnTime, TIMESPAN, i);
-        }
+        for (int i = 0, j = firstColumnIndex; i < columnCount; i++, j++)
+            DrawOnOffEventsInColumn(onOffEvents.GetElementsInColumn(j), selectedIndicesPerColumn[j], time, i, showValues);
         
         DrawModeLabel($"Mode: Events    Index: {cursorIndex:X2}");
     }
 
-    private void DrawControlCurves(long time, float timeAsFloat, float[] beatArray, TrackVisualsEventSequence sequence, IReadOnlyList<string> labels, List<int>[] selectedIndicesPerColumn, int cursorIndex, int columnPan, bool showValues) {
+    private void DrawControlCurves(long time, float timeAsFloat, float[] beatArray, IReadOnlySequenceElementCollection<ControlKeyframe> controlCurves,
+        IReadOnlyList<string> labels, List<int>[] selectedIndicesPerColumn, int cursorIndex, int columnPan, bool showValues) {
         DrawGrid(timeAsFloat, beatArray, cursorIndex, columnPan);
         
         for (int i = 0, j = columnPan; i < columnCount && j < labels.Count; i++, j++)
             DrawColumnLabel(i, labels[j]);
         
-        for (int i = 0, j = columnPan; i < columnCount; i++, j++) {
-            var keyframes = sequence.GetKeyframes(j);
-            
-            if (keyframes.Count > 0)
-                DrawControlCurve(keyframes, selectedIndicesPerColumn[j], time, i, showValues);
-        }
-        
+        for (int i = 0, j = columnPan; i < columnCount; i++, j++)
+            DrawControlCurve(controlCurves.GetElementsInColumn(j), selectedIndicesPerColumn[j], time, i, showValues);
+
         DrawModeLabel($"Mode: Curves    Index: {cursorIndex:X2}");
     }
 
@@ -213,7 +168,7 @@ public class SequenceRenderer {
         GUI.Label(new Rect(x, y, FIELD_LABEL_WIDTH, FIELD_HEIGHT), label);
         DrawField(field, name, x + FIELD_LABEL_WIDTH, y, canvasWidth - FIELD_LABEL_WIDTH - 2 * FIELD_PADDING, FIELD_HEIGHT);
     }
-    
+
     private void DrawPaletteField(TextFieldState field, string name, string label, int row, Color color) {
         const int x = SIDE_PADDING + FIELD_PADDING;
         int y = TOP_PADDING + DETAILS_START_Y + row * FIELD_HEIGHT;
@@ -312,7 +267,42 @@ public class SequenceRenderer {
         DrawRect(ColumnToX(column) + columnWidth / 2, endY, 1, startY - endY, ON_EVENT_COLOR, false);
     }
 
+    private void DrawOnOffEventsInColumn(IReadOnlyList<OnOffEvent> onOffEvents, List<int> selectedIndices, long time, int column, bool showValues) {
+        long lastEventOnTime = long.MinValue;
+        float relativeLastNoteOnTime;
+
+        foreach (var onOffEvent in onOffEvents) {
+            float relativeTime = TICK_TO_TIME * (onOffEvent.Time - time);
+
+            if (lastEventOnTime != long.MinValue) {
+                relativeLastNoteOnTime = TICK_TO_TIME * (lastEventOnTime - time);
+
+                if (relativeLastNoteOnTime <= TIMESPAN && relativeTime >= 0f)
+                    DrawSustainLine(relativeLastNoteOnTime, relativeTime, column);
+            }
+
+            if (onOffEvent.Type == OnOffEventType.On)
+                lastEventOnTime = onOffEvent.Time;
+            else
+                lastEventOnTime = long.MinValue;
+
+            if (relativeTime >= 0f && relativeTime <= TIMESPAN)
+                DrawOnOffEvent(relativeTime, onOffEvent.Type, onOffEvent.Value, column, selectedIndices.Contains(column), showValues);
+        }
+        
+        if (lastEventOnTime == long.MinValue)
+            return;
+
+        relativeLastNoteOnTime = TICK_TO_TIME * (lastEventOnTime - time);
+
+        if (relativeLastNoteOnTime <= TIMESPAN)
+            DrawSustainLine(relativeLastNoteOnTime, TIMESPAN, column);
+    }
+
     private void DrawControlCurve(IReadOnlyList<ControlKeyframe> keyframes, List<int> selectedIndices, long time, int column, bool showValues) {
+        if (keyframes.Count == 0)
+            return;
+        
         var pixelData = controlCurveTexture.GetPixelData<Color32>(0);
         var controlCurveColor32 = (Color32) CONTROL_CURVE_COLOR;
         int currentKeyframeIndex = -1;

@@ -25,12 +25,6 @@ public class BackgroundDefinition {
     [JsonProperty("curveLabels")]
     public string[] CurveLabels { get; set; } = Array.Empty<string>();
 
-    [JsonProperty("assetBundles")]
-    public string[] AssetBundles { get; set; } = Array.Empty<string>();
-
     [JsonProperty("elements")]
     public ElementReference[] Elements { get; set; } = Array.Empty<ElementReference>();
-
-    [JsonProperty("dependencies")]
-    public string[] Dependencies { get; set; } = Array.Empty<string>();
 }

@@ -6,7 +6,6 @@ using System.Reflection.Emit;
 using GameSystems.TrackPlayback;
 using HarmonyLib;
 using SMU.Utilities;
-using SRXDCustomVisuals.Core;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 

@@ -104,6 +104,7 @@ xcopy "$(SolutionDir)manifest.json" "C:\Program Files (x86)\Steam\steamapps\comm
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="Editor\SequenceEditHandle.cs" />
         <Compile Include="Editor\SequenceEditorMode.cs" />
         <Compile Include="Editor\SequenceEditorState.cs" />
         <Compile Include="Editor\SequenceRenderInput.cs" />
@@ -113,9 +114,12 @@ xcopy "$(SolutionDir)manifest.json" "C:\Program Files (x86)\Steam\steamapps\comm
         <Compile Include="EventSequence\CompoundAction.cs" />
         <Compile Include="EventSequence\ControlKeyframe.cs" />
         <Compile Include="EventSequence\ControlKeyframeType.cs" />
+        <Compile Include="EventSequence\IReadOnlySequenceElementCollection.cs" />
+        <Compile Include="EventSequence\ISequenceElement.cs" />
         <Compile Include="EventSequence\IUndoRedoAction.cs" />
         <Compile Include="EventSequence\OnOffEvent.cs" />
         <Compile Include="EventSequence\OnOffEventType.cs" />
+        <Compile Include="EventSequence\SequenceElementCollection.cs" />
         <Compile Include="EventSequence\TrackVisualsEventSequence.cs" />
         <Compile Include="EventSequence\TrackVisualsEventPlayback.cs" />
         <Compile Include="EventSequence\TrackVisualsEventType.cs" />

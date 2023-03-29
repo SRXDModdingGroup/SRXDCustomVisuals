@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Input = UnityEngine.Input;
 
@@ -19,19 +20,21 @@ public class SequenceEditor : MonoBehaviour {
     private TrackVisualsEventSequence sequence;
     private VisualsBackground background;
     private PlayState playState;
-    private List<OnOffEvent> onOffEventClipboard;
-    private List<ControlKeyframe>[] controlKeyframeClipboard;
+    private List<OnOffEvent>[] onOffEventClipboard;
+    private List<ControlKeyframe>[] controlCurveClipboard;
 
     private void Awake() {
         state = new SequenceEditorState();
         renderer = new SequenceRenderer(WINDOW_WIDTH, WINDOW_HEIGHT, COLUMN_COUNT);
         background = VisualsBackground.Empty;
         sequence = new TrackVisualsEventSequence();
-        onOffEventClipboard = new List<OnOffEvent>();
-        controlKeyframeClipboard = new List<ControlKeyframe>[Constants.IndexCount];
+        onOffEventClipboard = new List<OnOffEvent>[Constants.IndexCount];
+        controlCurveClipboard = new List<ControlKeyframe>[Constants.IndexCount];
 
-        for (int i = 0; i < controlKeyframeClipboard.Length; i++)
-            controlKeyframeClipboard[i] = new List<ControlKeyframe>();
+        for (int i = 0; i < controlCurveClipboard.Length; i++) {
+            onOffEventClipboard[i] = new List<OnOffEvent>();
+            controlCurveClipboard[i] = new List<ControlKeyframe>();
+        }
     }
 
     private void OnGUI() {
@@ -105,7 +108,7 @@ public class SequenceEditor : MonoBehaviour {
         UpdateSelection();
     }
 
-    private void MoveTime(int direction, bool largeMovement, bool smallMovement, bool moveToNext, bool changeSelection, bool moveSelected) {
+    private void MoveByTime(int direction, bool largeMovement, bool smallMovement, bool moveToNext, bool changeSelection, bool moveSelected) {
         if (largeMovement)
             direction *= 8;
 
@@ -120,68 +123,7 @@ public class SequenceEditor : MonoBehaviour {
             trackEditor.SetCurrentTrackTime(playState.trackData.GetTimeOffsetByTicks(TICK_TO_TIME * state.Time, directionFloat), false);
         }
         else if (moveToNext) {
-            long time = state.Time;
-            int cursorIndex = state.Column;
-            
-            switch (state.Mode) {
-                case SequenceEditorMode.OnOffEvents: {
-                    var onOffEvents = sequence.OnOffEvents;
-
-                    if (direction > 0) {
-                        foreach (var onOffEvent in onOffEvents) {
-                            if (onOffEvent.Index != cursorIndex || onOffEvent.Time <= time + TIME_EPSILON)
-                                continue;
-
-                            state.Time = onOffEvent.Time;
-
-                            break;
-                        }
-                    }
-                    else if (direction < 0) {
-                        for (int i = onOffEvents.Count - 1; i >= 0; i--) {
-                            var onOffEvent = onOffEvents[i];
-                            
-                            if (onOffEvent.Index != cursorIndex || onOffEvent.Time >= time - TIME_EPSILON)
-                                continue;
-
-                            state.Time = onOffEvent.Time;
-
-                            break;
-                        }
-                    }
-
-                    break;
-                }
-                case SequenceEditorMode.ControlCurves: {
-                    var keyframes = sequence.GetKeyframes(state.Column);
-
-                    if (direction > 0) {
-                        foreach (var keyframe in keyframes) {
-                            if (keyframe.Time <= time + TIME_EPSILON)
-                                continue;
-
-                            state.Time = keyframe.Time;
-
-                            break;
-                        }
-                    }
-                    else if (direction < 0) {
-                        for (int i = keyframes.Count - 1; i >= 0; i--) {
-                            var keyframe = keyframes[i];
-                            
-                            if (keyframe.Time >= time - TIME_EPSILON)
-                                continue;
-
-                            state.Time = keyframe.Time;
-
-                            break;
-                        }
-                    }
-
-                    break;
-                }
-            }
-            
+            JumpToNext(direction);
             trackEditor.SetCurrentTrackTime(TICK_TO_TIME * state.Time, false);
         }
         else
@@ -203,7 +145,7 @@ public class SequenceEditor : MonoBehaviour {
         }
     }
 
-    private void MoveColumn(int direction, bool largeMovement, bool changeSelection, bool moveSelected) {
+    private void MoveByColumn(int direction, bool largeMovement, bool changeSelection, bool moveSelected) {
         if (largeMovement)
             direction *= 8;
         
@@ -212,9 +154,9 @@ public class SequenceEditor : MonoBehaviour {
         state.ColumnPan = Mathf.Clamp(state.ColumnPan, 0, 240);
 
         if (moveSelected)
-            MoveSelectedByIndex(direction);
+            MoveSelectedByColumn(direction);
         else if (changeSelection) {
-            state.SelectionEndIndex = state.Column;
+            state.SelectionEndColumn = state.Column;
             UpdateSelection();
         }
         else {
@@ -224,35 +166,15 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     private void ChangeType(int direction) {
-        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
-
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                var onOffEvents = sequence.OnOffEvents;
-        
-                foreach (int index in selectedIndicesPerColumn[0]) {
-                    var onOffEvent = onOffEvents[index];
-
-                    sequence.ReplaceOnOffEvent(index,
-                        onOffEvent.WithType((OnOffEventType) Util.Mod((int) onOffEvent.Type + direction, (int) OnOffEventType.Count)));
-                }
-                
+            case SequenceEditorMode.OnOffEvents:
+                ReplaceSelectedElementsInPlace(sequence.GetHandleForOnOffEvents, onOffEvent
+                    => onOffEvent.WithType((OnOffEventType) Util.Mod((int) onOffEvent.Type + direction, (int) OnOffEventType.Count)));
                 break;
-            }
-            case SequenceEditorMode.ControlCurves: {
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    var keyframes = sequence.GetKeyframes(i);
-
-                    foreach (int index in selectedIndicesPerColumn[i]) {
-                        var keyframe = keyframes[index];
-
-                        sequence.ReplaceKeyframe(i, index,
-                            keyframe.WithType((ControlKeyframeType) Util.Mod((int) keyframe.Type + direction, (int) ControlKeyframeType.Count)));
-                    }
-                }
-                
+            case SequenceEditorMode.ControlCurves:
+                ReplaceSelectedElementsInPlace(sequence.GetHandleForControlCurves, keyframe
+                    => keyframe.WithType((ControlKeyframeType) Util.Mod((int) keyframe.Type + direction, (int) ControlKeyframeType.Count)));
                 break;
-            }
         }
     }
 
@@ -261,36 +183,16 @@ public class SequenceEditor : MonoBehaviour {
             direction *= 64;
         else if (!smallAmount)
             direction *= 8;
-        
-        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
 
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                var onOffEvents = sequence.OnOffEvents;
-        
-                foreach (int index in selectedIndicesPerColumn[0]) {
-                    var onOffEvent = onOffEvents[index];
-
-                    sequence.ReplaceOnOffEvent(index,
-                        onOffEvent.WithValue(Mathf.Clamp(onOffEvent.Value + direction, 0, Constants.MaxEventValue)));
-                }
-                
+            case SequenceEditorMode.OnOffEvents:
+                ReplaceSelectedElementsInPlace(sequence.GetHandleForOnOffEvents, onOffEvent
+                    => onOffEvent.WithValue(Mathf.Clamp(onOffEvent.Value + direction, 0, Constants.MaxEventValue)));
                 break;
-            }
-            case SequenceEditorMode.ControlCurves: {
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    var keyframes = sequence.GetKeyframes(i);
-
-                    foreach (int index in selectedIndicesPerColumn[i]) {
-                        var keyframe = keyframes[index];
-
-                        sequence.ReplaceKeyframe(i, index,
-                            keyframe.WithValue(Mathf.Clamp(keyframe.Value + direction, 0, Constants.MaxEventValue)));
-                    }
-                }
-                
+            case SequenceEditorMode.ControlCurves:
+                ReplaceSelectedElementsInPlace(sequence.GetHandleForControlCurves, keyframe
+                    => keyframe.WithValue(Mathf.Clamp(keyframe.Value + direction, 0, Constants.MaxEventValue)));
                 break;
-            }
         }
 
         state.ShowValues = true;
@@ -302,192 +204,73 @@ public class SequenceEditor : MonoBehaviour {
         state.Selecting = true;
     }
 
-    private void PlaceOnOffEventAtCursor(OnOffEventType type) {
-        ClearSelection();
-        UpdateSelection();
-        DeleteSelected();
-        
-        if (TimeInBounds(state.Time)) {
-            var onOffEvents = sequence.OnOffEvents;
-            var onOffEvent = new OnOffEvent(state.Time, type, state.Column, Constants.MaxEventValue);
-            int index = sequence.AddOnOffEvent(onOffEvent);
-            int value = Constants.MaxEventValue;
-            
-            for (int i = index - 1; i >= 0; i--) {
-                var other = onOffEvents[i];
+    private void PlaceOnOffEventAtCursor(OnOffEventType type)
+        => PlaceElementAtCursor(sequence.GetHandleForOnOffEvents, new OnOffEvent(state.Time, type, Constants.MaxEventValue));
 
-                if (other.Type == OnOffEventType.Off || other.Index != onOffEvent.Index)
-                    continue;
-                
-                value = other.Value;
-
-                break;
-            }
-            
-            sequence.ReplaceOnOffEvent(index, onOffEvent.WithValue(value));
-        }
-        
-        UpdateSelection();
-    }
-
-    private void PlaceControlKeyframeAtCursor(ControlKeyframeType type) {
-        ClearSelection();
-        UpdateSelection();
-        DeleteSelected();
-        
-        if (TimeInBounds(state.Time)) {
-            var controlKeyframes = sequence.GetKeyframes(state.Column);
-            var keyframe = new ControlKeyframe(state.Time, type, 0);
-            int index = sequence.AddKeyframe(state.Column, keyframe);
-            int value = 0;
-            
-            if (index > 0)
-                value = controlKeyframes[index - 1].Value;
-
-            sequence.ReplaceKeyframe(state.Column, index, keyframe.WithValue(value));
-        }
-        
-        UpdateSelection();
-    }
+    private void PlaceControlKeyframeAtCursor(ControlKeyframeType type)
+        => PlaceElementAtCursor(sequence.GetHandleForControlCurves, new ControlKeyframe(state.Time, type, Constants.MaxEventValue));
 
     private void EvenSpace() {
-        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
-        
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                var selectedIndices = selectedIndicesPerColumn[0];
-                
-                if (selectedIndices.Count <= 1)
-                    return;
+            case SequenceEditorMode.OnOffEvents:
+                DoEvenSpace(sequence.GetHandleForOnOffEvents);
+                break;
+            case SequenceEditorMode.ControlCurves:
+                DoEvenSpace(sequence.GetHandleForControlCurves);
+                break;
+        }
 
-                var onOffEvents = sequence.OnOffEvents;
-                int[] groupIndices = new int[selectedIndices.Count];
+        void DoEvenSpace<T>(SequenceEditHandle<T> handle) where T : ISequenceElement<T> =>
+            ReplaceSelectedElementsOutOfPlacePerColumn(handle, elements => {
+                var elementsList = new List<T>(elements);
+                int[] groupIndices = new int[elementsList.Count];
                 int groupIndex = 0;
-                long minTime = onOffEvents[selectedIndices[0]].Time;
-                long timeDiff = onOffEvents[selectedIndices[selectedIndices.Count - 1]].Time - minTime;
+                long minTime = elementsList[0].Time;
+                long timeDiff = elementsList[elementsList.Count - 1].Time - minTime;
                 long groupTime = minTime;
 
-                for (int i = 0; i < selectedIndices.Count; i++) {
-                    long time = onOffEvents[selectedIndices[i]].Time;
-
-                    if (time - groupTime > TIME_EPSILON) {
+                for (int i = 0; i < elementsList.Count; i++) {
+                    var element = elementsList[i];
+                        
+                    if (element.Time - groupTime > TIME_EPSILON) {
                         groupIndex++;
-                        groupTime = time;
+                        groupTime = element.Time;
                     }
 
                     groupIndices[i] = groupIndex;
                 }
-
-                var toAdd = new List<OnOffEvent>(selectedIndices.Count);
-
-                for (int i = 0; i < selectedIndices.Count; i++) {
-                    int index = selectedIndices[i];
-                    var onOffEvent = onOffEvents[index];
-                    var newOnOffEvent = onOffEvent.WithTime(minTime + timeDiff * groupIndices[i] / groupIndex);
-
-                    if (TimeInBounds(newOnOffEvent.Time))
-                        toAdd.Add(newOnOffEvent);
-                }
-
-                sequence.RemoveOnOffEvents(selectedIndices);
-                sequence.AddOnOffEvents(toAdd, selectedIndices);
-
-                break;
-            }
-            case SequenceEditorMode.ControlCurves: {
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    var selectedIndices = selectedIndicesPerColumn[i];
                     
-                    if (selectedIndices.Count <= 1)
-                        return;
+                var toAdd = new List<T>(elementsList.Count);
 
-                    var keyframes = sequence.GetKeyframes(i);
-                    int[] groupIndices = new int[selectedIndices.Count];
-                    int groupIndex = 0;
-                    long minTime = keyframes[selectedIndices[0]].Time;
-                    long timeDiff = keyframes[selectedIndices[selectedIndices.Count - 1]].Time - minTime;
-                    long groupTime = minTime;
-
-                    for (int j = 0; j < selectedIndices.Count; j++) {
-                        long time = keyframes[selectedIndices[j]].Time;
-
-                        if (time - groupTime > TIME_EPSILON) {
-                            groupIndex++;
-                            groupTime = time;
-                        }
-
-                        groupIndices[j] = groupIndex;
-                    }
-
-                    var toAdd = new List<ControlKeyframe>(selectedIndices.Count);
-
-                    for (int j = 0; j < selectedIndices.Count; j++) {
-                        int index = selectedIndices[j];
-                        var keyframe = keyframes[index];
-                        var newKeyframe = keyframe.WithTime(minTime + timeDiff * groupIndices[j] / groupIndex);
+                for (int i = 0; i < elementsList.Count; i++) {
+                    var element = elementsList[i];
                         
-                        if (TimeInBounds(newKeyframe.Time))
-                            toAdd.Add(newKeyframe);
-                    }
-
-                    sequence.RemoveKeyframes(i, selectedIndices);
-                    sequence.AddKeyframes(i, toAdd, selectedIndices);
+                    toAdd.Add(element.WithTime(minTime + timeDiff * groupIndices[i] / groupIndex));
                 }
-                
-                break;
-            }
-        }
+
+                return toAdd;
+            });
     }
 
     private void Quantize() {
         var trackData = playState.trackData;
-        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
 
         Track.Instance.trackEditor.SetCurrentTrackTime(trackData.GetQuantizedTime(TICK_TO_TIME * state.Time, 0.03125f), false);
         state.Time = playState.currentTrackTick;
         
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                var selectedIndices = selectedIndicesPerColumn[0];
-                var onOffEvents = sequence.OnOffEvents;
-                var toAdd = new List<OnOffEvent>(selectedIndices.Count);
-
-                foreach (int index in selectedIndices) {
-                    var onOffEvent = onOffEvents[index];
-                    var newEvent = onOffEvent.WithTime(QuantizeTime(onOffEvent.Time));
-                    
-                    if (TimeInBounds(newEvent.Time))
-                        toAdd.Add(newEvent);
-                }
-                
-                sequence.RemoveOnOffEvents(selectedIndices);
-                sequence.AddOnOffEvents(toAdd, selectedIndices);
-                
+            case SequenceEditorMode.OnOffEvents:
+                DoQuantize(sequence.GetHandleForOnOffEvents);
                 break;
-            }
-            case SequenceEditorMode.ControlCurves: {
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    var selectedIndices = selectedIndicesPerColumn[i];
-                    var keyframes = sequence.GetKeyframes(i);
-                    var toAdd = new List<ControlKeyframe>(selectedIndices.Count);
-
-                    foreach (int index in selectedIndices) {
-                        var keyframe = keyframes[index];
-                        var newKeyframe = keyframe.WithTime(QuantizeTime(keyframe.Time));
-                        
-                        if (TimeInBounds(newKeyframe.Time))
-                            toAdd.Add(newKeyframe);
-                    }
-
-                    sequence.RemoveKeyframes(i, selectedIndices);
-                    sequence.AddKeyframes(i, toAdd, selectedIndices);
-                }
-                
+            case SequenceEditorMode.ControlCurves:
+                DoQuantize(sequence.GetHandleForControlCurves);
                 break;
-            }
         }
 
-        long QuantizeTime(long time) => (long) (TIME_TO_TICK * trackData.GetQuantizedTime(TICK_TO_TIME * time, 0.03125f));
+        void DoQuantize<T>(SequenceEditHandle<T> handle) where T : ISequenceElement<T> {
+            ReplaceSelectedElementsOutOfPlace(handle, element
+                => element.WithTime((long) (TIME_TO_TICK * trackData.GetQuantizedTime(TICK_TO_TIME * element.Time, 0.03125f))));
+        }
     }
 
     private void Delete() {
@@ -496,77 +279,46 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     private void Copy() {
-        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
-
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                var selectedIndices = selectedIndicesPerColumn[0];
-        
-                if (selectedIndices.Count == 0)
-                    return;
-        
-                var onOffEvents = sequence.OnOffEvents;
-                long firstTime = onOffEvents[selectedIndices[0]].Time;
-                int firstIndex = int.MaxValue;
-
-                foreach (int index in selectedIndices) {
-                    int eventIndex = onOffEvents[index].Index;
-
-                    if (eventIndex < firstIndex)
-                        firstIndex = eventIndex;
-                }
-        
-                onOffEventClipboard.Clear();
-
-                foreach (int index in selectedIndices) {
-                    var onOffEvent = onOffEvents[index];
-
-                    onOffEventClipboard.Add(new OnOffEvent(
-                        onOffEvent.Time - firstTime,
-                        onOffEvent.Type, onOffEvent.Index - firstIndex, onOffEvent.Value));
-                }
-                
+            case SequenceEditorMode.OnOffEvents:
+                DoCopy(sequence.GetHandleForOnOffEvents, onOffEventClipboard);
                 break;
+            case SequenceEditorMode.ControlCurves:
+                DoCopy(sequence.GetHandleForControlCurves, controlCurveClipboard);
+                break;
+        }
+
+        void DoCopy<T>(SequenceEditHandle<T> handle, List<T>[] clipboard) where T : ISequenceElement<T> {
+            long firstTime = long.MaxValue;
+            int firstColumn = -1;
+
+            foreach (var column in clipboard)
+                column.Clear();
+
+            var collection = handle.Collection;
+
+            for (int i = 0; i < collection.ColumnCount; i++) {
+                bool any = false;
+                
+                foreach (var element in GetSelectedElementsInColumn(collection, i)) {
+                    any = true;
+
+                    if (element.Time < firstTime)
+                        firstTime = element.Time;
+                }
+
+                if (any && firstColumn < 0)
+                    firstColumn = i;
             }
-            case SequenceEditorMode.ControlCurves: {
-                long firstTime = long.MaxValue;
-                int firstColumn = -1;
-                int lastColumn = 0;
 
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    controlKeyframeClipboard[i].Clear();
+            if (firstColumn < 0)
+                return;
 
-                    var selectedIndices = selectedIndicesPerColumn[i];
+            for (int i = 0; i < collection.ColumnCount; i++) {
+                var clipboardColumn = clipboard[i - firstColumn];
                     
-                    if (selectedIndices.Count == 0)
-                        continue;
-
-                    if (firstColumn < 0)
-                        firstColumn = i;
-
-                    lastColumn = i;
-
-                    long time = sequence.GetKeyframes(i)[selectedIndices[0]].Time;
-
-                    if (time < firstTime)
-                        firstTime = time;
-                }
-
-                if (firstColumn < 0)
-                    break;
-
-                for (int i = firstColumn, j = 0; i <= lastColumn; i++, j++) {
-                    var clipboardColumn = controlKeyframeClipboard[j];
-                    var keyframes = sequence.GetKeyframes(i);
-
-                    foreach (int index in selectedIndicesPerColumn[i]) {
-                        var keyframe = keyframes[index];
-                        
-                        clipboardColumn.Add(keyframe.WithTime(keyframe.Time - firstTime));
-                    }
-                }
-                
-                break;
+                foreach (var element in GetSelectedElementsInColumn(collection, i))
+                    clipboardColumn.Add(element.WithTime(element.Time - firstTime));
             }
         }
     }
@@ -585,55 +337,41 @@ public class SequenceEditor : MonoBehaviour {
         ClearSelection();
 
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                var selectedIndices = selectedIndicesPerColumn[0];
-                var toAdd = new List<OnOffEvent>(onOffEventClipboard.Count);
-
-                foreach (var onOffEvent in onOffEventClipboard) {
-                    var newEvent = new OnOffEvent(
-                        onOffEvent.Time + time,
-                        onOffEvent.Type, onOffEvent.Index + cursorIndex,
-                        onOffEvent.Value);
-
-                    if (TimeInBounds(newEvent.Time) && newEvent.Index < sequence.ColumnCount)
-                        toAdd.Add(newEvent);
-                }
-
-                sequence.AddOnOffEvents(toAdd, selectedIndices);
-                
+            case SequenceEditorMode.OnOffEvents:
+                DoPaste(sequence.GetHandleForOnOffEvents, onOffEventClipboard);
                 break;
-            }
-            case SequenceEditorMode.ControlCurves: {
-                for (int i = 0; i < controlKeyframeClipboard.Length; i++) {
-                    int newColumn = i + cursorIndex;
-
-                    if (newColumn >= sequence.ColumnCount)
-                        break;
-                    
-                    var selectedIndices = selectedIndicesPerColumn[newColumn];
-                    var toAdd = new List<ControlKeyframe>(selectedIndices.Count);
-
-                    foreach (var keyframe in controlKeyframeClipboard[i]) {
-                        var newKeyframe = keyframe.WithTime(keyframe.Time + time);
-                        
-                        if (TimeInBounds(newKeyframe.Time))
-                            toAdd.Add(newKeyframe);
-                    }
-                    
-                    sequence.AddKeyframes(newColumn, toAdd, selectedIndices);
-                }
-                
+            case SequenceEditorMode.ControlCurves:
+                DoPaste(sequence.GetHandleForControlCurves, controlCurveClipboard);
                 break;
-            }
         }
         
         MatchSelectionBoxToSelection();
+
+        void DoPaste<T>(SequenceEditHandle<T> handle, List<T>[] clipboard) where T : ISequenceElement<T> {
+            for (int i = 0; i < clipboard.Length; i++) {
+                int newColumn = i + cursorIndex;
+                
+                if (newColumn >= sequence.ColumnCount)
+                    break;
+
+                handle.AddElements(newColumn, GetNewElements(i), selectedIndicesPerColumn[newColumn]);
+
+                IEnumerable<T> GetNewElements(int column) {
+                    foreach (var element in clipboard[column]) {
+                        long newTime = element.Time + time;
+
+                        if (TimeInBounds(newTime))
+                            yield return element.WithTime(newTime);
+                    }
+                }
+            }
+        }
     }
     
     private void SelectAll(bool all, bool inRow) {
         if (all || inRow) {
-            state.SelectionStartIndex = 0;
-            state.SelectionEndIndex = sequence.ColumnCount - 1;
+            state.SelectionStartColumn = 0;
+            state.SelectionEndColumn = sequence.ColumnCount - 1;
         }
         
         if (all || !inRow) {
@@ -643,168 +381,164 @@ public class SequenceEditor : MonoBehaviour {
         
         UpdateSelection();
     }
-    
-    private void MoveSelectedByTime(long amount) {
-        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
-        
+
+    private void JumpToNext(int direction) {
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                var selectedIndices = selectedIndicesPerColumn[0];
-                var onOffEvents = sequence.OnOffEvents;
-                var toAdd = new List<OnOffEvent>(selectedIndices.Count);
-
-                foreach (int index in selectedIndices) {
-                    var onOffEvent = onOffEvents[index];
-                    var newEvent = onOffEvent.WithTime(onOffEvent.Time + amount);
-                    
-                    if (TimeInBounds(newEvent.Time))
-                        toAdd.Add(newEvent);
-                }
-                
-                sequence.RemoveOnOffEvents(selectedIndices);
-                sequence.AddOnOffEvents(toAdd, selectedIndices);
-                
+            case SequenceEditorMode.OnOffEvents:
+                DoJump(sequence.OnOffEvents);
                 break;
-            }
-            case SequenceEditorMode.ControlCurves: {
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    var selectedIndices = selectedIndicesPerColumn[i];
-                    var keyframes = sequence.GetKeyframes(i);
-                    var toAdd = new List<ControlKeyframe>(selectedIndices.Count);
-
-                    foreach (int index in selectedIndices) {
-                        var keyframe = keyframes[index];
-                        var newKeyframe = keyframe.WithTime(keyframe.Time + amount);
-                        
-                        if (TimeInBounds(newKeyframe.Time))
-                            toAdd.Add(newKeyframe);
-                    }
-
-                    sequence.RemoveKeyframes(i, selectedIndices);
-                    sequence.AddKeyframes(i, toAdd, selectedIndices);
-                }
-                
+            case SequenceEditorMode.ControlCurves:
+                DoJump(sequence.ControlCurves);
                 break;
+        }
+        
+        void DoJump<T>(IReadOnlySequenceElementCollection<T> collection) where T : ISequenceElement<T> {
+            var elements = collection.GetElementsInColumn(state.Column);
+            
+            if (direction > 0) {
+                foreach (var element in elements) {
+                    if (element.Time <= state.Time + TIME_EPSILON)
+                        continue;
+
+                    state.Time = element.Time;
+
+                    break;
+                }
             }
+            else if (direction < 0) {
+                for (int i = elements.Count - 1; i >= 0; i--) {
+                    var element = elements[i];
+                            
+                    if (element.Time >= state.Time - TIME_EPSILON)
+                        continue;
+
+                    state.Time = element.Time;
+
+                    break;
+                }
+            }
+        }
+    }
+
+    private void MoveSelectedByTime(long amount) {
+        switch (state.Mode) {
+            case SequenceEditorMode.OnOffEvents:
+                ReplaceSelectedElementsOutOfPlace(sequence.GetHandleForOnOffEvents,
+                    onOffEvent => onOffEvent.WithTime(onOffEvent.Time + amount));
+                break;
+            case SequenceEditorMode.ControlCurves:
+                ReplaceSelectedElementsOutOfPlace(sequence.GetHandleForControlCurves,
+                    keyframe => keyframe.WithTime(keyframe.Time + amount));
+                break;
         }
         
         MatchSelectionBoxToSelection();
     }
 
-    private void MoveSelectedByIndex(int amount) {
-        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
-        
+    private void MoveSelectedByColumn(int amount) {
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                var selectedIndices = selectedIndicesPerColumn[0];
-                var onOffEvents = sequence.OnOffEvents;
-                var toAdd = new List<OnOffEvent>();
-                int leftmost = sequence.ColumnCount - 1;
-                int rightmost = 0;
-
-                foreach (int index in selectedIndices) {
-                    var onOffEvent = onOffEvents[index];
-
-                    if (onOffEvent.Index < leftmost)
-                        leftmost = onOffEvent.Index;
-                    
-                    if (onOffEvent.Index > rightmost)
-                        rightmost = onOffEvent.Index;
-                }
-
-                amount = Mathf.Clamp(amount, -leftmost, sequence.ColumnCount - 1 - rightmost);
-
-                foreach (int index in selectedIndices) {
-                    var onOffEvent = onOffEvents[index];
-                    
-                    toAdd.Add(onOffEvent.WithIndex(onOffEvent.Index + amount));
-                }
-
-                sequence.RemoveOnOffEvents(selectedIndices);
-                sequence.AddOnOffEvents(toAdd, selectedIndices);
-
+            case SequenceEditorMode.OnOffEvents:
+                DoMove(sequence.GetHandleForOnOffEvents);
                 break;
-            }
-            case SequenceEditorMode.ControlCurves: {
-                var toAddPerColumn = new List<ControlKeyframe>[sequence.ColumnCount];
-                
-                int leftmost = sequence.ColumnCount - 1;
-                int rightmost = 0;
-                
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    if (selectedIndicesPerColumn[i].Count == 0)
-                        continue;
-
-                    if (i < leftmost)
-                        leftmost = i;
-
-                    if (i > rightmost)
-                        rightmost = i;
-                }
-
-                amount = Mathf.Clamp(amount, -leftmost, sequence.ColumnCount - 1 - rightmost);
-
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    var selectedIndices = selectedIndicesPerColumn[i];
-                    
-                    if (selectedIndices.Count == 0)
-                        continue;
-
-                    var toAdd = new List<ControlKeyframe>();
-                    var keyframes = sequence.GetKeyframes(i);
-
-                    foreach (int index in selectedIndices)
-                        toAdd.Add(keyframes[index]);
-
-                    toAddPerColumn[i] = toAdd;
-                    sequence.RemoveKeyframes(i, selectedIndices);
-                    selectedIndices.Clear();
-                }
-
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    var toAdd = toAddPerColumn[i];
-
-                    if (toAdd == null)
-                        continue;
-                    
-                    int newColumn = i + amount;
-                    
-                    sequence.AddKeyframes(newColumn, toAdd, selectedIndicesPerColumn[newColumn]);
-                }
-
+            case SequenceEditorMode.ControlCurves:
+                DoMove(sequence.GetHandleForControlCurves);
                 break;
-            }
         }
         
         MatchSelectionBoxToSelection();
+
+        void DoMove<T>(SequenceEditHandle<T> handle) where T : ISequenceElement<T> {
+            var collection = handle.Collection;
+            var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
+            int leftmost = collection.ColumnCount - 1;
+            int rightmost = 0;
+        
+            for (int i = 0; i < collection.ColumnCount; i++) {
+                if (selectedIndicesPerColumn[i].Count == 0)
+                    continue;
+
+                if (i < leftmost)
+                    leftmost = i;
+
+                if (i > rightmost)
+                    rightmost = i;
+            }
+
+            amount = Mathf.Clamp(amount, -leftmost, sequence.ColumnCount - 1 - rightmost);
+        
+            if (amount == 0) {
+                MatchSelectionBoxToSelection();
+            
+                return;
+            }
+
+            if (amount > 0) {
+                for (int i = rightmost; i >= leftmost; i--)
+                    MoveColumn(i);
+            }
+            else {
+                for (int i = leftmost; i <= rightmost; i++)
+                    MoveColumn(i);
+            }
+            
+            void MoveColumn(int column) {
+                int targetColumn = column + amount;
+                var selectedIndices = selectedIndicesPerColumn[column];
+            
+                handle.AddElements(targetColumn, GetSelectedElementsInColumn(collection, column), selectedIndicesPerColumn[targetColumn]);
+                handle.RemoveElements(column, selectedIndices);
+                selectedIndices.Clear();
+            }
+        }
+    }
+
+    private void PlaceElementAtCursor<T>(SequenceEditHandle<T> handle, T element) where T : ISequenceElement<T> {
+        ClearSelection();
+        UpdateSelection();
+        DeleteSelected();
+
+        if (!TimeInBounds(state.Time)) {
+            UpdateSelection();
+
+            return;
+        }
+
+        var collection = handle.Collection;
+        int index = collection.GetFirstIndexAfterTime(state.Column, element.Time);
+
+        if (index > 0)
+            element = element.WithValue(collection.GetElement(state.Column, index - 1).Value);
+
+        handle.InsertElement(state.Column, index, element);
+        UpdateSelection();
     }
 
     private void DeleteSelected() {
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                sequence.RemoveOnOffEvents(state.SelectedIndicesPerColumn[0]);
-                
+            case SequenceEditorMode.OnOffEvents:
+                DoDelete(sequence.GetHandleForOnOffEvents);
                 break;
-            }
-            case SequenceEditorMode.ControlCurves: {
-                var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
-                
-                for (int i = 0; i < sequence.ColumnCount; i++)
-                    sequence.RemoveKeyframes(i, selectedIndicesPerColumn[i]);
-
+            case SequenceEditorMode.ControlCurves:
+                DoDelete(sequence.GetHandleForControlCurves);
                 break;
-            }
         }
 
         ClearSelection();
+
+        void DoDelete<T>(SequenceEditHandle<T> handle) where T : ISequenceElement<T> {
+            var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
+            
+            for (int i = 0; i < sequence.ColumnCount; i++)
+                handle.RemoveElements(i, selectedIndicesPerColumn[i]);
+        }
     }
 
     private void UpdateSelection() {
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
         long startTime = state.SelectionStartTime;
         long endTime = state.SelectionEndTime;
-        int startIndex = state.SelectionStartIndex;
-        int endIndex = state.SelectionEndIndex;
+        int startColumn = state.SelectionStartColumn;
+        int endColumn = state.SelectionEndColumn;
         
         if (endTime < startTime)
             (startTime, endTime) = (endTime, startTime);
@@ -812,50 +546,37 @@ public class SequenceEditor : MonoBehaviour {
         startTime -= TIME_EPSILON;
         endTime += TIME_EPSILON;
 
-        if (endIndex < startIndex)
-            (startIndex, endIndex) = (endIndex, startIndex);
+        if (endColumn < startColumn)
+            (startColumn, endColumn) = (endColumn, startColumn);
 
-        for (int i = 0; i < sequence.ColumnCount; i++)
-            selectedIndicesPerColumn[i].Clear();
-        
+        foreach (var selectedIndices in selectedIndicesPerColumn)
+            selectedIndices.Clear();
+
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                var onOffEvents = sequence.OnOffEvents;
-                var selectedIndices = selectedIndicesPerColumn[0];
+            case SequenceEditorMode.OnOffEvents:
+                DoSelect(sequence.GetHandleForOnOffEvents);
+                break;
+            case SequenceEditorMode.ControlCurves:
+                DoSelect(sequence.GetHandleForControlCurves);
+                break;
+        }
 
-                for (int i = 0; i < onOffEvents.Count; i++) {
-                    var onOffEvent = onOffEvents[i];
-                    long time = onOffEvent.Time;
-
-                    if (time > endTime)
-                        break;
+        void DoSelect<T>(SequenceEditHandle<T> handle) where T : ISequenceElement<T> {
+            var collection = handle.Collection;
+            
+            for (int i = startColumn; i <= endColumn; i++) {
+                var elements = collection.GetElementsInColumn(i);
+                var selectedIndices = selectedIndicesPerColumn[i];
                 
-                    int index = onOffEvent.Index;
-
-                    if (time >= startTime && index >= startIndex && index <= endIndex)
-                        selectedIndices.Add(i);
-                }
-
-                break;
-            }
-            case SequenceEditorMode.ControlCurves: {
-                for (int i = startIndex; i <= endIndex; i++) {
-                    var keyframes = sequence.GetKeyframes(i);
-                    var selectedIndices = selectedIndicesPerColumn[i];
-
-                    for (int j = 0; j < keyframes.Count; j++) {
-                        var keyframe = keyframes[j];
-                        long time = keyframe.Time;
+                for (int j = 0; j < elements.Count; j++) {
+                    var element = elements[j];
                     
-                        if (time > endTime)
-                            break;
-                    
-                        if (time >= startTime)
-                            selectedIndices.Add(j);
-                    }
-                }
+                    if (element.Time > endTime)
+                        break;
 
-                break;
+                    if (element.Time >= startTime)
+                        selectedIndices.Add(j);
+                }
             }
         }
     }
@@ -863,8 +584,8 @@ public class SequenceEditor : MonoBehaviour {
     private void ClearSelection() {
         state.SelectionStartTime = state.Time;
         state.SelectionEndTime = state.Time;
-        state.SelectionStartIndex = state.Column;
-        state.SelectionEndIndex = state.Column;
+        state.SelectionStartColumn = state.Column;
+        state.SelectionEndColumn = state.Column;
 
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
 
@@ -877,63 +598,18 @@ public class SequenceEditor : MonoBehaviour {
     private void MatchSelectionBoxToSelection() {
         state.SelectionStartTime = long.MaxValue;
         state.SelectionEndTime = -1;
-        state.SelectionStartIndex = int.MaxValue;
-        state.SelectionEndIndex = -1;
+        state.SelectionStartColumn = int.MaxValue;
+        state.SelectionEndColumn = -1;
         
         var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
 
         switch (state.Mode) {
-            case SequenceEditorMode.OnOffEvents: {
-                var onOffEvents = sequence.OnOffEvents;
-        
-                foreach (int eventIndex in selectedIndicesPerColumn[0]) {
-                    var onOffEvent = onOffEvents[eventIndex];
-                    long time = onOffEvent.Time;
-                    int index = onOffEvent.Index;
-                    
-                    if (time < state.SelectionStartTime)
-                        state.SelectionStartTime = time;
-
-                    if (time > state.SelectionEndTime)
-                        state.SelectionEndTime = time;
-                    
-                    if (index < state.SelectionStartIndex)
-                        state.SelectionStartIndex = index;
-
-                    if (index > state.SelectionEndIndex)
-                        state.SelectionEndIndex = index;
-                }
-                
+            case SequenceEditorMode.OnOffEvents:
+                DoMatchToSelection(sequence.GetHandleForOnOffEvents);
                 break;
-            }
-            case SequenceEditorMode.ControlCurves: {
-                for (int i = 0; i < sequence.ColumnCount; i++) {
-                    var selectedIndices = selectedIndicesPerColumn[i];
-                    
-                    if (selectedIndices.Count == 0)
-                        continue;
-
-                    var keyframes = sequence.GetKeyframes(i);
-                    
-                    foreach (int index in selectedIndices) {
-                        long time = keyframes[index].Time;
-                        
-                        if (time < state.SelectionStartTime)
-                            state.SelectionStartTime = time;
-
-                        if (time > state.SelectionEndTime)
-                            state.SelectionEndTime = time;
-                    }
-                    
-                    if (i < state.SelectionStartIndex)
-                        state.SelectionStartIndex = i;
-
-                    if (i > state.SelectionEndIndex)
-                        state.SelectionEndIndex = i;
-                }
-                
+            case SequenceEditorMode.ControlCurves:
+                DoMatchToSelection(sequence.GetHandleForControlCurves);
                 break;
-            }
         }
 
         if (state.SelectionEndTime >= 0)
@@ -941,6 +617,29 @@ public class SequenceEditor : MonoBehaviour {
         
         ClearSelection();
         UpdateSelection();
+
+        void DoMatchToSelection<T>(SequenceEditHandle<T> handle) where T : ISequenceElement<T> {
+            var collection = handle.Collection;
+            
+            for (int i = 0; i < selectedIndicesPerColumn.Length; i++) {
+                if (selectedIndicesPerColumn[i].Count == 0)
+                    continue;
+
+                foreach (var element in GetSelectedElementsInColumn(collection, i)) {
+                    if (element.Time < state.SelectionStartTime)
+                        state.SelectionStartTime = element.Time;
+
+                    if (element.Time > state.SelectionEndTime)
+                        state.SelectionEndTime = element.Time;
+                }
+                    
+                if (i < state.SelectionStartColumn)
+                    state.SelectionStartColumn = i;
+
+                if (i > state.SelectionEndColumn)
+                    state.SelectionEndColumn = i;
+            }
+        }
     }
 
     private void CheckFields() {
@@ -977,7 +676,7 @@ public class SequenceEditor : MonoBehaviour {
             direction--;
 
         if (direction != 0) {
-            MoveTime(direction,
+            MoveByTime(direction,
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
                 Input.GetKey(KeyCode.F),
                 Input.GetKey(KeyCode.D),
@@ -994,7 +693,7 @@ public class SequenceEditor : MonoBehaviour {
             direction--;
         
         if (direction != 0) {
-            MoveColumn(direction,
+            MoveByColumn(direction,
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt),
                 state.Selecting,
                 Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
@@ -1084,4 +783,63 @@ public class SequenceEditor : MonoBehaviour {
     }
 
     private bool TimeInBounds(long time) => time >= 0 && time < TIME_TO_TICK * playState.trackData.SoundEndTime;
+
+    private void ReplaceSelectedElementsInPlace<T>(SequenceEditHandle<T> handle, Func<T, T> func) where T : ISequenceElement<T> {
+        var collection = handle.Collection;
+        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
+        
+        for (int i = 0; i < collection.ColumnCount; i++) {
+            var elements = collection.GetElementsInColumn(i);
+
+            foreach (int index in selectedIndicesPerColumn[i])
+                handle.ReplaceElement(i, index, func(elements[index]));
+        }
+    }
+
+    private void ReplaceSelectedElementsOutOfPlace<T>(SequenceEditHandle<T> handle, Func<T, T> func) where T : ISequenceElement<T> {
+        var collection = handle.Collection;
+        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
+        var toAdd = new List<T>();
+        
+        for (int i = 0; i < collection.ColumnCount; i++) {
+            foreach (var element in GetSelectedElementsInColumn(collection, i)) {
+                var newElement = func(element);
+                
+                if (TimeInBounds(newElement.Time))
+                    toAdd.Add(newElement);
+            }
+            
+            var selectedIndices = selectedIndicesPerColumn[i];
+            
+            handle.RemoveElements(i, selectedIndices);
+            handle.AddElements(i, toAdd, selectedIndices);
+            toAdd.Clear();
+        }
+    }
+
+    private void ReplaceSelectedElementsOutOfPlacePerColumn<T>(SequenceEditHandle<T> handle, Func<IEnumerable<T>, IEnumerable<T>> func) where T : ISequenceElement<T> {
+        var collection = handle.Collection;
+        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
+        var toAdd = new List<T>();
+        
+        for (int i = 0; i < collection.ColumnCount; i++) {
+            var selectedIndices = selectedIndicesPerColumn[i];
+            
+            foreach (var element in func(GetSelectedElementsInColumn(collection, i))) {
+                if (TimeInBounds(element.Time))
+                    toAdd.Add(element);
+            }
+
+            handle.RemoveElements(i, selectedIndices);
+            handle.AddElements(i, toAdd, selectedIndices);
+            toAdd.Clear();
+        }
+    }
+
+    private IEnumerable<T> GetSelectedElementsInColumn<T>(IReadOnlySequenceElementCollection<T> collection, int column) where T : ISequenceElement<T> {
+        var elements = collection.GetElementsInColumn(column);
+
+        foreach (int index in state.SelectedIndicesPerColumn[column])
+            yield return elements[index];
+    }
 }

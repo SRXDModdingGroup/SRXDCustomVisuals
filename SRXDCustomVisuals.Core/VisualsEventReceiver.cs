@@ -4,6 +4,8 @@ using UnityEngine;
 namespace SRXDCustomVisuals.Core; 
 
 public class VisualsEventReceiver : MonoBehaviour {
+    public event Action<VisualsTick> Tick;
+    
     public event Action<VisualsEvent> On;
     
     public event Action<VisualsEvent> Off;
@@ -18,6 +20,8 @@ public class VisualsEventReceiver : MonoBehaviour {
     }
 
     private void OnDestroy() => VisualsEventManager.RemoveReceiver(this);
+
+    internal void ReceiveTick(VisualsTick tick) => Tick?.Invoke(tick);
 
     internal void ReceiveEvent(VisualsEvent visualsEvent) {
         switch (visualsEvent.Type) {

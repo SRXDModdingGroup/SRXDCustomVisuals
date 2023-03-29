@@ -27,36 +27,16 @@ public static class Util {
     }
     
     public static int Mod(int a, int b) => (a % b + b) % b;
-
-    public static int InsertSorted<T>(this List<T> list, T item) where T : IComparable<T> {
-        int index = list.GetInsertIndex(item);
-        
-        list.Insert(index, item);
-
-        return index;
-    }
     
-    public static string ToHexString(Color32 color) => $"{color.r:X2}{color.g:X2}{color.b:X2}";
-
-    public static Color ToColor(this Color32 color) => new(color.r / 255f, color.g / 255f, color.b / 255f);
-
-    public static T[] Copy<T>(this T[] array) {
-        var newArray = new T[array.Length];
-        
-        Array.Copy(array, newArray, array.Length);
-
-        return newArray;
-    }
-
-    private static int GetInsertIndex<T>(this IReadOnlyList<T> list, T item) where T : IComparable<T> {
-        int index = BinarySearch();
+    public static int BinarySearch<T>(this IReadOnlyList<T> list, T item) where T : IComparable<T> {
+        int index = DoBinarySearch();
 
         while (index < list.Count && item.CompareTo(list[index]) >= 0)
             index++;
 
         return index;
 
-        int BinarySearch() {
+        int DoBinarySearch() {
             int start = 0;
             int end = list.Count - 1;
 
@@ -74,5 +54,25 @@ public static class Util {
 
             return start;
         }
+    }
+
+    public static int InsertSorted<T>(this List<T> list, T item) where T : IComparable<T> {
+        int index = BinarySearch(list, item);
+        
+        list.Insert(index, item);
+
+        return index;
+    }
+    
+    public static string ToHexString(Color32 color) => $"{color.r:X2}{color.g:X2}{color.b:X2}";
+
+    public static Color ToColor(this Color32 color) => new(color.r / 255f, color.g / 255f, color.b / 255f);
+
+    public static T[] Copy<T>(this T[] array) {
+        var newArray = new T[array.Length];
+        
+        Array.Copy(array, newArray, array.Length);
+
+        return newArray;
     }
 }

@@ -23,8 +23,6 @@ public class VisualsBackground {
     public IReadOnlyList<string> CurveLabels { get; }
 
     private string modName;
-    private string[] assetBundleNames;
-    private string[] dependencies;
     private VisualsElement[] elements;
     private Dictionary<string, AssetBundle> assetBundles;
     private List<GameObject> instances;
@@ -37,8 +35,6 @@ public class VisualsBackground {
         UseAudioWaveform = definition.UseAudioWaveform;
         UseDepthTexture = definition.UseDepthTexture;
         FarClip = definition.FarClip;
-        assetBundleNames = definition.AssetBundles.Copy();
-        dependencies = definition.Dependencies.Copy();
         EventLabels = definition.EventLabels.Copy();
         CurveLabels = definition.CurveLabels.Copy();
 
@@ -59,26 +55,20 @@ public class VisualsBackground {
     public void Load(IReadOnlyList<Transform> roots) {
         if (loaded)
             return;
-
-        ModsUtility.TryLoadMod(modName);
-
-        foreach (string dependency in dependencies) {
-            if (!ModsUtility.TryLoadMod(dependency))
-                Plugin.Logger.LogWarning($"Could not load dependency {dependency}");
-        }
-
-        foreach (string bundleName in assetBundleNames) {
-            if (ModsUtility.TryGetAssetBundle(modName, bundleName, out var bundle))
-                assetBundles.Add(bundleName, bundle);
-            else
-                Plugin.Logger.LogWarning($"Could not load asset bundle {bundleName}");
-        }
+        
+        assetBundles = ModsUtility.LoadAssetBundles(modName);
 
         foreach (var element in elements) {
             string bundleName = element.BundleName;
             string assetName = element.AssetName;
             
-            if (!assetBundles.TryGetValue(bundleName, out var bundle) || !bundle.Contains(assetName)) {
+            if (!assetBundles.TryGetValue(bundleName, out var bundle)) {
+                Plugin.Logger.LogWarning($"Could not find asset bundle {bundleName}");
+                
+                continue;
+            }
+            
+            if (!bundle.Contains(assetName)) {
                 Plugin.Logger.LogWarning($"Could not find asset {assetName} in bundle {bundleName}");
                 
                 continue;
@@ -118,9 +108,7 @@ public class VisualsBackground {
 
         instances.Clear();
 
-        foreach (string bundleName in assetBundleNames)
-            ModsUtility.UnloadAssetBundle(modName, bundleName);
-        
+        ModsUtility.UnloadAssetBundles(modName);
         assetBundles.Clear();
         loaded = false;
     }

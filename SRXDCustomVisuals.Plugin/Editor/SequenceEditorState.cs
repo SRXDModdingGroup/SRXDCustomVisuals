@@ -17,9 +17,9 @@ public class SequenceEditorState {
     
     public long SelectionEndTime { get; set; }
     
-    public int SelectionStartIndex { get; set; }
+    public int SelectionStartColumn { get; set; }
     
-    public int SelectionEndIndex { get; set; }
+    public int SelectionEndColumn { get; set; }
 
     public List<int>[] SelectedIndicesPerColumn { get; }
     

@@ -2,7 +2,7 @@
 
 namespace SRXDCustomVisuals.Plugin; 
 
-public class ControlKeyframe : IComparable<ControlKeyframe> {
+public class ControlKeyframe : ISequenceElement<ControlKeyframe> {
     public long Time { get; }
     
     public ControlKeyframeType Type { get; }
