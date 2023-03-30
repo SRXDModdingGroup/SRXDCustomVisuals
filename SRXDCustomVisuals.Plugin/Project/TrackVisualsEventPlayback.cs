@@ -67,7 +67,7 @@ public class TrackVisualsEventPlayback {
                 newIndex = j;
             }
 
-            lastControlKeyframeIndexPerColumn[i] = newIndex;
+            lastOnOffEventIndexPerColumn[i] = newIndex;
         }
     }
 
@@ -113,7 +113,9 @@ public class TrackVisualsEventPlayback {
             int newIndex = -1;
             OnOffEvent eventToSend = null;
 
-            foreach (var onOffEvent in onOffEventsInColumn) {
+            for (int j = 0; j < onOffEventsInColumn.Count; j++) {
+                var onOffEvent = onOffEventsInColumn[j];
+                
                 if (onOffEvent.Time > time)
                     break;
 
@@ -122,7 +124,7 @@ public class TrackVisualsEventPlayback {
                 else
                     eventToSend = null;
 
-                newIndex = i;
+                newIndex = j;
             }
 
             lastOnOffEventIndexPerColumn[i] = newIndex;
