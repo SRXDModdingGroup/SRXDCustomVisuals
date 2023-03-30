@@ -2,7 +2,7 @@
 
 namespace SRXDCustomVisuals.Plugin; 
 
-public interface ISequenceElement<T> : IComparable<T> {
+public interface ISequenceElement<T> : IComparable<T> where T : ISequenceElement<T> {
     long Time { get; }
     
     int Value { get; }

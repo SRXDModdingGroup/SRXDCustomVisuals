@@ -2,7 +2,7 @@
 
 namespace SRXDCustomVisuals.Plugin; 
 
-public interface IReadOnlySequenceElementCollection<out T> where T : ISequenceElement<T> {
+public interface IReadOnlySequence<out T> where T : ISequenceElement<T> {
     int ColumnCount { get; }
 
     int GetCountForColumn(int column);

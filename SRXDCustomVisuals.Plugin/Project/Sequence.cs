@@ -3,12 +3,12 @@ using System.Collections.Generic;
 
 namespace SRXDCustomVisuals.Plugin; 
 
-public class SequenceElementCollection<T> : IReadOnlySequenceElementCollection<T> where T : ISequenceElement<T> {
+public class Sequence<T> : IReadOnlySequence<T> where T : ISequenceElement<T> {
     public int ColumnCount { get; }
     
     private List<T>[] columns;
 
-    public SequenceElementCollection(int columnCount) {
+    public Sequence(int columnCount) {
         ColumnCount = columnCount;
         columns = new List<T>[columnCount];
 

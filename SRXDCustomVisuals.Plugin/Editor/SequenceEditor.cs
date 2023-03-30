@@ -17,7 +17,7 @@ public class SequenceEditor : MonoBehaviour {
 
     private SequenceEditorState state;
     private SequenceRenderer renderer;
-    private TrackVisualsEventSequence sequence;
+    private TrackVisualsProject sequence;
     private VisualsBackground background;
     private PlayState playState;
     private List<OnOffEvent>[] onOffEventClipboard;
@@ -27,7 +27,7 @@ public class SequenceEditor : MonoBehaviour {
         state = new SequenceEditorState();
         renderer = new SequenceRenderer(WINDOW_WIDTH, WINDOW_HEIGHT, COLUMN_COUNT);
         background = VisualsBackground.Empty;
-        sequence = new TrackVisualsEventSequence();
+        sequence = new TrackVisualsProject();
         onOffEventClipboard = new List<OnOffEvent>[Constants.IndexCount];
         controlCurveClipboard = new List<ControlKeyframe>[Constants.IndexCount];
 
@@ -42,7 +42,7 @@ public class SequenceEditor : MonoBehaviour {
             renderer.Render(new SequenceRenderInput(sequence, background, playState, state));
     }
 
-    public void Init(TrackVisualsEventSequence sequence, VisualsBackground background, PlayState playState) {
+    public void Init(TrackVisualsProject sequence, VisualsBackground background, PlayState playState) {
         this.sequence = sequence;
         this.background = background;
         this.playState = playState;
@@ -54,7 +54,7 @@ public class SequenceEditor : MonoBehaviour {
             state.PaletteFields[i].Init(Util.ToHexString(sequence.Palette[i]));
     }
 
-    public void Exit() => sequence = new TrackVisualsEventSequence();
+    public void Exit() => sequence = new TrackVisualsProject();
 
     public void UpdateEditor(out bool anyInput, out bool anyEdit) {
         if (Input.GetKeyDown(KeyCode.F1))
@@ -392,7 +392,7 @@ public class SequenceEditor : MonoBehaviour {
                 break;
         }
         
-        void DoJump<T>(IReadOnlySequenceElementCollection<T> collection) where T : ISequenceElement<T> {
+        void DoJump<T>(IReadOnlySequence<T> collection) where T : ISequenceElement<T> {
             var elements = collection.GetElementsInColumn(state.Column);
             
             if (direction > 0) {
@@ -836,7 +836,7 @@ public class SequenceEditor : MonoBehaviour {
         }
     }
 
-    private IEnumerable<T> GetSelectedElementsInColumn<T>(IReadOnlySequenceElementCollection<T> collection, int column) where T : ISequenceElement<T> {
+    private IEnumerable<T> GetSelectedElementsInColumn<T>(IReadOnlySequence<T> collection, int column) where T : ISequenceElement<T> {
         var elements = collection.GetElementsInColumn(column);
 
         foreach (int index in state.SelectedIndicesPerColumn[column])

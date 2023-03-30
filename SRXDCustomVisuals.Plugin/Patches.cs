@@ -35,7 +35,7 @@ public class Patches {
     [HarmonyPatch(typeof(Track), "Awake"), HarmonyPostfix]
     private static void Track_Awake_Postfix(Track __instance) {
         sequenceEditor = new GameObject("Sequence Editor", typeof(SequenceEditor)).GetComponent<SequenceEditor>();
-        eventPlayback.SetSequence(new TrackVisualsEventSequence());
+        eventPlayback.SetSequence(new TrackVisualsProject());
     }
 
     [HarmonyPatch(typeof(Track), nameof(Track.PlayTrack)), HarmonyPostfix]
@@ -44,7 +44,7 @@ public class Patches {
 
         var playState = PlayState.Active;
         var customVisualsInfo = visualsInfoAccessor.GetCustomVisualsInfo(playState.TrackInfoRef);
-        var sequence = new TrackVisualsEventSequence(customVisualsInfo);
+        var sequence = new TrackVisualsProject(customVisualsInfo);
 
         if (Plugin.EnableCustomVisuals.Value)
             visualsBackgroundManager.LoadBackground(customVisualsInfo.Background);
@@ -57,7 +57,7 @@ public class Patches {
     private static void Track_StopTrack_Postfix() {
         noteEventController.Reset();
         visualsBackgroundManager.UnloadBackground();
-        eventPlayback.SetSequence(new TrackVisualsEventSequence());
+        eventPlayback.SetSequence(new TrackVisualsProject());
         sequenceEditor.Exit();
         sequenceEditor.Visible = false;
     }

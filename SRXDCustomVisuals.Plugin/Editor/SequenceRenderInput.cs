@@ -1,7 +1,7 @@
 ﻿namespace SRXDCustomVisuals.Plugin; 
 
 public class SequenceRenderInput {
-    public TrackVisualsEventSequence Sequence { get; }
+    public TrackVisualsProject Sequence { get; }
     
     public VisualsBackground Background { get; }
 
@@ -9,7 +9,7 @@ public class SequenceRenderInput {
 
     public SequenceEditorState EditorState { get; }
     
-    public SequenceRenderInput(TrackVisualsEventSequence sequence, VisualsBackground background, PlayState playState, SequenceEditorState editorState) {
+    public SequenceRenderInput(TrackVisualsProject sequence, VisualsBackground background, PlayState playState, SequenceEditorState editorState) {
         Background = background;
         PlayState = playState;
         EditorState = editorState;

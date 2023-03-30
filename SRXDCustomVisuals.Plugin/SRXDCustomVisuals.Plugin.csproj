@@ -104,6 +104,8 @@ xcopy "$(SolutionDir)manifest.json" "C:\Program Files (x86)\Steam\steamapps\comm
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="Editor\CompoundAction.cs" />
+        <Compile Include="Editor\IUndoRedoAction.cs" />
         <Compile Include="Editor\SequenceEditHandle.cs" />
         <Compile Include="Editor\SequenceEditorMode.cs" />
         <Compile Include="Editor\SequenceEditorState.cs" />
@@ -111,21 +113,19 @@ xcopy "$(SolutionDir)manifest.json" "C:\Program Files (x86)\Steam\steamapps\comm
         <Compile Include="Editor\SequenceEditor.cs" />
         <Compile Include="Editor\SequenceRenderer.cs" />
         <Compile Include="Editor\TextFieldState.cs" />
-        <Compile Include="EventSequence\CompoundAction.cs" />
-        <Compile Include="EventSequence\ControlKeyframe.cs" />
-        <Compile Include="EventSequence\ControlKeyframeType.cs" />
-        <Compile Include="EventSequence\IReadOnlySequenceElementCollection.cs" />
-        <Compile Include="EventSequence\ISequenceElement.cs" />
-        <Compile Include="EventSequence\IUndoRedoAction.cs" />
-        <Compile Include="EventSequence\OnOffEvent.cs" />
-        <Compile Include="EventSequence\OnOffEventType.cs" />
-        <Compile Include="EventSequence\SequenceElementCollection.cs" />
-        <Compile Include="EventSequence\TrackVisualsEventSequence.cs" />
-        <Compile Include="EventSequence\TrackVisualsEventPlayback.cs" />
-        <Compile Include="EventSequence\TrackVisualsEventType.cs" />
+        <Compile Include="Editor\UndoRedoAction.cs" />
+        <Compile Include="Editor\UndoRedoStack.cs" />
+        <Compile Include="Project\ControlKeyframe.cs" />
+        <Compile Include="Project\ControlKeyframeType.cs" />
+        <Compile Include="Project\IReadOnlySequence.cs" />
+        <Compile Include="Project\ISequenceElement.cs" />
+        <Compile Include="Project\OnOffEvent.cs" />
+        <Compile Include="Project\OnOffEventType.cs" />
+        <Compile Include="Project\Sequence.cs" />
+        <Compile Include="Project\TrackVisualsProject.cs" />
+        <Compile Include="Project\TrackVisualsEventPlayback.cs" />
+        <Compile Include="Project\TrackVisualsEventType.cs" />
         <Compile Include="Constants.cs" />
-        <Compile Include="EventSequence\UndoRedoAction.cs" />
-        <Compile Include="EventSequence\UndoRedoStack.cs" />
         <Compile Include="JSON\BackgroundDefinition.cs" />
         <Compile Include="JSON\CustomVisualsInfo.cs" />
         <Compile Include="JSON\PaletteColor.cs" />

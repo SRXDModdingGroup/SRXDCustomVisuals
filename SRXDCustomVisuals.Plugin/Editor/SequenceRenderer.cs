@@ -133,7 +133,7 @@ public class SequenceRenderer {
             DrawPaletteField(paletteFields[i], $"palette_{i}", $"Color {i + 1}:", i + 2, palette[i].ToColor());
     }
 
-    private void DrawOnOffEvents(long time, float timeAsFloat, float[] beatArray, IReadOnlySequenceElementCollection<OnOffEvent> onOffEvents,
+    private void DrawOnOffEvents(long time, float timeAsFloat, float[] beatArray, IReadOnlySequence<OnOffEvent> onOffEvents,
         IReadOnlyList<string> labels, List<int>[] selectedIndicesPerColumn, int cursorIndex, int firstColumnIndex, bool showValues) {
         DrawGrid(timeAsFloat, beatArray, cursorIndex, firstColumnIndex);
 
@@ -146,7 +146,7 @@ public class SequenceRenderer {
         DrawModeLabel($"Mode: Events    Index: {cursorIndex:X2}");
     }
 
-    private void DrawControlCurves(long time, float timeAsFloat, float[] beatArray, IReadOnlySequenceElementCollection<ControlKeyframe> controlCurves,
+    private void DrawControlCurves(long time, float timeAsFloat, float[] beatArray, IReadOnlySequence<ControlKeyframe> controlCurves,
         IReadOnlyList<string> labels, List<int>[] selectedIndicesPerColumn, int cursorIndex, int columnPan, bool showValues) {
         DrawGrid(timeAsFloat, beatArray, cursorIndex, columnPan);
         

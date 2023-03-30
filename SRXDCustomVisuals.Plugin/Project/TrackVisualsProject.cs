@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
 
-public class TrackVisualsEventSequence {
+public class TrackVisualsProject {
     public int ColumnCount => Constants.IndexCount;
     
     public string Background {
@@ -19,31 +19,31 @@ public class TrackVisualsEventSequence {
 
     public IReadOnlyList<Color32> Palette => palette;
 
-    public IReadOnlySequenceElementCollection<OnOffEvent> OnOffEvents => onOffEvents;
+    public IReadOnlySequence<OnOffEvent> OnOffEvents => onOffEvents;
 
-    public IReadOnlySequenceElementCollection<ControlKeyframe> ControlCurves => controlCurves;
+    public IReadOnlySequence<ControlKeyframe> ControlCurves => controlCurves;
 
     private string background;
     private Color32[] palette;
-    private SequenceElementCollection<OnOffEvent> onOffEvents;
-    private SequenceElementCollection<ControlKeyframe> controlCurves;
+    private Sequence<OnOffEvent> onOffEvents;
+    private Sequence<ControlKeyframe> controlCurves;
     private UndoRedoStack undoRedoStack;
     private CompoundAction compoundAction;
     private bool dirty;
 
-    public TrackVisualsEventSequence() {
+    public TrackVisualsProject() {
         background = "";
         palette = new Color32[Constants.PaletteSize];
 
         for (int i = 0; i < Constants.PaletteSize; i++)
             palette[i] = new Color32(255, 255, 255, 255);
 
-        onOffEvents = new SequenceElementCollection<OnOffEvent>(ColumnCount);
-        controlCurves = new SequenceElementCollection<ControlKeyframe>(ColumnCount);
+        onOffEvents = new Sequence<OnOffEvent>(ColumnCount);
+        controlCurves = new Sequence<ControlKeyframe>(ColumnCount);
         undoRedoStack = new UndoRedoStack();
     }
 
-    public TrackVisualsEventSequence(CustomVisualsInfo customVisualsInfo) {
+    public TrackVisualsProject(CustomVisualsInfo customVisualsInfo) {
         background = customVisualsInfo.Background;
         palette = new Color32[Constants.PaletteSize];
 
@@ -59,8 +59,8 @@ public class TrackVisualsEventSequence {
                 palette[i] = new Color32(255, 255, 255, 255);
         }
 
-        onOffEvents = new SequenceElementCollection<OnOffEvent>(ColumnCount);
-        controlCurves = new SequenceElementCollection<ControlKeyframe>(ColumnCount);
+        onOffEvents = new Sequence<OnOffEvent>(ColumnCount);
+        controlCurves = new Sequence<ControlKeyframe>(ColumnCount);
         
         foreach (var visualsEvent in customVisualsInfo.Events) {
             if (visualsEvent.Type == TrackVisualsEventType.ControlKeyframe)

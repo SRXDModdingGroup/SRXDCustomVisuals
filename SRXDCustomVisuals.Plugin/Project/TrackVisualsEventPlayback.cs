@@ -3,17 +3,17 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEventPlayback {
-    private TrackVisualsEventSequence sequence;
+    private TrackVisualsProject sequence;
     private int[] lastOnOffEventIndexPerColumn;
     private int[] lastControlKeyframeIndexPerColumn;
 
     public TrackVisualsEventPlayback() {
         lastOnOffEventIndexPerColumn = new int[Constants.IndexCount];
         lastControlKeyframeIndexPerColumn = new int[Constants.IndexCount];
-        SetSequence(new TrackVisualsEventSequence());
+        SetSequence(new TrackVisualsProject());
     }
 
-    public void SetSequence(TrackVisualsEventSequence sequence) {
+    public void SetSequence(TrackVisualsProject sequence) {
         this.sequence = sequence;
         
         for (int i = 0; i < Constants.IndexCount; i++) {

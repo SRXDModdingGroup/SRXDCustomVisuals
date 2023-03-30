@@ -3,12 +3,12 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class SequenceEditHandle<T> where T : ISequenceElement<T> {
-    public IReadOnlySequenceElementCollection<T> Collection => collection;
+    public IReadOnlySequence<T> Collection => collection;
 
-    private SequenceElementCollection<T> collection;
+    private Sequence<T> collection;
     private CompoundAction compoundAction;
 
-    public SequenceEditHandle(SequenceElementCollection<T> collection, CompoundAction compoundAction) {
+    public SequenceEditHandle(Sequence<T> collection, CompoundAction compoundAction) {
         this.collection = collection;
         this.compoundAction = compoundAction;
     }
