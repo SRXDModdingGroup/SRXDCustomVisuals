@@ -10,12 +10,13 @@ public class WaveformProcessor {
     private const int SAMPLES_PER_INDEX = 8;
     private const int SAMPLE_RATE = 48000;
     private const long CHUNK_SIZE = 8192L;
-    private const float APPROACH_RATE = 42f;
+    private const float APPROACH_RATE = 84f;
     
     private static readonly int WAVEFORM_CUSTOM = Shader.PropertyToID("_WaveformCustom");
     
     private ComputeBuffer waveformBuffer = new(BUFFER_SIZE, UnsafeUtility.SizeOf<float2>());
     private float2[] waveformArray = new float2[BUFFER_SIZE];
+    private float2[] newWaveformArray = new float2[BUFFER_SIZE];
     
     public void AnalyzeWaveform(TrackPlaybackHandle playbackHandle) {
         const int waveformBufferSamples = BUFFER_SIZE * SAMPLES_PER_INDEX;
@@ -23,7 +24,6 @@ public class WaveformProcessor {
         
         long sampleAtTime = 2L * (long) (SAMPLE_RATE * playbackHandle.GetCurrentTime());
         var chunk = playbackHandle.OutputStream.GetLoadedFloatsForChunk(sampleAtTime / CHUNK_SIZE);
-        float interp = 1f - Mathf.Exp(-APPROACH_RATE * Time.deltaTime);
 
         if (sampleAtTime < 0L || chunk.Length == 0) {
             for (int i = 0; i < BUFFER_SIZE; i++)
@@ -41,9 +41,14 @@ public class WaveformProcessor {
                 for (int j = startSample; j < endSample; j += 2)
                     sum += math.clamp(new float2(chunk[j], chunk[j + 1]), -1f, 1f);
 
-                waveformArray[i] += interp * (scale * sum - waveformArray[i]);
+                newWaveformArray[i] = i > 0 ? 0.75f * scale * sum - 0.25f * newWaveformArray[i - 1] : scale * sum;
             }
         }
+        
+        float interp = 1f - Mathf.Exp(-APPROACH_RATE * Time.deltaTime);
+
+        for (int i = 0; i < BUFFER_SIZE; i++)
+            waveformArray[i] += interp * (newWaveformArray[i] - waveformArray[i]);
 
         waveformBuffer.SetData(waveformArray);
         Shader.SetGlobalBuffer(WAVEFORM_CUSTOM, waveformBuffer);
