@@ -9,7 +9,7 @@ public class SequenceEditorState {
     
     public int Column { get; set; }
     
-    public int ColumnPan { get; set; }
+    public int FirstColumnIndex { get; set; }
     
     public bool Selecting { get; set; }
     

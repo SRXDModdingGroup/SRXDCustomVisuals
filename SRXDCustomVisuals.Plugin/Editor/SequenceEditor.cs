@@ -150,8 +150,8 @@ public class SequenceEditor : MonoBehaviour {
             direction *= 8;
 
         state.Column = Mathf.Clamp(state.Column + direction, 0, sequence.ColumnCount - 1);
-        state.ColumnPan = Mathf.Clamp(state.ColumnPan, state.Column - (COLUMN_COUNT - 2), state.Column - 1);
-        state.ColumnPan = Mathf.Clamp(state.ColumnPan, 0, 240);
+        state.FirstColumnIndex = Mathf.Clamp(state.FirstColumnIndex, state.Column - (COLUMN_COUNT - 2), state.Column - 1);
+        state.FirstColumnIndex = Mathf.Clamp(state.FirstColumnIndex, 0, 240);
 
         if (moveSelected)
             MoveSelectedByColumn(direction);
@@ -219,37 +219,80 @@ public class SequenceEditor : MonoBehaviour {
                 DoEvenSpace(sequence.GetHandleForControlCurves);
                 break;
         }
+        
+        void DoEvenSpace<T>(SequenceEditHandle<T> handle) where T : ISequenceElement<T> {
+            int totalCount = 0;
+            var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
 
-        void DoEvenSpace<T>(SequenceEditHandle<T> handle) where T : ISequenceElement<T> =>
-            ReplaceSelectedElementsOutOfPlacePerColumn(handle, elements => {
-                var elementsList = new List<T>(elements);
-                int[] groupIndices = new int[elementsList.Count];
+            foreach (var selectedIndices in selectedIndicesPerColumn)
+                totalCount += selectedIndices.Count;
+            
+            if (totalCount < 2)
+                return;
+
+            var groups = new List<EvenSpaceGroup>(totalCount);
+            var collection = handle.Collection;
+
+            for (int i = 0; i < collection.ColumnCount; i++) {
+                foreach (var element in GetSelectedElementsInColumn(collection, i))
+                    groups.Add(new EvenSpaceGroup(element.Time, element.Time));
+            }
+            
+            groups.Sort();
+
+            while (true) {
+                int bestIndex = -1;
+                long bestLength = long.MaxValue;
+
+                for (int i = 0; i < groups.Count - 1; i++) {
+                    long mergedLength = groups[i + 1].End - groups[i].Start;
+                    
+                    if (mergedLength >= bestLength)
+                        continue;
+
+                    bestIndex = i;
+                    bestLength = mergedLength;
+                }
+                
+                if (bestIndex < 0 || bestLength > 2 * TIME_EPSILON)
+                    break;
+
+                groups[bestIndex].End = groups[bestIndex + 1].End;
+                groups.RemoveAt(bestIndex + 1);
+            }
+
+            long startTime = groups[0].Start;
+            long timeDiff = groups[groups.Count - 1].End - startTime; 
+            var toAdd = new List<T>();
+        
+            for (int i = 0; i < collection.ColumnCount; i++) {
                 int groupIndex = 0;
-                long minTime = elementsList[0].Time;
-                long timeDiff = elementsList[elementsList.Count - 1].Time - minTime;
-                long groupTime = minTime;
-
-                for (int i = 0; i < elementsList.Count; i++) {
-                    var element = elementsList[i];
-                        
-                    if (element.Time - groupTime > TIME_EPSILON) {
+                long nextTime = groups.Count > 1 ? groups[1].Start : long.MaxValue;
+                
+                foreach (var element in GetSelectedElementsInColumn(collection, i)) {
+                    while (element.Time >= nextTime) {
                         groupIndex++;
-                        groupTime = element.Time;
+                        nextTime = groupIndex < groups.Count - 1 ? groups[groupIndex + 1].Start : long.MaxValue;
                     }
 
-                    groupIndices[i] = groupIndex;
-                }
-                    
-                var toAdd = new List<T>(elementsList.Count);
+                    long time = startTime;
 
-                for (int i = 0; i < elementsList.Count; i++) {
-                    var element = elementsList[i];
-                        
-                    toAdd.Add(element.WithTime(minTime + timeDiff * groupIndices[i] / groupIndex));
-                }
+                    if (groupIndex > 0)
+                        time += timeDiff * groupIndex / (groups.Count - 1);
 
-                return toAdd;
-            });
+                    var newElement = element.WithTime(time);
+                
+                    if (TimeInBounds(newElement.Time))
+                        toAdd.Add(newElement);
+                }
+            
+                var selectedIndices = selectedIndicesPerColumn[i];
+            
+                handle.RemoveElements(i, selectedIndices);
+                handle.AddElements(i, toAdd, selectedIndices);
+                toAdd.Clear();
+            }
+        }
     }
 
     private void Quantize() {
@@ -291,6 +334,7 @@ public class SequenceEditor : MonoBehaviour {
         void DoCopy<T>(SequenceEditHandle<T> handle, List<T>[] clipboard) where T : ISequenceElement<T> {
             long firstTime = long.MaxValue;
             int firstColumn = -1;
+            int lastColumn = 0;
 
             foreach (var column in clipboard)
                 column.Clear();
@@ -306,16 +350,21 @@ public class SequenceEditor : MonoBehaviour {
                     if (element.Time < firstTime)
                         firstTime = element.Time;
                 }
+                
+                if (!any)
+                    continue;
 
-                if (any && firstColumn < 0)
+                if (firstColumn < 0)
                     firstColumn = i;
+
+                lastColumn = i;
             }
 
             if (firstColumn < 0)
                 return;
 
-            for (int i = 0; i < collection.ColumnCount; i++) {
-                var clipboardColumn = clipboard[i - firstColumn];
+            for (int i = firstColumn, j = 0; i <= lastColumn; i++, j++) {
+                var clipboardColumn = clipboard[j];
                     
                 foreach (var element in GetSelectedElementsInColumn(collection, i))
                     clipboardColumn.Add(element.WithTime(element.Time - firstTime));
@@ -817,29 +866,22 @@ public class SequenceEditor : MonoBehaviour {
         }
     }
 
-    private void ReplaceSelectedElementsOutOfPlacePerColumn<T>(SequenceEditHandle<T> handle, Func<IEnumerable<T>, IEnumerable<T>> func) where T : ISequenceElement<T> {
-        var collection = handle.Collection;
-        var selectedIndicesPerColumn = state.SelectedIndicesPerColumn;
-        var toAdd = new List<T>();
-        
-        for (int i = 0; i < collection.ColumnCount; i++) {
-            var selectedIndices = selectedIndicesPerColumn[i];
-            
-            foreach (var element in func(GetSelectedElementsInColumn(collection, i))) {
-                if (TimeInBounds(element.Time))
-                    toAdd.Add(element);
-            }
-
-            handle.RemoveElements(i, selectedIndices);
-            handle.AddElements(i, toAdd, selectedIndices);
-            toAdd.Clear();
-        }
-    }
-
     private IEnumerable<T> GetSelectedElementsInColumn<T>(IReadOnlySequence<T> collection, int column) where T : ISequenceElement<T> {
         var elements = collection.GetElementsInColumn(column);
 
         foreach (int index in state.SelectedIndicesPerColumn[column])
             yield return elements[index];
+    }
+
+    private class EvenSpaceGroup : IComparable<EvenSpaceGroup> {
+        public long Start;
+        public long End;
+
+        public EvenSpaceGroup(long start, long end) {
+            Start = start;
+            End = end;
+        }
+
+        public int CompareTo(EvenSpaceGroup other) => Start.CompareTo(other.Start);
     }
 }
