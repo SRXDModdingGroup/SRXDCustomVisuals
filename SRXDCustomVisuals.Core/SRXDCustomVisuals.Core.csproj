@@ -52,13 +52,13 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="IVisualsEventHandler.cs" />
+        <Compile Include="IVisualsMetadataHandler.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="VisualsEvent.cs" />
         <Compile Include="VisualsEventManager.cs" />
-        <Compile Include="VisualsEventReceiver.cs" />
         <Compile Include="VisualsEventType.cs" />
-        <Compile Include="VisualsPaletteManager.cs" />
-        <Compile Include="VisualsPaletteReceiver.cs" />
+        <Compile Include="VisualsMetadata.cs" />
         <Compile Include="VisualsTick.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

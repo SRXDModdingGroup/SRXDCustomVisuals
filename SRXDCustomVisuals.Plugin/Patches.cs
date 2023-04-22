@@ -6,6 +6,7 @@ using System.Reflection.Emit;
 using GameSystems.TrackPlayback;
 using HarmonyLib;
 using SMU.Utilities;
+using SRXDCustomVisuals.Core;
 using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
@@ -14,10 +15,11 @@ public class Patches {
     private static readonly int SPECTRUM_BANDS_CUSTOM = Shader.PropertyToID("_SpectrumBandsCustom");
     
     private static VisualsInfoAccessor visualsInfoAccessor = new();
-    private static VisualsBackgroundManager visualsBackgroundManager = new();
-    private static TrackVisualsEventPlayback eventPlayback = new();
+    private static VisualsEventManager eventManager = new();
+    private static VisualsBackgroundManager visualsBackgroundManager = new(eventManager);
+    private static TrackVisualsEventPlayback eventPlayback = new(eventManager);
     private static SequenceEditor sequenceEditor;
-    private static NoteEventController noteEventController = new(11);
+    private static NoteEventController noteEventController = new(eventManager, 11);
     private static WaveformProcessor waveformProcessor = new();
 
     private static void UpdateComputeBuffers(ComputeBuffer buffer) {
@@ -45,9 +47,13 @@ public class Patches {
         var playState = PlayState.Active;
         var customVisualsInfo = visualsInfoAccessor.GetCustomVisualsInfo(playState.TrackInfoRef);
         var sequence = new TrackVisualsProject(customVisualsInfo);
+        var colors = new List<Color>(customVisualsInfo.Palette.Count);
+
+        foreach (var color in customVisualsInfo.Palette)
+            colors.Add(color.ToColor());
 
         if (Plugin.EnableCustomVisuals.Value)
-            visualsBackgroundManager.LoadBackground(customVisualsInfo.Background);
+            visualsBackgroundManager.LoadBackground(customVisualsInfo.Background, new VisualsMetadata(colors, customVisualsInfo.CustomData));
 
         eventPlayback.SetSequence(sequence);
         sequenceEditor.Init(sequence, visualsBackgroundManager.CurrentBackground, playState);

@@ -123,7 +123,7 @@ public class TrackVisualsProject {
         var newPalette = new List<PaletteColor>(Constants.PaletteSize);
 
         foreach (var color in palette)
-            newPalette.Add(new PaletteColor(color.r, color.g, color.b));
+            newPalette.Add(new PaletteColor(color));
 
         var events = new List<TrackVisualsEvent>();
 
@@ -149,7 +149,7 @@ public class TrackVisualsProject {
             }
         }
 
-        return new CustomVisualsInfo(Background, newPalette, events);
+        return new CustomVisualsInfo(Background, newPalette, new Dictionary<string, string>(), events);
     }
 
     private static OnOffEventType ToOnOffEventType(TrackVisualsEventType type) => type switch {

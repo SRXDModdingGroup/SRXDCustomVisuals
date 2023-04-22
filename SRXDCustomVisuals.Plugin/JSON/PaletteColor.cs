@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using UnityEngine;
 
 namespace SRXDCustomVisuals.Plugin; 
 
@@ -14,9 +15,17 @@ public class PaletteColor {
 
     public PaletteColor() { }
 
+    public PaletteColor(Color32 color) {
+        Red = color.r;
+        Green = color.g;
+        Blue = color.b;
+    }
+
     public PaletteColor(int red, int green, int blue) {
         Red = red;
         Green = green;
         Blue = blue;
     }
+
+    public Color ToColor() => new(Red / 255f, Green / 255f, Blue / 255f);
 }

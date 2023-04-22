@@ -4,12 +4,15 @@ namespace SRXDCustomVisuals.Plugin;
 
 public class NoteEventController {
     public int Count { get; }
-    
+
+    private VisualsEventManager eventManager;
     private bool[] hits;
     private bool[] holdsBefore;
     private bool[] holdsAfter;
 
-    public NoteEventController(int count) {
+    public NoteEventController(VisualsEventManager eventManager, int count) {
+        this.eventManager = eventManager;
+        
         Count = count;
         hits = new bool[count];
         holdsBefore = new bool[count];
@@ -38,8 +41,8 @@ public class NoteEventController {
     public void Send() {
         for (int i = 0, j = Constants.IndexCount - Count; i < Count; i++, j++) {
             if (hits[i]) {
-                VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, j, Constants.MaxEventValue));
-                VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, j, Constants.MaxEventValue));
+                eventManager.SendEvent(new VisualsEvent(VisualsEventType.On, j, Constants.MaxEventValue));
+                eventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, j, Constants.MaxEventValue));
                 
                 continue;
             }
@@ -48,9 +51,9 @@ public class NoteEventController {
             bool after = holdsAfter[i];
             
             if (!before && after)
-                VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, j, Constants.MaxEventValue));
+                eventManager.SendEvent(new VisualsEvent(VisualsEventType.On, j, Constants.MaxEventValue));
             else if (before && !after)
-                VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, j, Constants.MaxEventValue));
+                eventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, j, Constants.MaxEventValue));
             
             holdsBefore[i] = holdsAfter[i];
         }

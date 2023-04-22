@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using SMU.Utilities;
+using SRXDCustomVisuals.Core;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -52,7 +53,7 @@ public class VisualsBackground {
         instances = new List<GameObject>();
     }
 
-    public void Load(IReadOnlyList<Transform> roots) {
+    public void Load(VisualsEventManager eventManager, VisualsMetadata metadata, IReadOnlyList<Transform> roots) {
         if (loaded)
             return;
         
@@ -94,6 +95,12 @@ public class VisualsBackground {
             instance.transform.localRotation = Quaternion.identity;
             instance.transform.localScale = Vector3.one;
             instances.Add(instance);
+
+            foreach (var handler in instance.GetComponentsInChildren<IVisualsEventHandler>())
+                eventManager.AddHandler(handler);
+
+            foreach (var handler in instance.GetComponentsInChildren<IVisualsMetadataHandler>())
+                handler.ApplyMetadata(metadata);
         }
 
         loaded = true;

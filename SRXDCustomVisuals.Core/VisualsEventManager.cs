@@ -2,31 +2,27 @@
 
 namespace SRXDCustomVisuals.Core; 
 
-public static class VisualsEventManager {
-    private static List<VisualsEventReceiver> receivers = new();
+public class VisualsEventManager {
+    private List<IVisualsEventHandler> handlers = new();
 
-    public static void SendTick(VisualsTick tick) {
-        foreach (var receiver in receivers) {
-            if (receiver != null)
-                receiver.ReceiveTick(tick);
-        }
+    public void SendTick(VisualsTick tick) {
+        foreach (var receiver in handlers)
+            receiver.OnTick(tick);
     }
 
-    public static void SendEvent(VisualsEvent visualsEvent) {
-        foreach (var receiver in receivers) {
-            if (receiver != null)
-                receiver.ReceiveEvent(visualsEvent);
-        }
+    public void SendEvent(VisualsEvent visualsEvent) {
+        foreach (var receiver in handlers)
+            receiver.OnEvent(visualsEvent);
     }
 
-    public static void ResetAll() {
-        foreach (var receiver in receivers) {
-            if (receiver != null)
-                receiver.DoReset();
-        }
+    public void ResetAll() {
+        foreach (var receiver in handlers)
+            receiver.OnReset();
     }
 
-    internal static void AddReceiver(VisualsEventReceiver receiver) => receivers.Add(receiver);
+    public void AddHandler(IVisualsEventHandler handler) => handlers.Add(handler);
 
-    internal static void RemoveReceiver(VisualsEventReceiver receiver) => receivers.Remove(receiver);
+    public void RemoveHandler(IVisualsEventHandler handler) => handlers.Remove(handler);
+
+    public void ClearHandlers() => handlers.Clear();
 }

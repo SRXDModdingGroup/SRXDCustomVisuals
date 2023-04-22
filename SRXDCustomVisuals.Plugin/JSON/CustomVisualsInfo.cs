@@ -5,25 +5,25 @@ namespace SRXDCustomVisuals.Plugin;
 
 public class CustomVisualsInfo {
     [JsonProperty("background")]
-    public string Background { get; set; }
-    
+    public string Background { get; set; } = string.Empty;
+
     [JsonProperty("palette")]
-    public List<PaletteColor> Palette { get; set; }
+    public List<PaletteColor> Palette { get; set; } = new();
+
+    [JsonProperty("customData")]
+    public Dictionary<string, string> CustomData { get; set; } = new();
 
     [JsonProperty("events")]
-    public List<TrackVisualsEvent> Events { get; set; }
+    public List<TrackVisualsEvent> Events { get; set; } = new();
 
     public bool IsEmpty() => string.IsNullOrWhiteSpace(Background) && (Events == null || Events.Count == 0);
 
-    public CustomVisualsInfo() {
-        Background = "";
-        Palette = new List<PaletteColor>();
-        Events = new List<TrackVisualsEvent>();
-    }
+    public CustomVisualsInfo() { }
     
-    public CustomVisualsInfo(string background, List<PaletteColor> palette, List<TrackVisualsEvent> events) {
+    public CustomVisualsInfo(string background, List<PaletteColor> palette, Dictionary<string, string> customData, List<TrackVisualsEvent> events) {
         Background = background;
         Palette = palette;
+        CustomData = customData;
         Events = events;
     }
 }

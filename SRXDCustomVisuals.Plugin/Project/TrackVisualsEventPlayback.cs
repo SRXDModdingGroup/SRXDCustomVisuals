@@ -3,11 +3,14 @@
 namespace SRXDCustomVisuals.Plugin; 
 
 public class TrackVisualsEventPlayback {
+    private VisualsEventManager eventManager;
     private TrackVisualsProject sequence;
     private int[] lastOnOffEventIndexPerColumn;
     private int[] lastControlKeyframeIndexPerColumn;
 
-    public TrackVisualsEventPlayback() {
+    public TrackVisualsEventPlayback(VisualsEventManager eventManager) {
+        this.eventManager = eventManager;
+        
         lastOnOffEventIndexPerColumn = new int[Constants.IndexCount];
         lastControlKeyframeIndexPerColumn = new int[Constants.IndexCount];
         SetSequence(new TrackVisualsProject());
@@ -28,7 +31,7 @@ public class TrackVisualsEventPlayback {
     }
 
     public void Jump(long time) {
-        VisualsEventManager.ResetAll();
+        eventManager.ResetAll();
         JumpOnOffEvents(time);
         
         for (int i = 0; i < lastControlKeyframeIndexPerColumn.Length; i++)
@@ -53,14 +56,14 @@ public class TrackVisualsEventPlayback {
         
                 switch (onOffEvent.Type) {
                     case OnOffEventType.On:
-                        VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, i, onOffEvent.Value));
+                        eventManager.SendEvent(new VisualsEvent(VisualsEventType.On, i, onOffEvent.Value));
                         break;
                     case OnOffEventType.Off:
-                        VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, i, onOffEvent.Value));
+                        eventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, i, onOffEvent.Value));
                         break;
                     case OnOffEventType.OnOff:
-                        VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, i, onOffEvent.Value));
-                        VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, i, onOffEvent.Value));
+                        eventManager.SendEvent(new VisualsEvent(VisualsEventType.On, i, onOffEvent.Value));
+                        eventManager.SendEvent(new VisualsEvent(VisualsEventType.Off, i, onOffEvent.Value));
                         break;
                 }
 
@@ -100,7 +103,7 @@ public class TrackVisualsEventPlayback {
             else
                 value = ControlKeyframe.Interpolate(keyframes[index], keyframes[index + 1], time);
 
-            VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.ControlChange, i, value));
+            eventManager.SendEvent(new VisualsEvent(VisualsEventType.ControlChange, i, value));
             lastControlKeyframeIndexPerColumn[i] = index;
         }
     }
@@ -130,7 +133,7 @@ public class TrackVisualsEventPlayback {
             lastOnOffEventIndexPerColumn[i] = newIndex;
 
             if (eventToSend != null)
-                VisualsEventManager.SendEvent(new VisualsEvent(VisualsEventType.On, i, eventToSend.Value));
+                eventManager.SendEvent(new VisualsEvent(VisualsEventType.On, i, eventToSend.Value));
         }
     }
 }

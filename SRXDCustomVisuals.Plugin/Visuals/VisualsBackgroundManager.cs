@@ -2,6 +2,7 @@
 using System.IO;
 using Newtonsoft.Json;
 using SMU.Utilities;
+using SRXDCustomVisuals.Core;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
@@ -9,16 +10,22 @@ namespace SRXDCustomVisuals.Plugin;
 
 public class VisualsBackgroundManager {
     public VisualsBackground CurrentBackground { get; private set; } = VisualsBackground.Empty;
-    
-    private Dictionary<string, VisualsBackground> backgrounds = new();
 
-    public void LoadBackground(string backgroundName) {
+    private VisualsEventManager eventManager;
+    private Dictionary<string, VisualsBackground> backgrounds = new();
+    
+    public VisualsBackgroundManager(VisualsEventManager eventManager) {
+        this.eventManager = eventManager;
+    }
+
+    public void LoadBackground(string backgroundName, VisualsMetadata metadata) {
         bool backgroundExists = TryGetBackground(backgroundName, out var background);
 
         if (backgroundExists && background == CurrentBackground)
             return;
 
         if (CurrentBackground != VisualsBackground.Empty) {
+            eventManager.ClearHandlers();
             CurrentBackground.Unload();
             CurrentBackground = VisualsBackground.Empty;
         }
@@ -42,7 +49,7 @@ public class VisualsBackgroundManager {
 
         mainCamera.GetUniversalAdditionalCameraData().requiresDepthTexture = background.UseDepthTexture;
         mainCamera.farClipPlane = background.FarClip;
-        background.Load(new[] { null, mainCamera.transform });
+        background.Load(eventManager, metadata, new[] { null, mainCamera.transform });
         CurrentBackground = background;
     }
 
@@ -60,6 +67,7 @@ public class VisualsBackgroundManager {
             return;
         
         ResetCameraSettings();
+        eventManager.ClearHandlers();
         CurrentBackground.Unload();
         CurrentBackground = VisualsBackground.Empty;
     }
